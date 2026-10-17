@@ -1,0 +1,125 @@
+'use strict';
+/** Review M-C: a recorded agent pid is only killed when its process start identity still matches. */
+const cp = require('child_process');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const t = require('./minimal-test-harness.cjs');
+const P = require('../lib/agent-process-registry.cjs');
+
+const sleeper = () => cp.spawn(process.execPath, ['-e', 'setTimeout(()=>{},60000)'], { detached: true, stdio: 'ignore' });
+const alive = (pid) => { try { process.kill(pid, 0); return true; } catch { return false; } };
+const wait = async (fn, ms = 4000) => { const end = Date.now() + ms; while (Date.now() < end) { if (fn()) return true; await new Promise((r) => setTimeout(r, 50)); } return fn(); };
+const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'rig-pidreg-'));
+const unix = process.platform !== 'win32';
+
+t.test('matching start identity: recorded group is killed and the record removed', async () => {
+  const dir = tmp(); const c = sleeper(); c.unref();
+  try {
+    P.recordAgentPid(dir, c.pid);
+    if (unix) t.ok(P.processStartIdentity(c.pid) !== '' && fs.readFileSync(P.pidFile(dir), 'utf8').split('\n')[1] !== '');
+    t.eq(P.killRecordedAgent(dir), true);
+    t.ok(await wait(() => !alive(c.pid)));
+    t.ok(!fs.existsSync(P.pidFile(dir)));
+  } finally { try { process.kill(-c.pid, 'SIGKILL'); } catch { /* gone */ } fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+t.test('pid reuse: a live unrelated process with a different start identity is NOT killed', async () => {
+  if (!unix) return;
+  const dir = tmp(); const c = sleeper(); c.unref();
+  try {
+    fs.writeFileSync(P.pidFile(dir), `${c.pid}\nThu Jan  1 00:00:00 1970\n`); // record from some long-dead process
+    t.eq(P.killRecordedAgent(dir), false);
+    await new Promise((r) => setTimeout(r, 200));
+    t.ok(alive(c.pid), 'unrelated process must survive');
+    t.ok(!fs.existsSync(P.pidFile(dir)), 'stale record is dropped');
+  } finally { try { process.kill(-c.pid, 'SIGKILL'); } catch { /* gone */ } fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+t.test('identity-less record: no live group -> no kill; live group -> group killed (M4)', async () => {
+  if (!unix) return;
+  const dir = tmp(); const c = sleeper(); c.unref();
+  try {
+    fs.writeFileSync(P.pidFile(dir), `${c.pid}\n`);
+    t.eq(P.killRecordedAgent(dir), true); // leader alive and its group exists
+    t.ok(await wait(() => !alive(c.pid)));
+    const dead = cp.spawnSync(process.execPath, ['-e', '0']).pid;
+    fs.writeFileSync(P.pidFile(dir), `${dead}\n`);
+    t.eq(P.killRecordedAgent(dir), false); // nothing there
+  } finally { try { process.kill(-c.pid, 'SIGKILL'); } catch { /* gone */ } fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+t.test('M4: leader dead but group members alive -> group is killed', async () => {
+  if (!unix) return;
+  const dir = tmp();
+  // leader (sh) starts a background sleeper in its own group and exits at once
+  const leader = cp.spawn('sh', ['-c', 'sleep 60 & echo $! ; exit 0'], { detached: true, stdio: ['ignore', 'pipe', 'ignore'] });
+  let kid = 0;
+  try {
+    kid = Number(await new Promise((res) => { let b = ''; leader.stdout.on('data', (d) => { b += d; if (b.includes('\n')) res(b.trim()); }); }));
+    t.ok(await wait(() => leader.exitCode !== null || leader.signalCode !== null));
+    t.ok(alive(kid), 'group member alive');
+    fs.writeFileSync(P.pidFile(dir), `${leader.pid}\nThu Jan  1 00:00:00 1970\n`);
+    t.eq(P.killRecordedAgent(dir), true);
+    t.ok(await wait(() => !alive(kid)), 'surviving group member killed');
+  } finally { try { process.kill(-leader.pid, 'SIGKILL'); } catch { /* gone */ } fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+t.test('M4: start identity is timezone independent (TZ=UTC pinned)', () => {
+  if (!unix) return;
+  const c = sleeper(); c.unref();
+  try {
+    const a = P.processStartIdentity(c.pid);
+    const saved = process.env.TZ;
+    process.env.TZ = 'Pacific/Kiritimati';
+    try { t.eq(P.processStartIdentity(c.pid), a); } finally { if (saved === undefined) delete process.env.TZ; else process.env.TZ = saved; }
+  } finally { try { process.kill(-c.pid, 'SIGKILL'); } catch { /* gone */ } }
+});
+
+t.test('killPidTree rejects invalid pids; dead pid -> false', () => {
+  t.eq(P.killPidTree(1), false);
+  t.eq(P.killPidTree(NaN), false);
+  const c = cp.spawnSync(process.execPath, ['-e', '0']);
+  t.eq(P.killPidTree(c.pid), false);
+});
+
+/** Put a fake `ps` first on PATH. `body` is the shell script; real ps stays reachable as /bin/ps. */
+function withFakePs(body, fn) {
+  const bin = tmp(); const saved = process.env.PATH;
+  fs.writeFileSync(path.join(bin, 'ps'), `#!/bin/sh\n${body}\n`, { mode: 0o755 });
+  process.env.PATH = `${bin}:${saved}`;
+  try { return fn(bin); } finally { process.env.PATH = saved; fs.rmSync(bin, { recursive: true, force: true }); }
+}
+
+t.test('R4-L4: recorded identity + ps failing (non-zero + stderr) -> retried once, still failing -> NO kill', async () => {
+  if (!unix) return;
+  const dir = tmp(); const c = sleeper(); c.unref();
+  try {
+    P.recordAgentPid(dir, c.pid); // real identity recorded
+    const killed = withFakePs('echo "ps: boom" >&2; exit 2', () => P.killRecordedAgent(dir));
+    t.eq(killed, false);
+    await new Promise((r) => setTimeout(r, 200));
+    t.ok(alive(c.pid), 'live group must survive a ps failure');
+  } finally { try { process.kill(-c.pid, 'SIGKILL'); } catch { /* gone */ } fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+t.test('R4-L4: one transient ps failure is retried and the matching identity still kills', async () => {
+  if (!unix) return;
+  const dir = tmp(); const c = sleeper(); c.unref();
+  try {
+    P.recordAgentPid(dir, c.pid);
+    const body = 'f="$0.n"; if [ ! -e "$f" ]; then : > "$f"; echo oops >&2; exit 2; fi; exec /bin/ps "$@"';
+    t.eq(withFakePs(body, () => P.killRecordedAgent(dir)), true);
+    t.ok(await wait(() => !alive(c.pid)));
+  } finally { try { process.kill(-c.pid, 'SIGKILL'); } catch { /* gone */ } fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+t.test('R4-L4: psReading separates a clean "no such process" from a failure', () => {
+  if (!unix) return;
+  const dead = cp.spawnSync(process.execPath, ['-e', '0']).pid;
+  t.eq(P.psReading(dead), { state: 'gone' });
+  t.eq(P.psReading(process.pid).state, 'ok');
+  t.eq(withFakePs('exit 2', () => P.psReading(process.pid)), { state: 'error' });
+});
+
+t.done();

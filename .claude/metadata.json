@@ -1,0 +1,10 @@
+{
+  "version": "1.0.0",
+  "name": "rig",
+  "description": "Rig — an Agentic-Driven Development toolkit for Claude Code: agents, skills, hooks and workflows that plan, build, test and review software.",
+  "buildDate": "2026-10-17T12:00:02.635Z",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hoadh/rig.git"
+  }
+}

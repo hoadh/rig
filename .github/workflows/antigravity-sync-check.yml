@@ -1,0 +1,45 @@
+name: Antigravity Sync Check
+
+# Fails when .agent/ or GEMINI.md no longer match what
+# scripts/sync-antigravity-agent-dir.cjs generates from .claude/ and CLAUDE.md.
+
+on:
+  push:
+    branches: [main]
+  # No path filter, so the check always reports and can be made a required status check.
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: .agent/ matches .claude/
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+
+      - name: Test rewrite rules
+        run: node --test scripts/antigravity/claude-to-antigravity-text-rewrite.test.cjs
+
+      - name: Regenerate .agent/ and GEMINI.md
+        run: node scripts/sync-antigravity-agent-dir.cjs
+
+      - name: Fail on drift
+        run: |
+          drift=$(git status --porcelain -- .agent GEMINI.md)
+          if [ -n "$drift" ]; then
+            echo "$drift"
+            git diff --stat -- .agent GEMINI.md
+            echo "::error::.agent/ or GEMINI.md is out of date. Run 'node scripts/sync-antigravity-agent-dir.cjs' and commit the result."
+            exit 1
+          fi
+          echo "✓ .agent/ and GEMINI.md match .claude/"

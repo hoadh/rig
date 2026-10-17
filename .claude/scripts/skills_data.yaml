@@ -1,0 +1,285 @@
+- argument_hint: '[topic or problem]'
+  category: utilities
+  description: Brainstorm solutions with trade-off analysis and brutal honesty. Use
+    for ideation, architecture decisions, technical debates, feature exploration,
+    feasibility assessment, design discussions.
+  has_references: false
+  has_scripts: false
+  name: brainstorm
+  path: brainstorm/SKILL.md
+- argument_hint: '[url or task]'
+  category: multimedia
+  description: Automate browsers with Puppeteer CLI scripts and persistent sessions.
+    Use for screenshots, performance analysis, network monitoring, web scraping, form
+    automation, JavaScript debugging.
+  has_references: true
+  has_scripts: true
+  name: browser
+  path: browser/SKILL.md
+- argument_hint: '[#PR | COMMIT | --pending | codebase [parallel]]'
+  category: utilities
+  description: 'Review code quality with adversarial rigor. Supports input modes:
+    pending changes, PR number, commit hash, codebase scan. Always-on red-team analysis
+    finds security holes, false assumptions, and failure modes.'
+  has_references: true
+  has_scripts: false
+  name: code-review
+  path: code-review/SKILL.md
+- argument_hint: '[topic or question]'
+  category: other
+  description: Check context usage limits, monitor time remaining, optimize token
+    consumption, debug context failures. Use when asking about context percentage,
+    rate limits, usage warnings, context optimization, agent architectures, memory
+    systems.
+  has_references: true
+  has_scripts: true
+  name: context-engineering
+  path: context-engineering/SKILL.md
+- argument_hint: '[skill-name or description]'
+  category: dev-tools
+  description: Create or update Claude skills with eval-driven iteration. Use for
+    new skills, skill scripts, references, benchmark optimization, description optimization,
+    eval testing, extending Claude's capabilities.
+  has_references: true
+  has_scripts: true
+  name: create-skill
+  path: create-skill/SKILL.md
+- category: other
+  description: 'Write, restructure, classify, and review documentation with the Diataxis
+    framework. Use when the user asks to create, improve, audit, or reorganize documentation
+    of any kind: knowledge bases, help centers, onboarding guides, process docs, manuals,
+    runbooks, product or API docs, tutorials, how-to guides, references, explanations.
+    Also use when the user mentions Diataxis, docs taxonomy, or documentation architecture,
+    or asks why a document feels confusing. Also use for Simplified Technical English
+    (ASD-STE100) or controlled-language rewrites of English technical docs. Not for
+    marketing, legal, sales, press, or fiction writing unless the user wants a Diataxis-style
+    analysis.'
+  has_references: true
+  has_scripts: true
+  name: diataxis-writer
+  path: diataxis-writer/SKILL.md
+- argument_hint: init|update|summarize|restructure
+  category: utilities
+  description: Analyze codebase and manage project documentation — init, update, summarize,
+    restructure (reorganize non-standard docs into the Diataxis layout).
+  has_references: true
+  has_scripts: false
+  name: docs
+  path: docs/SKILL.md
+- argument_hint: '[search-target] [ext]'
+  category: dev-tools
+  description: Explore the codebase fast with parallel agents. Use for file discovery,
+    task context gathering, quick searches across directories. Supports internal (Explore)
+    and external (Gemini CLI) agents.
+  has_references: true
+  has_scripts: false
+  name: explore
+  path: explore/SKILL.md
+- argument_hint: '[issue] --auto|--review|--quick|--parallel'
+  category: utilities
+  description: 'Fix a bug end-to-end: explore, diagnose, apply fix, verify, review.
+    ALWAYS activate this skill before fixing ANY bug, error, test failure, CI/CD issue,
+    type error, lint, log error, UI issue, code problem. For investigation and root-cause
+    analysis only, use /rig:debug.'
+  has_references: true
+  has_scripts: false
+  name: fix
+  path: fix/SKILL.md
+- argument_hint: cm|cp|merge [args]
+  category: dev-tools
+  description: Git operations with conventional commits. Use for staging, committing,
+    pushing, merges. For pull requests use `/rig:pr`. Auto-splits commits by type/scope.
+    Security scans for secrets.
+  has_references: true
+  has_scripts: false
+  name: git
+  path: git/SKILL.md
+- argument_hint: '[task|plan-path] [--interactive|--fast|--parallel|--auto|--no-test]'
+  category: utilities
+  description: 'Implement a feature or plan end-to-end: plan, code, test, review.
+    ALWAYS activate this skill before implementing EVERY feature, plan, or fix.'
+  has_references: true
+  has_scripts: false
+  name: implement
+  path: implement/SKILL.md
+- argument_hint: '[topic or reflection]'
+  category: utilities
+  description: Write devlog entries on recent changes: shipped work, decisions, impact and lessons.
+  has_references: false
+  has_scripts: false
+  name: devlog
+  path: devlog/SKILL.md
+- argument_hint: '[library-name] [topic]'
+  category: dev-tools
+  description: Search library/framework documentation via llms.txt (context7.com).
+    Use for API docs, GitHub repository analysis, technical documentation lookup,
+    latest library features.
+  has_references: true
+  has_scripts: true
+  name: library-docs
+  path: library-docs/SKILL.md
+- argument_hint: '[file-or-directory]'
+  category: other
+  description: View markdown files with calm, book-like reading experience via HTTP
+    server. Use for long-form content, documentation preview, novel reading, report
+    viewing, distraction-free reading.
+  has_references: false
+  has_scripts: true
+  name: markdown-viewer
+  path: markdown-viewer/SKILL.md
+- argument_hint: '[task or server-name]'
+  category: dev-tools
+  description: Manage MCP servers - discover, analyze, execute tools/prompts/resources.
+    Use for MCP integrations, intelligent tool selection, multi-server management,
+    context-efficient capability discovery.
+  has_references: true
+  has_scripts: true
+  name: mcp
+  path: mcp/SKILL.md
+- argument_hint: '[file-path] [prompt]'
+  category: ai-ml
+  description: Analyze images/audio/video with Gemini API (better vision than Claude).
+    Generate images (Imagen 4, Nano Banana 2, MiniMax), videos (Veo 3, Hailuo), speech
+    (MiniMax TTS), music (MiniMax). Use for vision analysis, transcription, OCR, design
+    extraction, multimodal AI.
+  has_references: true
+  has_scripts: true
+  name: media
+  path: media/SKILL.md
+- argument_hint: '[diagram-type or description]'
+  category: other
+  description: Create diagrams with Mermaid.js v11 syntax. Use for flowcharts, sequence
+    diagrams, class diagrams, ER diagrams, Gantt charts, state diagrams, architecture
+    diagrams, timelines, user journeys.
+  has_references: true
+  has_scripts: false
+  name: mermaidjs-v11
+  path: mermaidjs-v11/SKILL.md
+- argument_hint: '[official|beta] [--skip-tests] [--skip-review] [--skip-devlog]
+    [--skip-docs] [--dry-run]'
+  category: dev-tools
+  description: 'Open a pull request in one command: merge main, test, review, commit,
+    push, PR. Single command from feature branch to PR URL. Use for shipping official
+    releases to main/master or beta releases to dev/beta branches.'
+  has_references: true
+  has_scripts: false
+  name: pr
+  path: pr/SKILL.md
+- argument_hint: '[problem description]'
+  category: utilities
+  description: Apply systematic problem-solving techniques when stuck. Use for complexity
+    spirals, innovation blocks, recurring patterns, assumption constraints, simplification
+    cascades, scale uncertainty.
+  has_references: true
+  has_scripts: false
+  name: problem-solving
+  path: problem-solving/SKILL.md
+- argument_hint: '[task: status, hydrate, sync, report]'
+  category: utilities
+  description: Track progress, update plan statuses, manage Claude Tasks, generate
+    reports, coordinate docs updates. Use for project oversight, status checks, plan
+    completion, task hydration, cross-session continuity.
+  has_references: true
+  has_scripts: false
+  name: progress
+  path: progress/SKILL.md
+- argument_hint: '[directories or files to organize]'
+  category: other
+  description: Organize files, directories, and content structure in any project.
+    Use when creating files, determining output paths, organizing existing assets,
+    or standardizing project layout.
+  has_references: true
+  has_scripts: false
+  name: project-organization
+  path: project-organization/SKILL.md
+- argument_hint: '[topic]'
+  category: utilities
+  description: Research technical solutions, analyze architectures, gather requirements
+    thoroughly. Use for technology evaluation, best practices research, solution design,
+    scalability/security/maintainability analysis.
+  has_references: false
+  has_scripts: false
+  name: research
+  path: research/SKILL.md
+- argument_hint: '[error or issue description]'
+  category: utilities
+  description: Investigate and find the root cause before any fix (use /rig:fix for
+    the full fix workflow). Use for bugs, test failures, unexpected behavior, performance
+    issues, call stack tracing, multi-layer validation, log analysis, CI/CD failures,
+    database diagnostics, system investigation.
+  has_references: true
+  has_scripts: true
+  name: rig-debug
+  path: rig-debug/SKILL.md
+- argument_hint: '[task] OR [archive|red-team|validate]'
+  category: other
+  description: Plan implementations, design architectures, create technical roadmaps
+    with detailed phases. Use for feature planning, system design, solution architecture,
+    implementation strategy, phase documentation.
+  has_references: true
+  has_scripts: false
+  name: rig-plan
+  path: rig-plan/SKILL.md
+- argument_hint: '[problem to analyze step-by-step]'
+  category: utilities
+  description: Apply step-by-step analysis for complex problems with revision capability.
+    Use for multi-step reasoning, hypothesis verification, adaptive planning, problem
+    decomposition, course correction.
+  has_references: true
+  has_scripts: true
+  name: sequential-thinking
+  path: sequential-thinking/SKILL.md
+- argument_hint: <template> <context> [--devs|--researchers|--reviewers N] [--delegate]
+  category: dev-tools
+  description: Orchestrate Agent Teams for parallel multi-session collaboration. Use
+    for research, implementation, review, and debug workflows requiring independent
+    teammates.
+  has_references: true
+  has_scripts: false
+  name: team
+  path: team/SKILL.md
+- argument_hint: '[context] OR ui [url]'
+  category: utilities
+  description: Run unit, integration, e2e, and UI tests. Use for test execution, coverage
+    analysis, build verification, visual regression, and QA reports.
+  has_references: true
+  has_scripts: false
+  name: test
+  path: test/SKILL.md
+- category: frontend
+  description: 'UI/UX design intelligence for web, mobile, and desktop. This skill
+    should be used when designing, building, reviewing, or fixing interfaces, including
+    pages, components, design systems, accessibility, interaction, responsive layout,
+    typography, color, charts, and stack-specific UI implementation. Searchable local
+    data: 79 searchable styles (50 active), 192 product palettes and reasoning profiles,
+    74 font pairings, 119 UX guidelines, 105 icons, 17 GSAP presets, 25 chart types,
+    and 22 stacks.'
+  has_references: true
+  has_scripts: true
+  name: ui-design
+  path: ui-design/SKILL.md
+- argument_hint: '[component or layout]'
+  category: frontend
+  description: Style UIs with shadcn/ui components (Radix UI + Tailwind CSS). Use
+    for accessible components, themes, dark mode, responsive layouts, design systems,
+    color customization.
+  has_references: true
+  has_scripts: true
+  name: ui-styling
+  path: ui-styling/SKILL.md
+- argument_hint: '[path] OR [--html] --explain|--slides|--diagram|--ascii [topic]
+    OR --html --diff|--plan-review|--recap'
+  category: utilities
+  description: View files/directories OR generate visual explanations, slides, diagrams
+    (Markdown or self-contained HTML).
+  has_references: true
+  has_scripts: false
+  name: visualize
+  path: visualize/SKILL.md
+- argument_hint: '[feature-description] OR [project] [feature]'
+  category: dev-tools
+  description: Create isolated git worktree for parallel development in monorepos.
+  has_references: false
+  has_scripts: true
+  name: worktree
+  path: worktree/SKILL.md
