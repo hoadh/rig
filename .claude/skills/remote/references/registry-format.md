@@ -8,6 +8,8 @@ File: `~/.claude/rig-machines.json` on the orchestrator (override: `RIG_MACHINES
 
 `<id>` is the machine's `RIG_MACHINE` (`^[a-z0-9][a-z0-9-]{0,31}$`: lowercase letters, digits, `-`; no `_`).
 
+Prefer `remote.cjs register <id> --ssh ... --os ... --repo ...` over hand editing: it validates the entry (and the whole existing file) and writes atomically.
+
 ## Keys
 
 | Key | Req | Meaning |
@@ -40,6 +42,8 @@ Baseline for every agent: `Read Edit Write Glob Grep` plus `Bash(git add|commit|
 The hash of the clone's git config/hooks/info, `objects/info/alternates`, AND the user-level git config (`~/.gitconfig`, `~/.config/git/config`, `$XDG_CONFIG_HOME/git/config` when set, plus every file reachable through `path` keys of `[include]`/`[includeIf "..."]` sections, found textually and recursively regardless of the condition (so `hasconfig:`/`onbranch:` targets count and the hash does not depend on HEAD); files are hashed in full; more than 64 extra files fails the run (`prepare`, no quarantine); `~user/` paths hash as an `unresolvable` marker; a missing file counts as a stable marker; the launcher always hands `XDG_CONFIG_HOME` (empty = unset) to the runner so both hash the same set) is stored OUTSIDE the clone (`~/.rig/git-baseline-<hash>.json`). After creating (or re-cloning) and inspecting the dedicated clone, record it on that machine:
 
 `node <skill>/scripts/worker.cjs baseline --repo <clone path>`
+
+Or let the orchestrator do it: `remote.cjs setup <machine>` creates a missing clone (`git clone --no-local` of the orchestrator's origin, credentials stripped) and records the baseline; for an existing clone it records one only with `--accept-existing-clone` (after you inspected it).
 
 This also works over plain ssh with no stdin (`ssh <host> node <skill>/scripts/worker.cjs baseline --repo <clone path>`): an empty non-TTY stdin is treated as a manual run.
 

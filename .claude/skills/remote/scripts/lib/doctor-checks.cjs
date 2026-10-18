@@ -4,8 +4,10 @@
  * No I/O here so every rule is unit-testable.
  * input: {name, cfg, boot:{ssh:{ok,detail}, node:{ok,detail}, claude:{ok,detail}}|null,
  *         info, facts, push:{ok,detail}|null, orch:{protocol, rigVersion, hash, originUrl}}
+ * Every non-ok check carries `fix` (one concrete next step, see doctor-fix-hints) when one is known.
  */
 const { stripUrlCredentials } = require('./secret-redaction.cjs');
+const { fixHint } = require('./doctor-fix-hints.cjs');
 
 const ok = (id, msg) => ({ id, status: 'ok', msg });
 const warn = (id, msg) => ({ id, status: 'warn', msg });
@@ -38,6 +40,7 @@ function workerChecks({ name, cfg, info, facts, push, orch }) {
   out.push(id.name && id.email ? ok('git-identity', `${id.name} <${id.email}>`) : fail('git-identity', 'git user.name/user.email not set in worker clone'));
   out.push(push ? result('push-detached', push, 'dry-run push from detached run') : warn('push-detached', 'push probe skipped'));
   out.push(repoCheck(facts.repo, orch.originUrl));
+  if (facts.repo.isGit) out.push(baselineCheck(facts.repo));
   if (cfg.os === 'windows' && cfg.taskMode !== 'interactive' && /^https?:/i.test(String(facts.repo.originUrl || ''))) {
     out.push(warn('headless-https', 'headless (default) tasks may lack Credential Manager creds for an https origin; use an ssh key remote (taskMode: interactive is only needed for GUI work)'));
   }
@@ -56,6 +59,18 @@ function repoCheck(repo, orchOrigin) {
   return repo.clean === false ? warn('repo', 'worker clone has uncommitted changes (next run resets it)') : ok('repo', 'clone ok, origin matches');
 }
 
+/** Known-good git baseline of the clone: without it every run fails `failed:prepare`. */
+function baselineCheck(repo) {
+  if (repo.quarantined) return fail('baseline', 'clone is quarantined (git config/hooks were tampered with)');
+  switch (repo.baseline) {
+    case 'match': return ok('baseline', 'known-good git baseline matches');
+    case 'missing': return fail('baseline', 'no known-good git baseline recorded (runs fail failed:prepare)');
+    case 'mismatch': return fail('baseline', 'git config/hooks/info differ from the baseline (runs fail hooks-tampered)');
+    case undefined: return warn('baseline', 'not reported (worker Rig is older)');
+    default: return warn('baseline', `could not verify: ${repo.baseline}`);
+  }
+}
+
 function versionCheck(wVer, oVer, wHash, oHash) {
   if (wVer !== oVer) return warn('rig-version', `version drift: worker ${wVer} vs ${oVer}`);
   return wHash === oHash ? ok('rig-version', `${wVer}, scripts identical`) : fail('rig-version', `same version ${wVer} but scripts differ (tampered or half-updated install)`);
@@ -64,10 +79,18 @@ function versionCheck(wVer, oVer, wHash, oHash) {
 /** @returns {Array<{id,status,msg}>} */
 function evaluateMachine(input) {
   const boot = bootstrapChecks(input);
-  if (boot.some((c) => c.status === 'fail') || !input.info || !input.facts) return boot;
-  return [...boot, ...workerChecks(input)];
+  const checks = boot.some((c) => c.status === 'fail') || !input.info || !input.facts ? boot : [...boot, ...workerChecks(input)];
+  return withFixHints(checks, input);
+}
+
+/** Attach `fix` to non-ok checks (also used for doctor's catch-all `reach` line). */
+function withFixHints(checks, { name, cfg }) {
+  return checks.map((c) => {
+    const fix = cfg ? fixHint(c, { name, cfg }) : null;
+    return fix ? { ...c, fix } : c;
+  });
 }
 
 const hasFailure = (checks) => checks.some((c) => c.status === 'fail');
 
-module.exports = { evaluateMachine, normalizeOrigin, hasFailure };
+module.exports = { evaluateMachine, withFixHints, normalizeOrigin, hasFailure };

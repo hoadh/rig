@@ -10,6 +10,8 @@ const os = require('os');
 const { stripUrlCredentials } = require('./secret-redaction.cjs');
 const R = require('./run-directory.cjs');
 const { scriptsIntegrityHash } = require('./skill-scripts-integrity-hash.cjs');
+const { verifyKnownGoodBaseline } = require('./hardened-git-config-env.cjs');
+const { isQuarantined } = require('./git-control-files-integrity.cjs');
 
 const OLD_RUN_MS = 14 * 24 * 3600 * 1000;
 const sh = (cmd, args, opts = {}) => execFileSync(cmd, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 15000, windowsHide: true, ...opts }).trim();
@@ -33,6 +35,8 @@ function repoFacts(repo) {
     clean: tryOr(() => sh('git', ['-C', repo, 'status', '--porcelain']) === '', null),
     originUrl: tryOr(() => stripUrlCredentials(sh('git', ['-C', repo, 'remote', 'get-url', 'origin']))),
     identity: { name: tryOr(() => sh('git', ['-C', repo, 'config', 'user.name'])), email: tryOr(() => sh('git', ['-C', repo, 'config', 'user.email'])) },
+    baseline: tryOr(() => verifyKnownGoodBaseline(repo).status, 'error'), // match | missing | mismatch
+    quarantined: tryOr(() => isQuarantined(repo), false),
   };
 }
 

@@ -57,6 +57,7 @@ Runs plan phases and test commands on macOS, Windows and Linux workers over ssh.
 | rig:remote: per-argument PreToolUse guard | Deferred | Low priority; see ADR 0002 threat model |
 | rig:remote: `collect` opens a pull request | Not started | Use `/rig:pr` afterwards for now |
 | rig:remote: enforce a dedicated worker OS user | Not started | Recommended in v1, not enforced |
+| rig:remote: guided worker setup (`register`, `setup`, doctor `fix:` hints) | Done (Unreleased) | Installing Rig, ssh keys and claude login stay manual |
 
 ---
 

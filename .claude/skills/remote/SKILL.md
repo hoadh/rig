@@ -1,7 +1,7 @@
 ---
 name: rig:remote
 description: "Run commands and plan phases on other machines (Mac, Linux, Windows) over ssh: dispatch a phase to a worker agent, track it, review, collect and merge. Use for multi-machine plans or running tests on another OS."
-argument-hint: "doctor|run|dispatch|status|cancel|collect|takeover|review [args]"
+argument-hint: "register|setup|doctor|run|dispatch|status|cancel|collect|takeover|review [args]"
 metadata:
   author: rig
   version: "1.0.0"
@@ -19,6 +19,10 @@ One orchestrator machine owns a plan. Other machines (workers) run either a test
 - Key-based non-interactive ssh to each worker; `claude` logged in (or a token available to the service user) on workers that run agents.
 - Machine ids come from `RIG_MACHINE` (else lowercased hostname). Plan dir basename = slug.
 
+## Worker setup (stage 1, before /rig:plan)
+
+`register` each worker, then `setup` until it prints `setup: ok`, then `machines`. Follow `references/worker-setup-guide.md` (ask the user for machine details, run, read `fix:` lines, repeat). Never auto-accept an existing clone: pass `--accept-existing-clone` only after the user inspected it.
+
 ## Script path
 
 Use the project copy when present, else the global one:
@@ -32,6 +36,8 @@ node ~/.claude/skills/remote/scripts/remote.cjs <cmd> [args]
 
 | Command | Purpose |
 |---|---|
+| `register <machine> --ssh user@host --os linux\|macos\|windows --repo <abs clone> [--shell] [--node] [--claude] [--path-prepend "A;B"] [--allowed-tools "T1 T2"] [--task-mode] [--replace]` | Add/replace ONE validated registry entry (atomic write, refuses secrets/invalid entries). Local, no ssh. |
+| `setup <machine...> [--accept-existing-clone] [--git-name n --git-email e]` | Stage 1 per worker: ssh/node/claude probe, Rig protocol, create the dedicated clone of this repo's origin + record its baseline, then `doctor`. Prints a `fix:` line per problem. Idempotent. |
 | `machines [--json]` | List this machine's id and registry machines (id, os, shell, allowedTools). Local, no ssh; used by `/rig:plan`. |
 | `doctor [machine...] [--json]` | Read-only health check (ssh, node, git, claude, push credentials, protocol). Run first. |
 | `run <machine> [--ref sha] [--detach] [--timeout s] -- <cmd>` | Command at an immutable sha in the worker's separate test clone (`<repo>-rig-test`). Exit 0/1 mirrors the command. |
@@ -68,6 +74,7 @@ Scheduled tasks default to `taskMode: headless` (S4U logon): no desktop, started
 
 ## References
 
+- `references/worker-setup-guide.md` - guided stage-1 setup: register, setup, fix loop
 - `references/registry-format.md` - registry schema and examples
 - `references/remote-implement-workflow.md` - orchestrator loop for `/rig:implement`
 - `references/worker-hooks-and-settings.md` - project hooks on workers, `--settings`

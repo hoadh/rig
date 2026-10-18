@@ -19,17 +19,24 @@ Recommended: a dedicated OS user per worker. It is the only boundary that holds 
 
 ### One-time baseline per worker clone
 
-After you create or re-clone a worker's dedicated clone, inspect it and record a baseline on that worker:
+Every worker clone needs a recorded known-good baseline. `setup` (step 2) creates a missing clone and records it for you. For a clone you made yourself, inspect it, then either run `setup <id> --accept-existing-clone` or record it on that worker:
 
 ```bash
 node ~/.claude/skills/remote/scripts/worker.cjs baseline --repo /path/to/dedicated/clone
 ```
 
-Until a baseline exists, every agent run and every `run` command fails with `failed:prepare`. Run it again after you intentionally change global git config on that worker, or runs fail `hooks-tampered`.
+Until a baseline exists, every agent run and every `run` command fails with `failed:prepare`. Record it again after you intentionally change global git config on that worker, or runs fail `hooks-tampered`.
 
 ## 1. Register machines
 
-On the orchestrator, create `~/.claude/rig-machines.json` (override path with `RIG_MACHINES_FILE`). Ids match `RIG_MACHINE` on each machine, or the lowercased hostname if unset.
+On the orchestrator, add each worker with `register` (validates the entry, writes `~/.claude/rig-machines.json` atomically; override path with `RIG_MACHINES_FILE`). Ids match `RIG_MACHINE` on each machine, or the lowercased hostname if unset.
+
+```bash
+node .claude/skills/remote/scripts/remote.cjs register linux --ssh rig@linux --os linux \
+  --repo /home/rig/app --node /usr/bin/node --allowed-tools "Bash(npm test:*)"
+```
+
+`--replace` overwrites an existing id. The resulting file (you can also edit it by hand):
 
 ```json
 {
@@ -50,14 +57,27 @@ On the orchestrator, create `~/.claude/rig-machines.json` (override path with `R
 
 Full key table: [registry format](../../.claude/skills/remote/references/registry-format.md). Never put tokens or passwords here; keys named like secrets are rejected.
 
-## 2. Health check
+## 2. Set up and check
+
+`setup` prepares each worker and then runs `doctor`. It checks ssh, node and claude, checks that Rig on the worker speaks the same protocol, creates the dedicated clone of this repo's `origin` if it is missing (credentials stripped from the URL), and records the baseline. Every problem prints a `fix:` line. Rerun it until it prints `setup: ok`.
+
+```bash
+node .claude/skills/remote/scripts/remote.cjs setup linux waso
+node .claude/skills/remote/scripts/remote.cjs setup linux --git-name "Rig linux" --git-email rig-linux@example.com
+node .claude/skills/remote/scripts/remote.cjs setup waso --accept-existing-clone   # only after inspecting an existing clone
+node .claude/skills/remote/scripts/remote.cjs machines                             # what /rig:plan will offer
+```
+
+`setup` never overwrites anything. It refuses a non-git directory, a dirty clone, a clone with a different origin, and a quarantined clone. Installing Rig, ssh keys, host keys and the claude login stay manual, and the `fix:` lines give the exact commands. Guided flow: [worker setup guide](../../.claude/skills/remote/references/worker-setup-guide.md).
+
+Health check only (read-only):
 
 ```bash
 node .claude/skills/remote/scripts/remote.cjs doctor              # all registered machines
 node .claude/skills/remote/scripts/remote.cjs doctor waso --json  # one machine, parseable output
 ```
 
-Fix every `fail` before dispatching. `warn` is informational (for example, Windows S4U credential access). Run `doctor` from each machine that will orchestrate.
+Fix every `fail` before dispatching (each one prints a `fix:` hint in text output). `warn` is informational (for example, Windows S4U credential access). Run `doctor` from each machine that will orchestrate.
 
 ## 3. Mark phases in the plan
 
@@ -184,7 +204,7 @@ Run failure classes to check in the report:
 | `failed:hooks-tampered` | Clone git config/hooks changed | Inspect, re-clone, re-run `baseline` |
 | `failed:push` | Push rejected or credential problem | Ask the user; never auto-retry |
 | `failed:not-started` | Windows interactive task, no user logged on | Log on, or use `headless` |
-| `failed:prepare` | Missing `baseline` or quarantined clone | Run `baseline` on that clone |
+| `failed:prepare` | Missing `baseline` or quarantined clone | `setup <id>` (`--accept-existing-clone` after inspection), or `baseline` on that clone |
 | `lost` | No heartbeat for 90 s (reboot, kill) | Read the report, then re-dispatch (new run id) |
 
 Hooks on workers can deny tool calls such as reads of `.env`. A headless run cannot answer the prompt, so access is denied. Keep secrets in the worker environment, and see [worker hooks and settings](../../.claude/skills/remote/references/worker-hooks-and-settings.md).

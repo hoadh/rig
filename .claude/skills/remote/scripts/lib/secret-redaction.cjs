@@ -40,13 +40,14 @@ function redactText(input) {
 
 /**
  * Remove credentials from a URL for display. http(s): any userinfo goes
- * (token-only `https://TOKEN@host` is common); other schemes: only `user:pass`
- * (`ssh://git@host` carries no secret and stays).
+ * (token-only `https://TOKEN@host` is common); other schemes: only the `:pass` part
+ * (`ssh://git@host` carries no secret and stays; `ssh://git:pw@host` -> `ssh://git@host`).
  */
 function stripUrlCredentials(url) {
-  return String(url).replace(/^([a-z][a-z0-9+.-]*:\/\/)([^/@]*)@/i, (m, scheme, userinfo) => {
-    const http = /^https?:\/\//i.test(scheme);
-    return http || userinfo.includes(':') ? scheme : m;
+  // userinfo runs to the LAST '@' before the first '/': a raw '@' inside a password must not leak its tail
+  return String(url).replace(/^([a-z][a-z0-9+.-]*:\/\/)([^/]*)@/i, (m, scheme, userinfo) => {
+    if (/^https?:\/\//i.test(scheme)) return scheme;
+    return userinfo.includes(':') ? `${scheme}${userinfo.slice(0, userinfo.indexOf(':'))}@` : m;
   });
 }
 

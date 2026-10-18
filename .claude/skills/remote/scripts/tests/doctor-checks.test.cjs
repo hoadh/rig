@@ -43,4 +43,27 @@ t.test('windows headless + https origin warns; interactive does not; no creds le
   t.ok(!win({ taskMode: 'interactive' }).some((c) => c.id === 'headless-https'));
   t.ok(!JSON.stringify(D.evaluateMachine(input({ facts: facts({ repo: { ...facts().repo, originUrl: 'https://tok:secret@evil/x.git' } }) }))).includes('secret'));
 });
+t.test('baseline check: match ok, missing/mismatch/quarantined fail with a setup fix, older worker warns', () => {
+  const withRepo = (over) => { const f = facts(); f.repo = { ...f.repo, ...over }; return D.evaluateMachine(input({ cfg: { os: 'linux', ssh: 'rig@m', repo: '/r' }, facts: f })); };
+  t.eq(status(withRepo({ baseline: 'match' }), 'baseline'), 'ok');
+  for (const over of [{ baseline: 'missing' }, { baseline: 'mismatch' }, { baseline: 'match', quarantined: true }]) {
+    const c = withRepo(over).find((x) => x.id === 'baseline');
+    t.eq(c.status, 'fail', JSON.stringify(over));
+    t.ok(/remote\.cjs setup m/.test(c.fix), c.fix);
+  }
+  t.eq(status(withRepo({}), 'baseline'), 'warn');
+});
+t.test('fix hints: ssh cause-specific, ok checks have none, missing node points at an abs path', () => {
+  const cfg = { os: 'linux', ssh: 'rig@m', repo: '/r' };
+  const sshFail = (detail) => D.evaluateMachine(input({ cfg, boot: { ...boot, ssh: { ok: false, detail } }, info: null, facts: null })).find((c) => c.id === 'ssh').fix;
+  t.ok(sshFail('Permission denied (publickey)').includes('ssh-copy-id rig@m'));
+  t.ok(sshFail('Host key verification failed.').includes('interactively'));
+  t.ok(D.evaluateMachine(input({ cfg })).filter((c) => c.status === 'ok').every((c) => !c.fix));
+  const node = D.evaluateMachine(input({ cfg, boot: { ...boot, node: { ok: false, detail: 'x' } }, info: null, facts: null })).find((c) => c.id === 'node');
+  t.ok(node.fix.includes('"node"') && node.fix.includes('command -v node'), node.fix);
+  const win = D.evaluateMachine(input({ cfg: { ...cfg, os: 'windows' }, boot: { ...boot, node: { ok: false, detail: 'x' } }, info: null, facts: null })).find((c) => c.id === 'node');
+  t.ok(win.fix.includes('where.exe node'), win.fix);
+  const reach = D.withFixHints([{ id: 'reach', status: 'fail', msg: 'm: worker command not found on the machine' }], { name: 'm', cfg })[0];
+  t.ok(reach.fix.includes('install-kit-from-local-repo.cjs --global'), reach.fix);
+});
 t.done();

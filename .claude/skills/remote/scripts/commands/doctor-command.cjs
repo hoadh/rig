@@ -14,7 +14,7 @@ const { scriptsIntegrityHash } = require('../lib/skill-scripts-integrity-hash.cj
 const { git } = require('../lib/rig-local-worktree.cjs');
 const { newRunId } = require('../lib/run-directory.cjs');
 const { bootstrapProbe } = require('../lib/doctor-bootstrap-probe.cjs');
-const { evaluateMachine, hasFailure } = require('../lib/doctor-checks.cjs');
+const { evaluateMachine, withFixHints, hasFailure } = require('../lib/doctor-checks.cjs');
 const { readRigVersion } = require('../worker-commands/info-command.cjs');
 
 const PUSH_PROBE_MAX_MS = 60_000;
@@ -44,7 +44,8 @@ async function checkMachine(name, orch, client) {
     }
     return { machine: name, checks: evaluateMachine(input) };
   } catch (e) {
-    return { machine: name, checks: [...(input.boot ? evaluateMachine({ ...input, info: null }) : []), { id: 'reach', status: 'fail', msg: String(e.message).split('\n')[0].slice(0, 300) }] };
+    const reach = { id: 'reach', status: 'fail', msg: String(e.message).split('\n')[0].slice(0, 300) };
+    return { machine: name, checks: [...(input.boot ? evaluateMachine({ ...input, info: null }) : []), ...withFixHints([reach], input)] };
   }
 }
 
@@ -52,7 +53,7 @@ async function run(argv, ctx = {}) {
   const { flags, positional } = parseFlags(argv, { '--json': 'bool' });
   const reg = loadRegistry();
   const names = positional.length ? positional.map((n) => V.assertMachineName(n, 'machine')) : Object.keys(reg.machines);
-  if (!names.length) throw usageError('no machines in registry; create ~/.claude/rig-machines.json');
+  if (!names.length) throw usageError('no machines in registry', 'add one with `remote.cjs register <id> --ssh user@host --os linux --repo /abs/clone`');
   const client = ctx.client || { ...require('../lib/orchestrator-run-client.cjs'), ...require('../lib/ssh-transport.cjs') };
   const head = git(process.cwd(), ['ls-remote', 'origin', 'HEAD'], { timeoutMs: 30000 });
   const origin = git(process.cwd(), ['remote', 'get-url', 'origin']);
@@ -64,7 +65,10 @@ async function run(argv, ctx = {}) {
   else {
     for (const r of results) {
       process.stdout.write(`${r.machine}\n`);
-      for (const c of r.checks) process.stdout.write(`  ${c.status.toUpperCase().padEnd(4)} ${c.id.padEnd(16)} ${c.msg}\n`);
+      for (const c of r.checks) {
+        process.stdout.write(`  ${c.status.toUpperCase().padEnd(4)} ${c.id.padEnd(16)} ${c.msg}\n`);
+        if (c.fix) process.stdout.write(`       fix: ${c.fix}\n`);
+      }
     }
     process.stdout.write(failed ? 'doctor: FAIL\n' : 'doctor: ok\n');
   }

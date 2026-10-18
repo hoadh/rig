@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Features
+
+* **rig:remote worker setup:** `remote.cjs register <id> --ssh --os --repo ...` adds one validated registry entry (atomic write, secret keys rejected). `remote.cjs setup <id...>` prepares stage 1 on each worker: ssh/node/claude probe, Rig protocol check, creation of the dedicated clone from the orchestrator's origin (credentials stripped), baseline recording (`--accept-existing-clone` for clones made by hand) and git identity (`--git-name/--git-email`), then `doctor`. New worker command `prepare`. Guided flow in `references/worker-setup-guide.md`.
+* **rig:remote doctor:** new `baseline` check (missing, mismatched or quarantined clone), and a `fix:` line with a concrete next step under every failed or warned check.
+
+### Fixes
+
+* **rig:remote:** `stripUrlCredentials` no longer leaks the tail of a password that contains a raw `@` (`https://u:p@ss@host`), and keeps the user of `ssh://user:pw@host` (drops only the password).
+
 ## 1.0.0 (2026-10-17)
 
 First release of Rig, an Agentic-Driven Development toolkit for Claude Code.

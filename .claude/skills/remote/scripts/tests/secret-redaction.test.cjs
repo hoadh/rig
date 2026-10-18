@@ -32,7 +32,9 @@ t.test('stripUrlCredentials', () => {
   t.eq(stripUrlCredentials('https://user:pw@github.com/a/b.git'), 'https://github.com/a/b.git');
   t.eq(stripUrlCredentials('https://TOKEN@github.com/a/b.git'), 'https://github.com/a/b.git');
   t.eq(stripUrlCredentials('ssh://git@github.com/a/b.git'), 'ssh://git@github.com/a/b.git');
-  t.eq(stripUrlCredentials('ssh://u:p@h/x'), 'ssh://h/x');
+  t.eq(stripUrlCredentials('ssh://u:p@h/x'), 'ssh://u@h/x');
+  t.eq(stripUrlCredentials('https://u:p@ss@host/x'), 'https://host/x', 'raw @ in password');
+  t.eq(stripUrlCredentials('ssh://u:p@ss@host/x'), 'ssh://u@host/x');
   t.eq(stripUrlCredentials('/local/path'), '/local/path');
 });
 

@@ -78,7 +78,7 @@ function loadRegistry() {
   } catch (e) {
     throw new RemoteError(`cannot read machine registry ${file}: ${e.code || e.message}`, EXIT.USAGE, {
       class: 'registry-missing',
-      hint: 'create it, or point RIG_MACHINES_FILE at one (see skill remote docs)',
+      hint: 'add a machine with `remote.cjs register <id> --ssh user@host --os linux --repo /abs/clone`, or point RIG_MACHINES_FILE at a registry',
     });
   }
   let data;
