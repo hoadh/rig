@@ -89,7 +89,6 @@ TaskCreate(
   metadata: {
     phase: 1,
     priority: "P1",
-    effort: "2h",
     planDir: "plans/260205-auth/",
     phaseFile: "phase-01-setup.md"
   }
@@ -107,7 +106,6 @@ TaskCreate(
     phase: 3,
     step: "3.4",
     priority: "P1",
-    effort: "1.5h",
     planDir: "plans/260205-auth/",
     phaseFile: "phase-03-api.md",
     critical: true,
@@ -356,7 +354,6 @@ title: Feature name
 description: Brief description
 status: in-progress  # pending | in-progress | completed
 priority: P1
-effort: medium
 branch: feature-branch
 tags: [auth, api]
 created: 2026-02-05
@@ -393,7 +390,6 @@ created: 2026-02-05
 
 - `phase`: Phase number
 - `priority`: P1/P2/P3
-- `effort`: Estimated time
 - `planDir`: Path to plan directory
 - `phaseFile`: Phase file name
 

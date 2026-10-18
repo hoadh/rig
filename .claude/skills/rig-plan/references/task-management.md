@@ -52,7 +52,7 @@ TaskCreate(
   subject: "Setup environment and dependencies",
   activeForm: "Setting up environment",
   description: "Install packages, configure env, setup database. See phase-01-setup.md",
-  metadata: { phase: 1, priority: "P1", effort: "2h",
+  metadata: { phase: 1, priority: "P1",
               planDir: "plans/260205-auth/", phaseFile: "phase-01-setup.md" }
 )
 ```
@@ -66,7 +66,7 @@ TaskCreate(
   subject: "Implement OAuth2 token refresh",
   activeForm: "Implementing token refresh",
   description: "Handle token expiry, refresh flow, error recovery",
-  metadata: { phase: 3, step: "3.4", priority: "P1", effort: "1.5h",
+  metadata: { phase: 3, step: "3.4", priority: "P1",
               planDir: "plans/260205-auth/", phaseFile: "phase-03-api.md",
               critical: true, riskLevel: "high" },
   addBlockedBy: ["{phase-2-task-id}"]
@@ -75,7 +75,7 @@ TaskCreate(
 
 ## Metadata & Naming Conventions
 
-**Required metadata:** `phase`, `priority` (P1/P2/P3), `effort`, `planDir`, `phaseFile`
+**Required metadata:** `phase`, `priority` (P1/P2/P3), `planDir`, `phaseFile`
 **Optional metadata:** `step`, `critical`, `riskLevel`, `dependencies`
 
 **subject** (imperative): Action verb + deliverable, <60 chars
@@ -129,6 +129,6 @@ Use `addBlocks` when creating parent first ("X blocks these children").
 After task hydration, verify:
 - Dependency chain has no cycles
 - All phases have corresponding tasks
-- Required metadata fields present (phase, priority, effort, planDir, phaseFile)
+- Required metadata fields present (phase, priority, planDir, phaseFile)
 - Task count matches unchecked `[ ]` items in plan files
 - Output: `✓ Hydrated [N] phase tasks + [M] critical step tasks with dependency chain`

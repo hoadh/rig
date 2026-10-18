@@ -164,7 +164,7 @@ Load: `references/task-management.md` for hydration pattern, TaskCreate patterns
 1. Write plan.md + phase files (persistent layer)
 2. TaskCreate per phase with `addBlockedBy` chain (skip if Task tools unavailable)
 3. TaskCreate for critical/high-risk steps within phases (skip if Task tools unavailable)
-4. Metadata: phase, priority, effort, planDir, phaseFile
+4. Metadata: phase, priority, planDir, phaseFile
 5. Implement picks up via TaskList (same session) or re-hydrates (new session)
 
 ## Active Plan State

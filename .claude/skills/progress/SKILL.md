@@ -40,7 +40,7 @@ Project oversight and coordination using Claude native Tasks with persistent pla
 Load: `references/task-operations.md`
 
 Use `TaskCreate`, `TaskUpdate`, `TaskGet`, `TaskList` to manage session-scoped tasks (CLI only; see Tool Availability above).
-- Create tasks with metadata (phase, priority, effort, planDir, phaseFile)
+- Create tasks with metadata (phase, priority, planDir, phaseFile)
 - Track status: `pending` → `in_progress` → `completed`
 - Manage dependencies with `addBlockedBy` / `addBlocks`
 - Coordinate parallel agents with scoped ownership
@@ -58,7 +58,7 @@ Tasks are ephemeral. Plan files are persistent. The hydration pattern bridges th
 Load: `references/progress-tracking.md`
 
 - Scan `./plans/*/plan.md` for active plans
-- Parse YAML frontmatter for status, priority, effort
+- Parse YAML frontmatter for status, priority
 - Count `[x]` vs `[ ]` in phase files for completion %
 - Cross-reference completed work against planned tasks
 - Verify acceptance criteria met before marking complete
@@ -113,7 +113,6 @@ All `plan.md` files MUST have:
 title: Feature name
 status: in-progress  # pending | in-progress | completed
 priority: P1
-effort: medium
 branch: feature-branch
 tags: [auth, api]
 created: 2026-02-05

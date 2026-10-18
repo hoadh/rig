@@ -12,7 +12,6 @@ title: "{Brief plan title}"
 description: "{One-sentence summary for card preview}"
 status: pending  # pending | in-progress | completed | cancelled
 priority: P2     # P1 (High) | P2 (Medium) | P3 (Low)
-effort: 4h       # Estimated total effort
 issue: 74        # GitHub issue number (if applicable)
 branch: kai/feat/feature-name
 tags: [frontend, api]  # Category tags
@@ -43,7 +42,6 @@ When creating plans, auto-populate these fields:
 - **description**: First sentence of Overview section
 - **status**: Always `pending` for new plans
 - **priority**: From user request or default `P2`
-- **effort**: Sum of phase estimates
 - **issue**: Parse from branch name or context
 - **branch**: Current git branch (`git branch --show-current`)
 - **tags**: Infer from task keywords (e.g., frontend, backend, api, auth)

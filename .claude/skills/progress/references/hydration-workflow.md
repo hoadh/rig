@@ -29,7 +29,7 @@ Task tools (`TaskCreate`/`TaskUpdate`/`TaskGet`/`TaskList`) are **CLI-only** —
 
 1. Read plan files: `plan.md` + `phase-XX-*.md`
 2. Identify unchecked `[ ]` items = remaining work
-3. `TaskCreate` per unchecked item with metadata (phase, priority, effort, planDir, phaseFile) — or `TodoWrite` if Task tools unavailable
+3. `TaskCreate` per unchecked item with metadata (phase, priority, planDir, phaseFile) — or `TodoWrite` if Task tools unavailable
 4. Set up `addBlockedBy` dependency chains between phases (skip if using TodoWrite fallback)
 5. Already-checked `[x]` items = done, skip
 
@@ -79,7 +79,6 @@ title: Feature name
 description: Brief description
 status: in-progress  # pending | in-progress | completed
 priority: P1
-effort: medium
 branch: feature-branch
 tags: [auth, api]
 created: 2026-02-05
