@@ -8,6 +8,9 @@
 const ALLOWED = [
   'PATH', 'HOME', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA', 'SystemRoot', 'ComSpec', 'PATHEXT',
   'TEMP', 'TMP', 'TMPDIR', 'USER', 'LOGNAME', 'LANG', 'TERM',
+  // Windows system folders: NuGet/dotnet restore throws "Value cannot be null (path1)" without them
+  'ProgramFiles', 'ProgramFiles(x86)', 'ProgramW6432', 'ProgramData', 'CommonProgramFiles', 'CommonProgramFiles(x86)',
+  'CommonProgramW6432', 'ALLUSERSPROFILE', 'SystemDrive', 'windir', 'PROCESSOR_ARCHITECTURE', 'NUMBER_OF_PROCESSORS',
   'CLAUDE_CODE_OAUTH_TOKEN', 'ANTHROPIC_API_KEY', 'CLAUDE_CONFIG_DIR',
   'XDG_CONFIG_HOME', // so the tmux-started runner hashes the same global git config as the ssh-session `baseline` (review M2)
   'http_proxy', 'https_proxy', 'no_proxy', 'HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY',

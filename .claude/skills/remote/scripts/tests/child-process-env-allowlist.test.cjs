@@ -31,4 +31,9 @@ t.test('windows: case-insensitive names, ; delimiter, Path key', () => {
   t.ok(!('GH_TOKEN' in e));
 });
 
+t.test('windows: keeps system folder vars that dotnet/NuGet need', () => {
+  const e = buildChildEnv({ ProgramFiles: 'C:\\PF', 'ProgramFiles(x86)': 'C:\\PF86', PROGRAMDATA: 'C:\\PD', SystemDrive: 'C:', windir: 'C:\\Windows' }, { platform: 'win32' });
+  for (const k of ['ProgramFiles', 'ProgramFiles(x86)', 'PROGRAMDATA', 'SystemDrive', 'windir']) t.ok(k in e, k);
+});
+
 t.done();
