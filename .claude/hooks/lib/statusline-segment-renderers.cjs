@@ -60,6 +60,26 @@ function modelSegment(ctx) {
   return seg;
 }
 
+// Effort levels in ascending order, each with its accent color
+const EFFORT_LEVELS = ['low', 'medium', 'high', 'xhigh', 'max'];
+const EFFORT_COLORS = [PALETTE.teal, PALETTE.cyan, PALETTE.violet, PALETTE.purple, PALETTE.pink];
+
+/**
+ * Reasoning effort from stdin `effort.level`: "▮▮▮▯▯ high" (meter optional)
+ * Unknown levels render as plain text without a meter
+ */
+function effortSegment(ctx, withMeter = true) {
+  if (!ctx.effortLevel) return '';
+  const level = String(ctx.effortLevel).toLowerCase();
+  const idx = EFFORT_LEVELS.indexOf(level);
+  if (idx < 0) return muted(`effort ${truncate(level, 12)}`);
+  const color = EFFORT_COLORS[idx];
+  const label = fg(level, color, true);
+  if (!withMeter) return label;
+  const meter = fg('▮'.repeat(idx + 1), color) + fg('▯'.repeat(EFFORT_LEVELS.length - idx - 1), PALETTE.faint);
+  return `${meter} ${label}`;
+}
+
 function contextSegment(ctx, barWidth = 10) {
   if (!(ctx.contextSize > 0)) return '';
   const pct = ctx.contextPercent;
@@ -254,6 +274,7 @@ function renderTodosLine(transcript) {
 module.exports = {
   wrapSegments,
   modelSegment,
+  effortSegment,
   contextSegment,
   limitSegment,
   metricsSegment,

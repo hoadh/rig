@@ -353,6 +353,22 @@ async function main() {
     assertMatch(stdout, /38%/, 'Should include rounded utilization');
   });
 
+  await test('stdin effort.level is rendered, absent effort is hidden', async () => {
+    const base = {
+      model: { display_name: 'Claude' },
+      workspace: { current_dir: '/tmp' },
+      context_window: { context_window_size: 200000, current_usage: { input_tokens: 1000 } }
+    };
+    const withEffort = runStatuslineSync({ payload: { ...base, effort: { level: 'xhigh' } } });
+    assertSuccessfulRun(withEffort, 'Effort scenario');
+    assertContains(withEffort.stdout, 'xhigh', 'Should show effort level');
+    assertContains(withEffort.stdout.replace(/\x1b\[[0-9;]*m/g, ''), '▮▮▮▮▯', 'Should show effort meter for xhigh');
+
+    const noEffort = runStatuslineSync({ payload: base });
+    assertSuccessfulRun(noEffort, 'No effort scenario');
+    assertTrue(!noEffort.stdout.includes('▮'), 'Missing effort should not render meter');
+  });
+
   await test('Expired resets_at hides countdown', async () => {
     const payload = {
       model: { display_name: 'Claude' },

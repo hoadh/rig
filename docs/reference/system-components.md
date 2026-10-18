@@ -325,7 +325,7 @@ All hooks located in `.claude/hooks/` with consistent patterns - fail-safe exit 
 - `transcript-parser.cjs`, `git-info-cache.cjs`, `config-counter.cjs`: data sources
 
 **Full layout** (each row wraps by segment at 85% of terminal width):
-1. Session: model badge (+ agent), context bar + % + tokens used/size, 5h and 7d limits with reset countdown, cost, session/API time, total tokens in/out
+1. Session: model badge (+ agent), effort level meter (`effort.level`, live with `/effort`), context bar + % + tokens used/size, 5h and 7d limits with reset countdown, cost, session/API time, total tokens in/out
 2. Workspace: directory, git branch + staged/unstaged/ahead/behind, active plan, lines +/-, config counts (CLAUDE.md, rules, MCP, hooks), output style, vim mode, version
 3. Activity (only when present): running tool or recent tool summary, agent flow, todo progress bar
 

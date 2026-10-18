@@ -4,7 +4,7 @@
 /**
  * Custom Claude Code statusline for Node.js - Multi-line Edition
  * Cross-platform support: Windows, macOS, Linux
- * Features: 256-color theme, gradient bars, context window, 5h/7d rate limits,
+ * Features: 256-color theme, gradient bars, effort level, context window, 5h/7d rate limits,
  *           cost/time/tokens, git state, tool/agent/todo tracking
  * No external dependencies - uses only Node.js built-in modules
  */
@@ -109,6 +109,7 @@ function renderFull(ctx) {
 
   const sessionRow = [
     seg.modelSegment(ctx),
+    seg.effortSegment(ctx),
     seg.contextSegment(ctx),
     seg.limitSegment('5h', ctx.fiveHour, true),
     seg.limitSegment('7d', ctx.sevenDay, false),
@@ -145,6 +146,7 @@ function renderCompact(ctx) {
   const sep = seg.SEP();
   console.log([
     seg.modelSegment(ctx),
+    seg.effortSegment(ctx, false),
     seg.contextSegment(ctx, 8),
     seg.limitSegment('5h', ctx.fiveHour, false)
   ].filter(Boolean).join(sep));
@@ -159,6 +161,7 @@ function renderMinimal(ctx) {
   const ctxText = ctx.contextSize > 0 ? `${ctx.contextPercent}% ctx` : '';
   console.log([
     seg.modelSegment(ctx),
+    seg.effortSegment(ctx, false),
     ctxText,
     seg.limitSegment('5h', ctx.fiveHour, false),
     seg.gitSegment(ctx, false),
@@ -260,6 +263,8 @@ async function main() {
     const ctx = {
       modelName: data.model?.display_name || 'Claude',
       agentName: data.agent?.name || '',
+      // Live session effort (reflects /effort); absent when the model has no effort support
+      effortLevel: data.effort?.level || '',
       version: data.version || '',
       outputStyle: data.output_style?.name || '',
       vimMode: data.vim?.mode || '',
