@@ -2,7 +2,8 @@
 /**
  * setup <machine...> [--accept-existing-clone] [--git-name n --git-email e]
  * Stage-1 preparation of registered workers, one machine at a time, stopping a machine at its
- * first blocking step: registry entry -> ssh/node/claude probe -> Rig installed (protocol) ->
+ * first blocking step: registry entry -> ssh/node/claude probe -> Rig installed (protocol) -> worker id
+ * matches the registry key (machine-id) ->
  * worker `prepare` (create the dedicated clone of this repo's origin + record its baseline).
  * Machines that got that far are then checked with the full `doctor`. Every problem prints a
  * `fix:` line. Exit 0 only when every machine is ready and doctor passes.
@@ -10,12 +11,12 @@
 const { EXIT, usageError } = require('../lib/remote-errors.cjs');
 const { parseFlags } = require('../lib/cli-flag-parser.cjs');
 const V = require('../lib/identifier-validators.cjs');
-const { getMachine } = require('../lib/machine-registry.cjs');
+const { getMachineForProject } = require('../lib/machine-repo-for-project-resolver.cjs');
 const { PROTOCOL_VERSION } = require('../lib/rig-json-nonce-framing.cjs');
 const { git } = require('../lib/rig-local-worktree.cjs');
 const { stripUrlCredentials } = require('../lib/secret-redaction.cjs');
 const { bootstrapProbe } = require('../lib/doctor-bootstrap-probe.cjs');
-const { withFixHints } = require('../lib/doctor-checks.cjs');
+const { withFixHints, machineIdCheck } = require('../lib/doctor-checks.cjs');
 const { INSTALL_RIG } = require('../lib/doctor-fix-hints.cjs');
 
 const { PREPARE_TIMEOUT_MS } = require('../lib/worker-dedicated-clone-bootstrapper.cjs');
@@ -44,7 +45,7 @@ function cloneStep(reply) {
 
 /** @returns {Promise<{machine, steps, ready:boolean}>} ready = worth running doctor on */
 async function setupMachine(name, opts, client) {
-  const cfg = getMachine(name);
+  const cfg = getMachineForProject(name);
   const steps = [];
   const hinted = (checks) => withFixHints(checks, { name, cfg });
   const done = (ready) => ({ machine: name, steps, ready });
@@ -64,6 +65,10 @@ async function setupMachine(name, opts, client) {
       steps.push(...hinted([step('protocol', 'fail', `worker protocol ${info.protocol} != ${PROTOCOL_VERSION}`)]));
       return done(false);
     }
+    // a worker that calls itself something else refuses every dispatch: stop before cloning
+    const idCheck = machineIdCheck(name, info);
+    steps.push(...hinted([idCheck]));
+    if (idCheck.status === 'fail') return done(false);
     steps.push(step('rig', 'ok', `Rig ${info.rigVersion} (protocol ${info.protocol})`));
   } catch (e) {
     steps.push(...hinted([step('reach', 'fail', `Rig worker not runnable: ${String(e.message).split('\n')[0]}`)]));
@@ -81,7 +86,7 @@ async function setupMachine(name, opts, client) {
     // same protocol but no `prepare`: the worker's Rig predates setup
     steps.push(step('clone', 'fail', msg, /unknown subcommand/.test(msg) ? INSTALL_RIG : e.hint));
   }
-  return done(steps.every((s) => s.status === 'ok' || s.id === 'claude'));
+  return done(steps.every((s) => s.status !== 'fail' || s.id === 'claude'));
 }
 
 function printSteps(r) {
@@ -102,7 +107,7 @@ async function run(argv, ctx = {}) {
   const { flags, positional } = parseFlags(argv, { '--accept-existing-clone': 'bool', '--git-name': 'value', '--git-email': 'value' });
   if (!positional.length) throw usageError(USAGE);
   const names = positional.map((n) => V.assertMachineName(n, 'machine'));
-  names.forEach((n) => getMachine(n)); // unknown machine -> exit 2 before any ssh
+  names.forEach((n) => getMachineForProject(n)); // unknown machine / no clone for this project -> exit 2 before any ssh
   const origin = git(process.cwd(), ['remote', 'get-url', 'origin']);
   if (origin.status !== 0) throw usageError('run setup inside the project repo: it has no "origin" remote', 'workers clone the same origin as the orchestrator');
   const opts = { originUrl: cloneableOrigin(origin.stdout), acceptExisting: Boolean(flags['accept-existing-clone']), identity: parseIdentity(flags) };

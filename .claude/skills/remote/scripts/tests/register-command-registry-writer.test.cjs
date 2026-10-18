@@ -9,8 +9,19 @@ const t = require('./minimal-test-harness.cjs');
 const CLI = path.join(__dirname, '..', 'remote.cjs');
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rig-register-'));
 const file = path.join(dir, 'sub', 'machines.json');
-const cli = (args, registry = file) => spawnSync(process.execPath, [CLI, 'register', ...args], {
-  encoding: 'utf8', env: { ...process.env, RIG_MACHINES_FILE: registry, RIG_MACHINE: 'studio' },
+/** A git repo (temp dir) whose origin is `url` ('' = no origin) to run the CLI in. */
+const project = (name, url) => {
+  const p = path.join(dir, name);
+  fs.mkdirSync(p);
+  spawnSync('git', ['init', '-q', p]);
+  if (url) spawnSync('git', ['-C', p, 'remote', 'add', 'origin', url]);
+  return p;
+};
+const noOrigin = project('none', '');
+const projA = project('a', 'git@github.com:o/a.git');
+const projB = project('b', 'https://tok@github.com/o/b.git');
+const cli = (args, registry = file, cwd = noOrigin) => spawnSync(process.execPath, [CLI, 'register', ...args], {
+  cwd, encoding: 'utf8', env: { ...process.env, RIG_MACHINES_FILE: registry, RIG_MACHINE: 'studio' },
 });
 const read = (f = file) => JSON.parse(fs.readFileSync(f, 'utf8')).machines;
 const BOX = ['box', '--ssh', 'rig@box', '--os', 'linux', '--repo', '/home/rig/app'];
@@ -56,5 +67,41 @@ t.test('an invalid existing registry is never rewritten', () => {
   t.ok(fs.readFileSync(bad, 'utf8').includes('"token"'));
 });
 
+t.test('projects: new id records repos[origin]; other project adds its clone with just --repo', () => {
+  const f = path.join(dir, 'multi.json');
+  const r1 = cli(['box', '--ssh', 'rig@box', '--os', 'linux', '--repo', '/home/rig/a'], f, projA);
+  t.eq(r1.status, 0, r1.stderr);
+  t.eq(read(f).box.repos, { 'github.com/o/a': '/home/rig/a' });
+  const r2 = cli(['box', '--repo', '/home/rig/b'], f, projB);
+  t.eq(r2.status, 0, r2.stderr);
+  t.ok(r2.stdout.includes('added project github.com/o/b -> /home/rig/b to box') && !r2.stdout.includes('warning'), r2.stdout);
+  t.eq(read(f).box.repos, { 'github.com/o/a': '/home/rig/a', 'github.com/o/b': '/home/rig/b' });
+  t.ok(!fs.readFileSync(f, 'utf8').includes('tok'), 'origin creds never written');
+  t.eq(read(f).box.repo, '/home/rig/a', 'default repo unchanged');
+  const r3 = cli(['box', '--repo', '/home/rig/b2', '--os', 'linux', '--ssh', 'rig@box'], f, projB);
+  t.eq(r3.status, 0, r3.stderr); t.ok(r3.stdout.includes('updated project'), r3.stdout);
+});
+t.test('projects: conflicting flag refused, colliding path refused, no origin refused, --replace keeps other projects', () => {
+  const f = path.join(dir, 'multi.json');
+  const before = fs.readFileSync(f, 'utf8');
+  const diff = cli(['box', '--repo', '/home/rig/b', '--ssh', 'rig@other'], f, projB);
+  t.eq(diff.status, 2); t.ok(diff.stderr.includes('different ssh') && diff.stderr.includes('--replace'), diff.stderr);
+  t.eq(cli(['box', '--repo', '/home/rig/a-rig-test'], f, projB).status, 2, '-rig-test collision');
+  t.eq(cli(['box', '--repo', '/home/rig/a/sub'], f, projB).status, 2, 'nested');
+  const none = cli(['box', '--repo', '/home/rig/z'], f, noOrigin);
+  t.eq(none.status, 2); t.ok(none.stderr.includes('origin'), none.stderr);
+  t.eq(fs.readFileSync(f, 'utf8'), before);
+  t.eq(cli(['box', '--ssh', 'rig@box2', '--os', 'linux', '--repo', '/home/rig/a3', '--replace'], f, projA).status, 0);
+  t.eq(read(f).box, { ssh: 'rig@box2', os: 'linux', shell: 'bash', repo: '/home/rig/a3', pathPrepend: [],
+    repos: { 'github.com/o/a': '/home/rig/a3', 'github.com/o/b': '/home/rig/b2' } });
+});
+t.test('projects: first repos key on a legacy entry warns about other projects', () => {
+  const f = path.join(dir, 'legacy.json');
+  fs.writeFileSync(f, JSON.stringify({ machines: { old: { ssh: 'rig@old', os: 'linux', shell: 'bash', repo: '/home/rig/x', pathPrepend: [] } } }));
+  const r = cli(['old', '--repo', '/home/rig/b'], f, projB);
+  t.eq(r.status, 0, r.stderr);
+  t.ok(r.stdout.includes('warning: other projects using /home/rig/x on old must now run `remote.cjs register old --repo /home/rig/x`'), r.stdout);
+  t.eq(read(f).old.repos, { 'github.com/o/b': '/home/rig/b' });
+});
 process.on('exit', () => fs.rmSync(dir, { recursive: true, force: true }));
 t.done();

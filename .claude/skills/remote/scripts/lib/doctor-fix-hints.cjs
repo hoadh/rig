@@ -36,6 +36,15 @@ function exeHint(exe, cfg) {
   return `${install}set "${exe}" in the registry to the absolute path printed by \`${find}\``;
 }
 
+/** RIG_MACHINE placement the worker's non-interactive ssh sessions (and runners) actually read. */
+function machineIdHint(msg, { name, cfg }) {
+  if (/predates/.test(msg)) return `update Rig on ${name}: ${INSTALL_RIG}`;
+  const reported = (/worker id is "([a-z0-9-]+)"/.exec(msg) || [])[1];
+  const rename = reported ? `; or rename registry key "${name}" to "${reported}"` : '';
+  if (cfg.os === 'windows') return `on ${name} run \`setx RIG_MACHINE ${name}\` as the worker user (restart the sshd service if not picked up)${rename}`;
+  return `on ${name} set RIG_MACHINE=${name} where non-interactive ssh reads it: \`export RIG_MACHINE=${name}\` in ~/.zshenv (zsh) or at the top of ~/.bashrc before the interactive guard (bash)${rename}`;
+}
+
 /**
  * @param {{id:string, status:string, msg:string}} check
  * @param {{name:string, cfg:object}} m registry machine
@@ -53,6 +62,7 @@ function fixHint(check, { name, cfg }) {
       if (/command not found|not recognized/i.test(msg)) return INSTALL_RIG;
       if (/protocol/i.test(msg)) return INSTALL_RIG;
       return `rerun \`${R} doctor ${name}\`; if it persists check ssh and node on the worker`;
+    case 'machine-id': return machineIdHint(msg, { name, cfg });
     case 'protocol':
     case 'rig-version': return INSTALL_RIG;
     case 'auth': return `log in as the worker user: \`ssh -t ${cfg.ssh} claude\` then /login; or create a token with \`claude setup-token\` and export CLAUDE_CODE_OAUTH_TOKEN in that user's environment (never in the registry)`;

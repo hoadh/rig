@@ -46,11 +46,17 @@ function intakeRun(payload) {
     if (e.code !== 'EEXIST') throw e;
     throw new RemoteError(`run ${spec.runId} is already being started`, EXIT.ERROR, { class: 'exists', hint: 'retry status in a moment; do not reuse the runId' });
   }
-  const busyName = R.busyNameFor(spec.kind);
+  const busyName = R.busyNameFor(spec.kind, target.repo);
+  const busyHint = 'one agent run and one test run per clone; wait or cancel it';
   try {
+    // Older Rig versions on this worker user still use machine-wide agent.busy/test.busy: honor a live one (read-only).
+    const legacy = R.liveBusyHolder(spec.kind === 'agent' ? 'agent' : 'test');
+    if (legacy && legacy !== spec.runId) {
+      throw new RemoteError(`${self} is busy with run ${legacy}`, EXIT.ERROR, { class: 'busy', hint: busyHint });
+    }
     const busy = R.acquireBusy(busyName, spec.runId);
     if (!busy.ok) {
-      throw new RemoteError(`${self} is busy with run ${busy.holder}`, EXIT.ERROR, { class: 'busy', hint: 'one agent run and one test run per machine; wait or cancel it' });
+      throw new RemoteError(`${self} is busy with run ${busy.holder}`, EXIT.ERROR, { class: 'busy', hint: busyHint });
     }
     try {
       if (spec.kind === 'agent') R.writeFileAtomic(path.join(dir, 'task.md'), payload.task);
@@ -71,7 +77,7 @@ function intakeRun(payload) {
 function failUnlaunched(run, dir, message) {
   R.writeJsonAtomic(path.join(dir, 'result.json'), { runId: run.spec.runId, failure: 'prepare', detail: message, exit: 1, head: null, pushed: false });
   R.writeJsonAtomic(path.join(dir, 'exit'), { code: 1, failure: 'prepare', finishedAt: Date.now() });
-  R.releaseBusy(R.busyNameFor(run.spec.kind), run.spec.runId);
+  R.releaseBusy(R.busyNameForRun(run), run.spec.runId);
 }
 
 module.exports = { intakeRun, failUnlaunched, MAX_TASK_BYTES };

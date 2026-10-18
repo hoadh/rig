@@ -6,6 +6,13 @@
 
 * **rig:remote worker setup:** `remote.cjs register <id> --ssh --os --repo ...` adds one validated registry entry (atomic write, secret keys rejected). `remote.cjs setup <id...>` prepares stage 1 on each worker: ssh/node/claude probe, Rig protocol check, creation of the dedicated clone from the orchestrator's origin (credentials stripped), baseline recording (`--accept-existing-clone` for clones made by hand) and git identity (`--git-name/--git-email`), then `doctor`. New worker command `prepare`. Guided flow in `references/worker-setup-guide.md`.
 * **rig:remote doctor:** new `baseline` check (missing, mismatched or quarantined clone), and a `fix:` line with a concrete next step under every failed or warned check.
+* **rig:remote machine-id check:** `info` reports the worker's `machine`. `setup` and `doctor` check `machine-id`: a mismatch with the registry id fails and stops setup before the clone is created; an older worker without the field warns. The `fix:` line shows how to set `RIG_MACHINE` (`~/.zshenv`, `~/.bashrc`, `setx`) or rename the registry key.
+* **rig:remote several projects per machine:** the registry takes an optional `repos` map (`{"<normalized origin>": "<clone path>"}`), so one machine holds a clone per project. `register <id> --repo <p>` run in a project adds its clone. A project missing from an existing map fails with `no-clone` (exit 2) and a `register` hint. `machines --json` reports `hasClone`; `doctor` flags a project without a clone. Rig builds without this change reject `repos`: delete the key to roll back.
+* **rig:remote per-clone lock:** one agent run and one test run per clone (was per machine), so two projects on one worker run in parallel. A second run on the same clone is refused `busy`.
+
+### Changed
+
+* **rig:remote busy markers:** `agent.busy` and `test.busy` are replaced by `agent-<cloneHash>.busy` and `test-<cloneHash>.busy`. A live legacy marker is still honored; stale files from either version can be deleted.
 
 ### Fixes
 

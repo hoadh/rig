@@ -6,14 +6,17 @@
 const { execFileSync } = require('child_process');
 const { RemoteError, EXIT } = require('./remote-errors.cjs');
 const { execWorker, ensureWorkerCompatible } = require('./ssh-transport.cjs');
-const { getMachine } = require('./machine-registry.cjs');
+const { getMachineForProject } = require('./machine-repo-for-project-resolver.cjs');
 const V = require('./identifier-validators.cjs');
 
 const TERMINAL = new Set(['done', 'failed', 'lost']);
 
-/** Registry entry as the worker's `target` (name is implied by the worker's own id). */
+/**
+ * Registry entry as the worker's `target`, resolved to this project's clone: a single `repo`,
+ * never the `repos` map (name is implied by the worker's own id).
+ */
 function workerTarget(machine) {
-  const { name: _name, ...target } = getMachine(machine);
+  const { name: _name, ...target } = getMachineForProject(machine);
   return target;
 }
 

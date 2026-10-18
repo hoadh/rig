@@ -1,7 +1,7 @@
 # ADR 0002: Multi-Machine Remote Orchestration
 
 **Status**: Accepted (v1 scope; real-machine acceptance partly done, see Verification)
-**Date**: 2026-10-15
+**Date**: 2026-10-15 (amended 2026-10-18: several projects per machine)
 **Extends**: [ADR 0001: Agent state lives in files](./0001-agent-state-lives-in-files.md)
 
 ## Context
@@ -18,8 +18,9 @@ Constraints carried over from ADR 0001: no database, no daemon, no new service t
 |---|---|
 | Data channel | Git origin is the only data channel. ssh is control only: validated command tokens, JSON on stdin, nonce-framed JSON reply. Workers never see the orchestrator working tree. |
 | Coordination | Branch `rig-coord/<slug>`: an orphan branch holding the plan mirror and the orchestrator lock. Single writer. Claim is a push of an orphan root, which cannot fast-forward an existing ref, so two claimants cannot both win. Fetch errors fail closed (exit 3). |
-| Machine registry | `~/.claude/rig-machines.json` on the orchestrator only. No secrets; keys that look like secrets are rejected. |
-| Worker repo | A Rig-dedicated clone per machine, used for nothing else. Git config, hooks and info are hashed against a baseline stored outside the clone; drift quarantines the clone (`failed:hooks-tampered`). |
+| Machine registry | `~/.claude/rig-machines.json` on the orchestrator only. No secrets; keys that look like secrets are rejected. Optional `repos` map: one clone per project (see amendment). |
+| Worker repo | A Rig-dedicated clone per machine per project, used for nothing else. Git config, hooks and info are hashed against a baseline stored outside the clone; drift quarantines the clone (`failed:hooks-tampered`). |
+| Run concurrency | At most one agent run and one test run per clone (busy markers keyed by clone). Runs on different clones of one machine proceed in parallel. |
 | Branches | `rig/<machine>/<slug>`: the worker runner pushes it whenever HEAD advances. `rig-int/<slug>`: only `collect` writes it. |
 | Run lifecycle | Detached. Unix: tmux session `rig-<runId>`. Windows: scheduled task, `headless` (S4U logon) by default, started at once with `schtasks /Run`; `interactive` is an opt-in for GUI work. Run truth lives in worker run dirs (`~/.rig/runs/<runId>/`, heartbeat; no ledger). A heartbeat older than 90 s is `lost`. |
 | Push guard | The runner checks `owns` globs and a denylist (CI, hook, agent and editor config) before every push. A denylisted path is writable only when an `owns` glob explicitly reaches into it. |
@@ -38,6 +39,15 @@ So the controls are ranked:
 3. **Tool policy**: allowlist plus always-disallowed rules (`git push|config|remote`, `git ... --output`). Text-prefix rules are bypassed by shell quoting; they prevent accidents, not attacks.
 
 Per-argument guards (a PreToolUse hook blocking `--output`, `--no-index`, `commit -F/--template`) were considered and deferred: they would not hurt workers, but every vector they close is already reachable through the test command. Revisit them only for machines that grant no test command.
+
+### Amendment (2026-10-18): several projects per machine
+
+The v1 rule "one clone per machine" becomes "one clone per machine per project". Nothing else in the decision changes; this extends it, so no new ADR.
+
+- The registry may hold `repos: {"<normalized origin>": "<clone path>"}`. The orchestrator resolves the clone from the origin of the project it runs in. A project missing from an existing `repos` map is an error (`no-clone`), never a fallback to another project's clone.
+- Workers still receive one resolved clone per run and no registry data, so the worker protocol is unchanged.
+- Busy markers moved from one per machine to one per clone (`agent-<hash>`, `test-<hash>`), so two projects on one worker run in parallel while the same clone stays serialized. Legacy `agent.busy`/`test.busy` markers held by a live run are still honored.
+- Each clone keeps its own baseline, quarantine and `<clone>-rig-test` directory; the threat model is unchanged.
 
 ### Plan fields
 
@@ -61,7 +71,7 @@ Phase files add optional frontmatter, read only by multi-machine plans:
 
 **Costs**
 
-- Each worker needs a dedicated clone, a registry entry on the orchestrator, key-based ssh, and a logged-in `claude`.
+- Each worker needs a dedicated clone per project, a registry entry on the orchestrator, key-based ssh, and a logged-in `claude`.
 - Windows adds constraints: an absolute `node` path, no parentheses in `pathPrepend` or tool paths, and S4U runs with no desktop.
 - `allowedTools` is not a sandbox. A worker agent running project scripts can edit them and run them; the owns guard, env allowlist and review gate are the real controls.
 - Same-OS-user residual risks (ssh config, shell rc files, PATH shims) are not covered by the baseline hash.

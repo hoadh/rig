@@ -8,17 +8,23 @@
  */
 const { stripUrlCredentials } = require('./secret-redaction.cjs');
 const { fixHint } = require('./doctor-fix-hints.cjs');
+const V = require('./identifier-validators.cjs');
+const { normalizeOrigin } = require('./git-origin-url-normalizer.cjs');
 
 const ok = (id, msg) => ({ id, status: 'ok', msg });
 const warn = (id, msg) => ({ id, status: 'warn', msg });
 const fail = (id, msg) => ({ id, status: 'fail', msg });
 
-/** https://host/x.git, git@host:x, ssh://git@host/x -> host/x (creds stripped, .git dropped). */
-function normalizeOrigin(url) {
-  const u = stripUrlCredentials(String(url || '')).trim();
-  const scp = /^[^@/\s]+@([^:/\s]+):(.+)$/.exec(u);
-  const body = scp ? `${scp[1]}/${scp[2]}` : u.replace(/^[a-z+]+:\/\//i, '').replace(/^[^@/]+@/, '');
-  return body.replace(/\.git$/, '').replace(/\/+$/, '').toLowerCase();
+/**
+ * Worker's own id (RIG_MACHINE else hostname, reported by `info`) vs the registry key it is
+ * reached under: agent branches are validated against the worker's id, so a mismatch fails
+ * every dispatch. Absent = worker Rig predates the field (warn). The value is untrusted output.
+ */
+function machineIdCheck(name, info) {
+  const m = info && info.machine;
+  if (m === undefined) return warn('machine-id', 'worker Rig predates machine-id report; update Rig on the worker');
+  if (!V.isMachineName(m)) return fail('machine-id', `worker reported an invalid machine id ${JSON.stringify(String(m).slice(0, 40))}`);
+  return m === name ? ok('machine-id', `worker id ${m}`) : fail('machine-id', `worker id is "${m}", registry calls it "${name}"`);
 }
 
 const result = (id, p, okMsg) => (p && p.ok ? ok(id, okMsg ? `${okMsg} ${p.detail || ''}`.trim() : p.detail || 'ok') : fail(id, (p && p.detail) || 'not checked'));
@@ -32,6 +38,7 @@ function workerChecks({ name, cfg, info, facts, push, orch }) {
   const out = [];
   if (info.protocol !== orch.protocol) out.push(fail('protocol', `worker protocol ${info.protocol} != ${orch.protocol}`));
   else out.push(ok('protocol', `protocol ${info.protocol}`));
+  out.push(machineIdCheck(name, info));
   const a = facts.claude.auth;
   if (!a.loggedIn) out.push(fail('auth', `claude not logged in: ${a.detail || ''}`.trim()));
   else if (facts.platform === 'darwin' && !facts.claude.tokenInEnv) out.push(warn('auth', 'macOS keychain login may be unavailable over ssh/detached; set CLAUDE_CODE_OAUTH_TOKEN'));
@@ -93,4 +100,4 @@ function withFixHints(checks, { name, cfg }) {
 
 const hasFailure = (checks) => checks.some((c) => c.status === 'fail');
 
-module.exports = { evaluateMachine, withFixHints, normalizeOrigin, hasFailure };
+module.exports = { evaluateMachine, withFixHints, machineIdCheck, normalizeOrigin, hasFailure };

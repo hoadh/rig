@@ -11,7 +11,7 @@ const path = require('path');
 const { RemoteError, EXIT, usageError } = require('../lib/remote-errors.cjs');
 const { parseFlags } = require('../lib/cli-flag-parser.cjs');
 const V = require('../lib/identifier-validators.cjs');
-const { getMachine } = require('../lib/machine-registry.cjs');
+const { getMachineForProject } = require('../lib/machine-repo-for-project-resolver.cjs');
 const { parseFrontmatter } = require('../lib/plan-frontmatter.cjs');
 const { workerBranch } = require('../lib/rig-branch-and-path-names.cjs');
 const { gitOrThrow } = require('../lib/rig-local-worktree.cjs');
@@ -65,7 +65,7 @@ async function run(argv, ctx) {
   if (entry.machine === self) throw usageError(`phase ${entry.phase} targets this machine (${self}); run it locally`);
   if (!entry.owns.length) throw usageError(`phase ${entry.phase} needs a non-empty "owns:" list in its frontmatter`);
   assertSameMachineContiguous(map);
-  const machine = getMachine(entry.machine);
+  const machine = getMachineForProject(entry.machine);
   const allowedTools = resolveAllowedTools(args.allowedTools, machine.allowedTools || []);
   const message = args.resume ? readMessage(args.messageFile) : null;
   await ensureCompatible(entry.machine);

@@ -71,7 +71,11 @@ function validateSpec(spec, { self, registryTools = [] }) {
     V.assertSha(spec.baseSha, 'baseSha');
     V.assertSha(spec.startSha, 'startSha');
     const expected = workerBranch(self, spec.slug);
-    if (spec.branch !== expected) throw usageError(`branch ${JSON.stringify(spec.branch)} must be ${expected}`);
+    if (spec.branch !== expected) {
+      const claimed = typeof spec.branch === 'string' ? spec.branch.split('/')[1] : '';
+      throw usageError(`branch ${JSON.stringify(spec.branch)} must be ${expected}`,
+        `worker id is ${self}; run \`remote.cjs doctor ${V.isMachineName(claimed) ? claimed : '<id>'}\` on the orchestrator`);
+    }
     validateOwns(spec.owns);
     intInRange(spec.maxTurns, 1, 1000, 'maxTurns');
     if (spec.ref !== undefined || spec.command !== undefined) throw usageError('spec.ref/command are not valid for kind "agent"');

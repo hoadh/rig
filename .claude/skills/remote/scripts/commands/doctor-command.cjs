@@ -8,7 +8,8 @@
 const { EXIT, usageError } = require('../lib/remote-errors.cjs');
 const { parseFlags } = require('../lib/cli-flag-parser.cjs');
 const V = require('../lib/identifier-validators.cjs');
-const { loadRegistry, getMachine } = require('../lib/machine-registry.cjs');
+const { loadRegistry } = require('../lib/machine-registry.cjs');
+const { getMachineForProject } = require('../lib/machine-repo-for-project-resolver.cjs');
 const { PROTOCOL_VERSION } = require('../lib/rig-json-nonce-framing.cjs');
 const { scriptsIntegrityHash } = require('../lib/skill-scripts-integrity-hash.cjs');
 const { git } = require('../lib/rig-local-worktree.cjs');
@@ -32,7 +33,14 @@ async function pushProbe(client, name, sha, os) {
 }
 
 async function checkMachine(name, orch, client) {
-  const cfg = getMachine(name);
+  let cfg;
+  try {
+    cfg = getMachineForProject(name);
+  } catch (e) {
+    // this project has no clone on the machine yet: report it, no ssh
+    if (e.class !== 'no-clone') throw e;
+    return { machine: name, checks: [{ id: 'repo', status: 'fail', msg: e.message, fix: e.hint }] };
+  }
   const input = { name, cfg, boot: null, info: null, facts: null, push: null, orch };
   try {
     input.boot = await bootstrapProbe(name, cfg);

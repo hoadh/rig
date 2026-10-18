@@ -22,10 +22,9 @@
  * the process env outrank core.sshCommand / core.askPass: the child env allowlist
  * must keep them out of agent envs (it does; do not add them).
  */
-const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
-const { rigHome, emptyHooksDir, writeJsonAtomic, readJson, RunFailure } = require('./run-directory.cjs');
+const { rigHome, cloneHash, emptyHooksDir, writeJsonAtomic, readJson, RunFailure } = require('./run-directory.cjs');
 const { hashGitControlFiles } = require('./git-control-files-integrity.cjs');
 
 /**
@@ -95,13 +94,6 @@ function hardenedGitConfigEnv({ credentialHelper, baseEnv = {}, noSystem = true,
     env[`GIT_CONFIG_VALUE_${start + i}`] = value;
   });
   return env;
-}
-
-/** Stable short id of a clone (realpath so symlinked paths share one baseline). */
-function cloneHash(repo) {
-  let real = repo;
-  try { real = fs.realpathSync(repo); } catch { /* missing repo: hash the given path */ }
-  return crypto.createHash('sha256').update(real).digest('hex').slice(0, 16);
 }
 
 const baselinePath = (repo) => path.join(rigHome(), `git-baseline-${cloneHash(repo)}.json`);

@@ -12,7 +12,7 @@ const path = require('path');
 const { RemoteError, EXIT, usageError } = require('../lib/remote-errors.cjs');
 const { parseFlags } = require('../lib/cli-flag-parser.cjs');
 const V = require('../lib/identifier-validators.cjs');
-const { getMachine } = require('../lib/machine-registry.cjs');
+const { getMachineForProject } = require('../lib/machine-repo-for-project-resolver.cjs');
 const { parseFrontmatter } = require('../lib/plan-frontmatter.cjs');
 const { workerBranch, integrationBranch } = require('../lib/rig-branch-and-path-names.cjs');
 const { git, gitOrThrow } = require('../lib/rig-local-worktree.cjs');
@@ -67,7 +67,7 @@ async function run(argv, ctx) {
   assertSameMachineContiguous(map);
   const machines = machineOrder(map).filter((m) => m !== self);
   if (!machines.length) throw usageError('plan has no remote-machine phases to collect');
-  for (const tt of tests) getMachine(tt.machine); // unknown machine -> usage error before any side effect
+  for (const tt of tests) getMachineForProject(tt.machine); // unknown machine or no clone for this project -> usage error before any side effect
   await Promise.all([...new Set([...machines, ...tests.map((x) => x.machine)])].map((m) => ensureCompatible(m)));
 
   const repo = gitOrThrow(process.cwd(), ['rev-parse', '--show-toplevel']);

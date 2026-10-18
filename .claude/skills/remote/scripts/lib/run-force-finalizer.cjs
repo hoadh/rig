@@ -30,7 +30,9 @@ function forceFinalize(dir, rec, why) {
     R.writeFileExclusive(path.join(dir, 'result.json'), `${JSON.stringify({ runId, failure: why.failure, detail: why.detail, exit: why.code, head: null, pushed: false })}\n`);
     wrote = R.writeFileExclusive(path.join(dir, 'exit'), `${JSON.stringify({ code: why.code, failure: why.failure, finishedAt: Date.now() })}\n`);
   }
-  if (rec && rec.spec) R.releaseBusy(R.busyNameFor(rec.spec.kind), runId);
+  // run.json without a target (partial/old record): free whichever marker this run holds
+  if (rec && rec.spec && rec.target && rec.target.repo) R.releaseBusy(R.busyNameForRun(rec), runId);
+  else R.releaseBusyHeldBy(runId);
   try { fs.unlinkSync(path.join(dir, 'env.json')); } catch { /* absent: runner already consumed it */ }
   return wrote;
 }
@@ -60,7 +62,7 @@ function sweepOrphanRunDirs(now = Date.now(), minAgeMs = ORPHAN_DIR_MIN_AGE_MS) 
     if (m === null || now - m < minAgeMs) continue;
     try {
       killRecordedAgent(dir);
-      for (const busy of ['agent', 'test']) R.releaseBusy(busy, name);
+      R.releaseBusyHeldBy(name);
       fs.rmSync(dir, { recursive: true, force: true });
       swept.push(name);
     } catch { /* best effort: next intake retries */ }

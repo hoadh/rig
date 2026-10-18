@@ -1,6 +1,6 @@
 # Rig - Project Roadmap
 
-**Last Updated:** 2026-10-17
+**Last Updated:** 2026-10-18
 **Current Version:** 1.0.0
 **Repository:** https://github.com/hoadh/rig
 
@@ -58,6 +58,7 @@ Runs plan phases and test commands on macOS, Windows and Linux workers over ssh.
 | rig:remote: `collect` opens a pull request | Not started | Use `/rig:pr` afterwards for now |
 | rig:remote: enforce a dedicated worker OS user | Not started | Recommended in v1, not enforced |
 | rig:remote: guided worker setup (`register`, `setup`, doctor `fix:` hints) | Done (Unreleased) | Installing Rig, ssh keys and claude login stay manual |
+| rig:remote: worker machine-id check, several projects per worker, per-clone busy lock | Done (Unreleased) | Registry `repos` map keyed by origin; `RIG_MACHINE` placement stays manual. Two-project concurrent run verified at unit level only |
 
 ---
 

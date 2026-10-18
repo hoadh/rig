@@ -1,19 +1,22 @@
 'use strict';
 /**
- * machines [--json]: list this machine's id and the registry machines (id, os, shell, allowedTools).
+ * machines [--json]: list this machine's id and the registry machines (id, os, shell, allowedTools,
+ * hasClone: whether the machine has a clone of the project in cwd; null when cwd has no origin).
  * Local read only, no ssh: lets /rig:plan offer real machine ids before asking the user to assign phases.
  * A missing registry is not an error (prints none, exit 0); an invalid one still fails with exit 2.
  */
 const { EXIT, RemoteError, usageError } = require('../lib/remote-errors.cjs');
 const { parseFlags } = require('../lib/cli-flag-parser.cjs');
 const { loadRegistry, registryPath } = require('../lib/machine-registry.cjs');
+const { projectOriginUrl, hasCloneForProject } = require('../lib/machine-repo-for-project-resolver.cjs');
 
-/** Registry machines as summaries: ssh/repo/node/claude/pathPrepend are dropped; allowedTools is passed through verbatim. */
-function listMachines() {
+/** Registry machines as summaries: ssh/repo/repos/node/claude/pathPrepend are dropped; allowedTools is passed through verbatim. */
+function listMachines(cwd = process.cwd()) {
   try {
     const reg = loadRegistry();
+    const origin = projectOriginUrl(cwd);
     const machines = Object.values(reg.machines).map((m) => ({
-      id: m.name, os: m.os, shell: m.shell, allowedTools: m.allowedTools || [],
+      id: m.name, os: m.os, shell: m.shell, allowedTools: m.allowedTools || [], hasClone: hasCloneForProject(m, origin),
     }));
     return { registry: reg.path, found: true, machines };
   } catch (e) {
@@ -34,7 +37,8 @@ async function run(argv, ctx) {
   for (const m of machines) {
     const self = m.id === ctx.self ? ' (this machine)' : '';
     const tools = m.allowedTools.length ? ` tools: ${m.allowedTools.join(' ')}` : '';
-    lines.push(`  ${m.id}${self}  ${m.os}/${m.shell}${tools}`);
+    const clone = m.hasClone === false ? ' (no clone for this project)' : '';
+    lines.push(`  ${m.id}${self}  ${m.os}/${m.shell}${tools}${clone}`);
   }
   process.stdout.write(`${lines.join('\n')}\n`);
   return EXIT.OK;

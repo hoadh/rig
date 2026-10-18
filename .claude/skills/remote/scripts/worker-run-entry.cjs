@@ -35,7 +35,7 @@ const SIGNALS = ['SIGTERM', 'SIGHUP', 'SIGINT'];
 const cancelRequested = (dir, ctl) => !!ctl.terminated || R.exists(path.join(dir, 'cancelled'));
 /** The heartbeat thread drops this marker in `cancelled` when the busy marker is no longer ours. */
 const ownershipLost = (dir) => { try { return fs.readFileSync(path.join(dir, 'cancelled'), 'utf8').includes('busy-ownership-lost'); } catch { return false; } };
-const holdsBusy = (run, runId) => { try { return fs.readFileSync(R.busyFile(R.busyNameFor(run.spec.kind)), 'utf8').trim() === runId; } catch { return false; } };
+const holdsBusy = (run, runId) => { try { return fs.readFileSync(R.busyFile(R.busyNameForRun(run)), 'utf8').trim() === runId; } catch { return false; } };
 
 /** On SIGTERM/SIGHUP/SIGINT (tmux kill, reboot, ssh drop): kill the agent tree now; the run then finishes as `cancelled`. @returns {()=>void} uninstall */
 function installSignalHandlers(dir, ctl) {
@@ -122,7 +122,7 @@ async function runRun(dir) {
     if (!run) throw new R.RunFailure('prepare', 'run.json unreadable');
     if (!holdsBusy(run, res.runId)) throw new R.RunFailure('lock', 'busy marker not held by this run at start (cancelled, swept or reclaimed); not running');
     R.touchHeartbeat(dir);
-    heartbeat = startHeartbeatThread({ dir, busyFile: R.busyFile(R.busyNameFor(run.spec.kind)), runId: res.runId, intervalMs: HEARTBEAT_MS() });
+    heartbeat = startHeartbeatThread({ dir, busyFile: R.busyFile(R.busyNameForRun(run)), runId: res.runId, intervalMs: HEARTBEAT_MS() });
     if (R.exists(path.join(dir, 'cancelled'))) throw new R.RunFailure('cancelled', 'cancelled before start');
     await execute(dir, run, res, ctl);
   } catch (e) {
@@ -145,7 +145,7 @@ async function runRun(dir) {
       } catch (e) { fs.writeSync(2, `result.json not written: ${e.message}\n`); }
       R.writeFileExclusive(path.join(dir, 'exit'), `${JSON.stringify({ code, failure: res.failure, finishedAt: Date.now() })}\n`); // LAST
     }
-    if (run) R.releaseBusy(R.busyNameFor(run.spec.kind), res.runId);
+    if (run) R.releaseBusy(R.busyNameForRun(run), res.runId);
     uninstallSignals(); // only after the exit file is written: a late SIGTERM must not kill the runner mid-finalize
   }
   return 0;

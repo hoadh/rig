@@ -31,6 +31,8 @@ async function scenario(fn) { const f = setup(); try { await fn(f); } finally { 
 const reply = () => { const c = { out: null, reply: (o) => { c.out = o; } }; return c; };
 const OTHER = 'r260101000009-zzzzzz';
 
+const AGENT_BUSY = (f) => R.busyNameFor('agent', f.target.repo);
+
 t.test('H4: run dir without run.json is starting only while young, then failed:not-started (also when gone)', () => scenario(async () => {
   const dir = path.join(R.runsRoot(), 'r260101000000-aaaaaa');
   fs.mkdirSync(dir, { recursive: true });
@@ -66,18 +68,18 @@ t.test('M6 + env.json: status of a never-started run writes exit, frees busy, de
   t.eq([c.out.state, c.out.failure], ['failed', 'not-started']);
   t.eq(R.readJson(path.join(dir, 'exit')).failure, 'not-started');
   t.ok(!fs.existsSync(path.join(dir, 'env.json')));
-  t.eq(R.acquireBusy('agent', 'probe').ok, true); R.releaseBusy('agent', 'probe');
+  t.eq(R.acquireBusy(AGENT_BUSY(f), 'probe').ok, true); R.releaseBusy(AGENT_BUSY(f), 'probe');
   await runRun(dir); // exit exists -> must not run
   t.ok(!fs.existsSync(path.join(dir, 'heartbeat')));
 }));
 
 t.test('M6: runner that no longer holds the busy marker at start does not run and leaves the other holder alone', () => scenario(async (f) => {
   const { dir } = intakeRun({ spec: f.agentSpec(), target: f.target, task: 'x' });
-  fs.writeFileSync(R.busyFile('agent'), OTHER);
+  fs.writeFileSync(R.busyFile(AGENT_BUSY(f)), OTHER);
   await runRun(dir);
   t.eq(R.readJson(path.join(dir, 'exit')).failure, 'lock');
   t.ok(!fs.existsSync(path.join(dir, 'agent.pid')));
-  t.eq(fs.readFileSync(R.busyFile('agent'), 'utf8'), OTHER);
+  t.eq(fs.readFileSync(R.busyFile(AGENT_BUSY(f)), 'utf8'), OTHER);
 }));
 
 t.test('H3: cancel of a lost run SIGKILLs the recorded agent process group and deletes env.json', () => scenario(async (f) => {
@@ -108,7 +110,7 @@ t.test('H3: SIGTERM to the runner process kills the agent tree and finishes the 
   t.ok(await until(() => fs.existsSync(path.join(dir, 'exit'))));
   t.eq(R.readJson(path.join(dir, 'exit')).failure, 'cancelled');
   t.ok(await until(() => !alive(agentPid), 5000));
-  t.eq(R.acquireBusy('agent', 'probe').ok, true); R.releaseBusy('agent', 'probe');
+  t.eq(R.acquireBusy(AGENT_BUSY(f), 'probe').ok, true); R.releaseBusy(AGENT_BUSY(f), 'probe');
 }));
 
 t.test('H2: lost busy ownership mid-run aborts the agent (watchdog thread) and fails with lock, nothing pushed', () => scenario(async (f) => {
@@ -116,7 +118,7 @@ t.test('H2: lost busy ownership mid-run aborts the agent (watchdog thread) and f
   const { dir } = intakeRun({ spec: f.agentSpec(), target: f.target, task: 'x' });
   const done = runRun(dir);
   t.ok(await until(() => fs.existsSync(path.join(dir, 'agent.pid'))));
-  fs.writeFileSync(R.busyFile('agent'), OTHER); // someone reclaimed the clone
+  fs.writeFileSync(R.busyFile(AGENT_BUSY(f)), OTHER); // someone reclaimed the clone
   await done;
   t.eq(R.readJson(path.join(dir, 'exit')).failure, 'lock');
   t.ok(!f.onOrigin());

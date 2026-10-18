@@ -31,6 +31,8 @@ t.test('agent.settings: absolute path ok, relative/metachar rejected', () => {
 t.test('branch must equal rig/<self>/<slug>', () => {
   bad(agentSpec({ branch: 'rig/mac/my-plan' }));
   bad(agentSpec({ branch: 'main' }));
+  const e = bad(agentSpec({ branch: 'rig/mac/my-plan' }));
+  t.ok(e.hint.includes('worker id is waso') && e.hint.includes('doctor mac'), e.hint);
 });
 
 t.test('ids and shas validated', () => {

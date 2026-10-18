@@ -17,12 +17,48 @@ Prefer `remote.cjs register <id> --ssh ... --os ... --repo ...` over hand editin
 | `ssh` | yes | `user@host` or an ssh config alias (no option-like values) |
 | `os` | yes | `macos` \| `linux` \| `windows` |
 | `shell` | yes | `bash` (macos/linux) \| `powershell` \| `cmd` (windows) |
-| `repo` | yes | Absolute path of the Rig-dedicated clone on that machine |
+| `repo` | yes | Absolute path of a Rig-dedicated clone on that machine. Serves every project while the entry has no `repos`; with `repos`, used only when the orchestrator's cwd has no origin (see Projects) |
+| `repos` | no | `{"<normalized origin>": "<abs clone path>"}`: one Rig clone per project on this machine |
 | `pathPrepend` | yes | Absolute dirs prepended to PATH for non-interactive ssh (`[]` if none); only placed in the PATH env var, so spaces are allowed (`;`, quotes and cmd metacharacters are not) |
 | `node` | win: yes | Absolute node path. REQUIRED on Windows; recommended elsewhere (non-interactive ssh PATH often lacks node) |
 | `claude` | no | Absolute path of the claude binary (default: `claude` on PATH) |
 | `allowedTools` | no | Extra tools for agents on this machine (rules below) |
 | `taskMode` | win only | `headless` (default) or `interactive` |
+
+## Projects (`repos`)
+
+One machine can hold a dedicated clone per project. The orchestrator picks the clone by the origin of the project it runs in (`git remote get-url origin`, normalized):
+
+| Situation | Clone used |
+|---|---|
+| `repos` has the cwd origin's key | `repos[key]` |
+| No `repos` (legacy entry) | `repo` |
+| cwd has no origin | `repo` |
+| `repos` exists, cwd origin is not a key | none: exit 2, class `no-clone`, hint to run `register` in that project |
+
+The resolution is strict: once `repos` exists, a project missing from it never falls back to `repo`, so it cannot share another project's clone. Workers never see `repos`: the orchestrator sends the resolved clone as `repo`, so older workers work unchanged.
+
+Keys are normalized origins: lowercase, no scheme, user, credentials or `.git` (`git@github.com:Org/App.git` -> `github.com/org/app`). Clone paths must be absolute, unique, not nested in another clone path, and not equal to another clone's `<path>-rig-test` (Windows paths compare case-insensitively).
+
+### Adding a project
+
+Run `register` inside the project (cwd must have an `origin` remote):
+
+| Command | Result |
+|---|---|
+| `remote.cjs register <id> --repo <abs clone>` (id exists) | Adds or updates `repos[<cwd origin>]`. Other flags you pass must equal the stored values, else it refuses and points at `--replace` |
+| `remote.cjs register <id> --ssh ... --os ... --repo <abs clone>` (new id) | Writes `repo` and `repos[<cwd origin>]` (the key only when cwd has an origin) |
+| `... --replace` | Rebuilds the entry from the flags, keeps other projects' `repos`, sets the current project's key |
+
+When the first `repos` key is added to a legacy entry, `register` prints a warning: other projects that used the old `repo` must run `register <id> --repo <that path>` in their own project, or they get `no-clone`. Then run `setup <id>`.
+
+### Removing a project
+
+There is no remove command. Delete the project's key from `repos` by hand, then run `doctor`. The clone on the worker stays until someone deletes it.
+
+### Compatibility
+
+Rig builds without `repos` reject the key (unknown key). To roll back, delete every `repos` key; each entry then uses `repo` again.
 
 ## taskMode (Windows)
 
@@ -62,6 +98,19 @@ This also works over plain ssh with no stdin (`ssh <host> node <skill>/scripts/w
                 "taskMode": "headless", "allowedTools": ["Bash(npm test:*)"] },
     "box":    { "ssh": "rig@box", "os": "linux", "shell": "bash", "repo": "/home/rig/app",
                 "pathPrepend": ["/usr/local/bin"], "node": "/usr/bin/node", "allowedTools": ["Bash(pytest:*)"] }
+  }
+}
+```
+
+Two projects on one machine (`app` = `github.com/org/app`, `site` = `github.com/org/site`):
+
+```json
+{
+  "machines": {
+    "studio": { "ssh": "rig@studio.local", "os": "macos", "shell": "bash",
+                "repo": "/Users/rig/work/app", "pathPrepend": [], "allowedTools": ["Bash(npm test:*)"],
+                "repos": { "github.com/org/app": "/Users/rig/work/app",
+                           "github.com/org/site": "/Users/rig/work/site" } }
   }
 }
 ```

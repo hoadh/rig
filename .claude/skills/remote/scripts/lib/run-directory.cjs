@@ -138,6 +138,16 @@ function listRunDirs() {
 // ---- busy markers: exclusive-create files holding the owning runId ----
 const busyFile = (name) => path.join(rigHome(), `${name}.busy`);
 
+/** Holder of marker `name` if it is live ('unknown' for a fresh unparsable marker), else null (absent or stale). */
+function liveBusyHolder(name) {
+  const file = busyFile(name);
+  let holder = '';
+  try { holder = fs.readFileSync(file, 'utf8').trim(); } catch { return null; }
+  // Unparsable/empty holder (foreign or legacy writer mid-create): live until it ages past the grace period.
+  if (!V.isRunId(holder)) return Date.now() - (mtimeMs(file) || 0) < BUSY_HOLDER_GRACE_MS ? 'unknown' : null;
+  return ['starting', 'running', 'cancelling'].includes(readRunState(runDirOf(holder)).state) ? holder : null;
+}
+
 /** @returns {{ok:true}|{ok:false, holder:string}} */
 function acquireBusy(name, runId) {
   fs.mkdirSync(rigHome(), { recursive: true, mode: 0o700 });
@@ -156,10 +166,8 @@ function acquireBusy(name, runId) {
     let holder = '';
     try { holder = fs.readFileSync(file, 'utf8').trim(); } catch { continue; }
     if (holder === runId) return { ok: true };
-    // Unparsable/empty holder (foreign or legacy writer mid-create): live until it ages past the grace period.
-    if (!V.isRunId(holder) && Date.now() - (mtimeMs(file) || 0) < BUSY_HOLDER_GRACE_MS) return { ok: false, holder: 'unknown' };
-    const live = V.isRunId(holder) && ['starting', 'running', 'cancelling'].includes(readRunState(runDirOf(holder)).state);
-    if (live) return { ok: false, holder };
+    const live = liveBusyHolder(name);
+    if (live) return { ok: false, holder: live };
     try { fs.unlinkSync(file); } catch { /* raced with another cleaner */ }
   }
   return { ok: false, holder: 'unknown' };
@@ -171,10 +179,26 @@ function releaseBusy(name, runId) {
   } catch { /* already gone */ }
 }
 
-const busyNameFor = (kind) => (kind === 'agent' ? 'agent' : 'test');
+/** Stable short id of a clone (realpath so symlinked paths share one id). Lives here (lowest layer) so busy names and baselines share it. */
+function cloneHash(repo) {
+  let real = repo;
+  try { real = fs.realpathSync(repo); } catch { /* missing repo: hash the given path */ }
+  return crypto.createHash('sha256').update(real).digest('hex').slice(0, 16);
+}
+
+/** One agent marker and one test marker per clone: `agent-<hash>` / `test-<hash>`. */
+const busyNameFor = (kind, repo) => `${kind === 'agent' ? 'agent' : 'test'}-${cloneHash(repo)}`;
+const busyNameForRun = (run) => busyNameFor(run.spec.kind, run.target.repo);
+
+/** Release every marker held by `runId` (run.json-less orphans cannot derive their clone). */
+function releaseBusyHeldBy(runId) {
+  let names = [];
+  try { names = fs.readdirSync(rigHome()); } catch { return; }
+  for (const n of names.filter((f) => f.endsWith('.busy'))) releaseBusy(n.slice(0, -5), runId);
+}
 
 module.exports = {
   FAILURES, STARTING_GRACE_MS, HEARTBEAT_STALE_MS, RunFailure, rigHome, runsRoot, runDirOf, emptyHooksDir,
   newRunId, writeFileAtomic, writeFileExclusive, writeJsonAtomic, readJson, mtimeMs, exists, touchHeartbeat, createRunDir,
-  tailFile, readRunState, summarizeRun, listRunDirs, acquireBusy, releaseBusy, busyNameFor, busyFile,
+  tailFile, readRunState, summarizeRun, listRunDirs, acquireBusy, releaseBusy, releaseBusyHeldBy, liveBusyHolder, busyNameFor, busyNameForRun, cloneHash, busyFile,
 };

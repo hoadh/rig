@@ -39,24 +39,53 @@ function readRawRegistry(file) {
   return JSON.parse(fs.readFileSync(file, 'utf8').replace(/^﻿/, ''));
 }
 
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
 /**
- * Add or (with replace) overwrite `name`.
- * @returns {{path:string, created:boolean, replaced:boolean, entry:object}}
+ * Merge `entry` (from flags) into the existing entry `prev` (or none). `projectKey` is the
+ * normalized origin of the project register runs in ('' when it has none).
+ * - new id: entry + repos[projectKey]
+ * - --replace: entry rebuilt from flags, other projects' `repos` carried over, current key set
+ * - existing id, no --replace: only adds/updates repos[projectKey]; every other given flag must
+ *   equal the stored value (`givenKeys`), otherwise refuse and point at --replace
+ * @returns {{next:object, action:'added'|'replaced'|'project-added'|'project-updated'}}
  */
-function upsertMachine(name, entry, { replace = false } = {}) {
-  validateMachineEntry(name, entry);
-  if (entry.allowedTools) resolveAllowedTools(null, entry.allowedTools); // same policy dispatch enforces
+function mergeMachineEntry(name, prev, entry, { replace, projectKey, givenKeys }) {
+  const withKey = (repos) => (projectKey ? { ...repos, [projectKey]: entry.repo } : repos);
+  const withRepos = (base, repos) => (repos && Object.keys(repos).length ? { ...base, repos } : base);
+  if (!prev || replace) for (const req of ['ssh', 'os']) if (!entry[req]) throw usageError(`--${req} is required for a new or replaced machine`);
+  if (!prev) return { next: withRepos(entry, withKey({})), action: 'added' };
+  if (replace) return { next: withRepos(entry, withKey(prev.repos)), action: 'replaced' };
+  const differs = givenKeys.filter((k) => k !== 'repo' && !same(entry[k], prev[k]));
+  if (differs.length) throw usageError(`machine "${name}" already registered with a different ${differs.join(', ')}`, 'pass --replace to overwrite it');
+  if (!projectKey) {
+    throw usageError(`machine "${name}" already registered and this directory has no "origin" remote`, 'run register inside the project repo to add its clone, or pass --replace to overwrite the entry');
+  }
+  const had = Boolean(prev.repos && Object.prototype.hasOwnProperty.call(prev.repos, projectKey));
+  return { next: { ...prev, repos: withKey(prev.repos || {}) }, action: had ? 'project-updated' : 'project-added' };
+}
+
+/**
+ * Add `name`, add this project's clone to it, or (with replace) overwrite it.
+ * @param {{replace?:boolean, projectKey?:string, givenKeys?:string[]}} opts
+ * @returns {{path:string, created:boolean, action:string, entry:object, firstReposMap:boolean, previousRepo:string|null}}
+ */
+function upsertMachine(name, entry, { replace = false, projectKey = '', givenKeys = [] } = {}) {
   const file = registryPath();
   const created = !fs.existsSync(file);
   const data = readRawRegistry(file);
-  const replaced = Object.prototype.hasOwnProperty.call(data.machines, name);
-  if (replaced && !replace) throw usageError(`machine "${name}" already in ${file}`, 'pass --replace to overwrite it');
-  data.machines[name] = entry;
+  const prev = Object.prototype.hasOwnProperty.call(data.machines, name) ? data.machines[name] : null;
+  const { next, action } = mergeMachineEntry(name, prev, entry, { replace, projectKey, givenKeys });
+  validateMachineEntry(name, next); // flags + repos collisions (dup/nested/-rig-test) across projects
+  if (next.allowedTools) resolveAllowedTools(null, next.allowedTools); // same policy dispatch enforces
+  data.machines[name] = next;
   fs.mkdirSync(path.dirname(file), { recursive: true });
   const tmp = `${file}.${process.pid}.tmp`;
   fs.writeFileSync(tmp, `${JSON.stringify(data, null, 2)}\n`, { mode: 0o600 });
   fs.renameSync(tmp, file);
-  return { path: file, created, replaced, entry };
+  // a legacy entry served every project through `repo`; with a map, unlisted projects get no-clone
+  const firstReposMap = Boolean(prev && !prev.repos && next.repos);
+  return { path: file, created, action, entry: next, firstReposMap, previousRepo: prev ? prev.repo : null };
 }
 
-module.exports = { buildMachineEntry, upsertMachine };
+module.exports = { buildMachineEntry, mergeMachineEntry, upsertMachine };

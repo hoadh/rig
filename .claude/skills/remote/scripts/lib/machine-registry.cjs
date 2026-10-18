@@ -9,11 +9,12 @@ const os = require('os');
 const path = require('path');
 const { RemoteError, EXIT, usageError } = require('./remote-errors.cjs');
 const V = require('./identifier-validators.cjs');
+const { normalizeOrigin } = require('./git-origin-url-normalizer.cjs');
 
 const OSES = ['macos', 'linux', 'windows'];
 const SHELLS = ['bash', 'cmd', 'pwsh', 'powershell'];
 const TASK_MODES = ['interactive', 'headless'];
-const ALLOWED_KEYS = ['ssh', 'os', 'shell', 'repo', 'pathPrepend', 'node', 'claude', 'allowedTools', 'taskMode'];
+const ALLOWED_KEYS = ['ssh', 'os', 'shell', 'repo', 'pathPrepend', 'node', 'claude', 'allowedTools', 'taskMode', 'repos'];
 const SECRET_KEY = /token|secret|passw|api[-_]?key|credential/i;
 
 function registryPath() {
@@ -28,6 +29,41 @@ function selfMachineId() {
 
 function oneOf(v, list, field) {
   if (!list.includes(v)) throw usageError(`${field} must be one of ${list.join('|')}, got ${JSON.stringify(v)}`);
+}
+
+/**
+ * Optional `repos: {"<normalizeOrigin(origin)>": "<abs clone path>"}`: one dedicated clone per
+ * project on this machine. Keys must already be normalized (so never carry credentials).
+ * Clone paths must not repeat, nest, or equal another clone's `<path>-rig-test` test clone
+ * (git clean in a parent would wipe a child); `repo` may equal one of the values.
+ */
+function validateReposMap(entry, where) {
+  const repos = entry.repos;
+  if (repos === undefined) return;
+  if (!repos || typeof repos !== 'object' || Array.isArray(repos)) throw usageError(`${where}: repos must be an object {"<origin key>": "<abs path>"}`);
+  // an empty map would make every project `no-clone`, including the one `repo` serves
+  if (!Object.keys(repos).length) throw usageError(`${where}: repos is empty`, 'delete the "repos" key to go back to the single `repo` clone');
+  for (const [key, p] of Object.entries(repos)) {
+    // eslint-disable-next-line no-control-regex
+    if (!key || key.length > 200 || !/[\\/]/.test(key) || /[\s\u0000-\u001f\u007f]/.test(key) || normalizeOrigin(key) !== key) {
+      throw usageError(`${where}: repos key ${JSON.stringify(key.slice(0, 80))} is not a normalized origin`, 'expected e.g. "github.com/org/repo" (lowercase, no scheme, user, credentials or .git)');
+    }
+    V.assertAbsPath(p, entry.os, `${where} repos["${key}"]`);
+  }
+  const win = entry.os === 'windows';
+  const sep = win ? '\\' : '/';
+  const canon = (p) => { const c = p.replace(/[\\/]+$/, ''); return win ? c.replace(/\//g, '\\').toLowerCase() : c; };
+  const values = Object.values(repos).map(canon);
+  const dup = values.find((v, i) => values.indexOf(v) !== i);
+  if (dup) throw usageError(`${where}: two projects in repos share the clone path ${dup}`);
+  const all = values.includes(canon(entry.repo)) ? values : [canon(entry.repo), ...values];
+  for (const a of all) {
+    for (const b of all) {
+      if (a === b) continue;
+      if (a === `${b}-rig-test` || a.startsWith(`${b}-rig-test${sep}`)) throw usageError(`${where}: clone path ${a} collides with the test clone of ${b}`);
+      if (a.startsWith(b + sep)) throw usageError(`${where}: clone path ${a} is nested inside ${b}`);
+    }
+  }
 }
 
 /** Validate one machine entry; returns a normalised copy. Throws exit-2 RemoteError. */
@@ -66,6 +102,7 @@ function validateMachineEntry(name, entry) {
     if (entry.os !== 'windows') throw usageError(`${where}: taskMode is only valid for os=windows`);
     oneOf(entry.taskMode, TASK_MODES, `${where} taskMode`);
   }
+  validateReposMap(entry, where);
   return { name, ...entry };
 }
 

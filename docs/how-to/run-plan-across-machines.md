@@ -10,12 +10,12 @@ Use this only for multi-machine plans or cross-OS test runs. Single-machine plan
 |---|---|
 | Rig installed on every machine, same version | `doctor` reports the protocol and skill-script hash |
 | Node.js 18.15+, git 2.30+, claude CLI 2.1.259+, OpenSSH client | `doctor` |
-| Dedicated clone of the repo on each worker, used only by Rig | Clean tree; never edit it by hand |
+| Dedicated clone of the repo on each worker per project, used only by Rig | Clean tree; never edit it by hand |
 | Key-based, non-interactive ssh from orchestrator to each worker | `ssh -o BatchMode=yes <host> echo ok` |
 | `claude` logged in on each worker (or a token in the service user's environment) | `doctor` |
 | Worker host key in `known_hosts` on the orchestrator | Run `ssh <host>` once interactively; ssh runs with `StrictHostKeyChecking=yes` |
 
-Recommended: a dedicated OS user per worker. It is the only boundary that holds against a misbehaving agent; see [Threat model](#threat-model).
+Recommended: a dedicated OS user per worker. It is the only boundary that holds against a misbehaving agent; see [Threat model](#threat-model). Containers as workers: see [worker setup guide, Container sandbox](../../.claude/skills/remote/references/worker-setup-guide.md#container-sandbox).
 
 ### One-time baseline per worker clone
 
@@ -57,9 +57,20 @@ node .claude/skills/remote/scripts/remote.cjs register linux --ssh rig@linux --o
 
 Full key table: [registry format](../../.claude/skills/remote/references/registry-format.md). Never put tokens or passwords here; keys named like secrets are rejected.
 
+### Several projects on one machine
+
+A machine can hold one clone per project. Run `register` inside each project; it keys the clone by that project's `origin`:
+
+```bash
+cd ~/src/site                                                    # second project, origin set
+node .claude/skills/remote/scripts/remote.cjs register linux --repo /home/rig/site
+```
+
+The registry then holds `"repos": {"github.com/org/app": "/home/rig/app", "github.com/org/site": "/home/rig/site"}`. A project missing from `repos` gets `no-clone` (exit 2) instead of sharing another clone. Removing a project means deleting its key from `repos` by hand; its clone on the worker stays. Details and rollback: [registry format, Projects](../../.claude/skills/remote/references/registry-format.md#projects-repos).
+
 ## 2. Set up and check
 
-`setup` prepares each worker and then runs `doctor`. It checks ssh, node and claude, checks that Rig on the worker speaks the same protocol, creates the dedicated clone of this repo's `origin` if it is missing (credentials stripped from the URL), and records the baseline. Every problem prints a `fix:` line. Rerun it until it prints `setup: ok`.
+`setup` prepares each worker and then runs `doctor`. It checks ssh, node and claude, checks that Rig on the worker speaks the same protocol, checks that the worker's id (`RIG_MACHINE`) equals the registry id (`machine-id`; a mismatch stops setup before anything is cloned), creates the dedicated clone of this project's `origin` if it is missing (credentials stripped from the URL), and records the baseline. Every problem prints a `fix:` line. Rerun it until it prints `setup: ok`.
 
 ```bash
 node .claude/skills/remote/scripts/remote.cjs setup linux waso
@@ -137,7 +148,7 @@ Runs are detached and survive the ssh session:
 | macOS, Linux | `tmux attach -t rig-<runId>` (read-only: `-r`) | `~/.rig/runs/<runId>/` on the worker |
 | Windows | Scheduled task `rig-<runId>` | `%USERPROFILE%\.rig\runs\<runId>\` on the worker |
 
-A run with no heartbeat for 90 s is `lost`. Cancel with `node .claude/skills/remote/scripts/remote.cjs cancel <machine> <runId>`; commits pushed so far stay pushed.
+One agent run and one test run may run per clone at a time. A second run on the same clone returns `busy`; runs of different projects on the same machine run in parallel. A run with no heartbeat for 90 s is `lost`. Cancel with `node .claude/skills/remote/scripts/remote.cjs cancel <machine> <runId>`; commits pushed so far stay pushed.
 
 ## 6. Review
 
@@ -191,7 +202,7 @@ It lists the old orchestrator's in-flight runs. Wait for them with `status --wai
 |---|---|---|
 | 0 | OK | Continue |
 | 1 | Refused or failed (for example `collect-first`, `push-first`, `review`) | Read the printed hint; fix the cause and retry |
-| 2 | Usage or policy (bad flag or value, rejected plan field) | Fix the command or the plan |
+| 2 | Usage or policy (bad flag or value, rejected plan field, `no-clone`: this project has no clone on that machine) | Fix the command or the plan; for `no-clone`, run `register <id> --repo <abs clone>` in the project, then `setup <id>` |
 | 3 | Lock: not orchestrator, or cannot verify coordination state | Stop; ask the user before `takeover` |
 | 4 | Merge conflict in `collect` | Resolve in `.rig/int-<slug>`, commit, rerun `collect` |
 | 5 | Transport: unreachable, command not found, protocol mismatch, timeout | Run `doctor`; do not retry blindly |

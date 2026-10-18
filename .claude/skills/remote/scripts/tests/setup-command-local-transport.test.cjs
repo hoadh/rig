@@ -64,6 +64,22 @@ t.test('existing clone without baseline: fail line with fix, doctor skipped', as
   t.eq(r.calls, []);
   t.eq((await runSetup(['box', '--accept-existing-clone'])).code, 0);
 });
+t.test('worker id mismatch: machine-id fails with fix, prepare never called', async () => {
+  const calls = [];
+  const client = { execWorker: async (_n, cmd) => { calls.push(cmd); return { reply: { protocol: require('../lib/rig-json-nonce-framing.cjs').PROTOCOL_VERSION, rigVersion: 'x', machine: 'other' } }; },
+    workerTarget: () => ({}) };
+  const r = await setup.setupMachine('box', {}, client);
+  t.eq(r.ready, false);
+  const s = r.steps.find((x) => x.id === 'machine-id');
+  t.eq(s.status, 'fail'); t.ok(s.fix.includes('RIG_MACHINE=box'), s.fix);
+  t.eq(calls, ['info']);
+  let out = '';
+  const write = process.stdout.write;
+  process.stdout.write = (x) => { out += x; return true; };
+  let code;
+  try { code = await setup.run(['box'], { client, doctor: async () => 0 }); } finally { process.stdout.write = write; }
+  t.eq(code, 1, out); t.ok(/FAIL\s+machine-id/.test(out), out);
+});
 t.test('usage errors before any work: unknown machine, half identity, no args', async () => {
   await t.rejectsRemote(runSetup(['nope']), { exitCode: 2 });
   await t.rejectsRemote(runSetup(['box', '--git-name', 'x']), { exitCode: 2 });

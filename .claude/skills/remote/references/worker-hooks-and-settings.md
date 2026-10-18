@@ -1,6 +1,6 @@
 # Worker Headless Runs: Hooks and Settings
 
-A worker agent is `claude -p` run in the worker's dedicated clone (the registry `repo`; the agent runs in the clone itself, not in a worktree), with an allowlisted environment (no orchestrator secrets) and `--allowedTools`/`--disallowedTools` from the spec. No `--dangerously-skip-permissions`; a permission prompt cannot be answered, so it counts as a denial.
+A worker agent is `claude -p` run in the worker's dedicated clone (the project's clone: `repos[<origin>]`, else `repo`; the agent runs in the clone itself, not in a worktree), with an allowlisted environment (no orchestrator secrets) and `--allowedTools`/`--disallowedTools` from the spec. No `--dangerously-skip-permissions`; a permission prompt cannot be answered, so it counts as a denial.
 
 ## Which hooks and rules apply
 

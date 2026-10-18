@@ -20,13 +20,15 @@ async function scenario(fn) {
   try { await fn(f); } finally { f.cleanup(); }
 }
 
+const AGENT_BUSY = (f) => R.busyNameFor('agent', f.target.repo);
+
 t.test('agent commit inside owns is pushed; exit written; busy released', () => scenario(async (f) => {
   f.setMode('commit');
   const r = await runToEnd(f, f.agentSpec());
   t.eq([r.exit.code, r.exit.failure, r.state.state, r.result.pushed], [0, null, 'done', true]);
   t.ok(f.onOrigin());
-  t.eq(R.acquireBusy('agent', 'probe').ok, true); // released
-  R.releaseBusy('agent', 'probe');
+  t.eq(R.acquireBusy(AGENT_BUSY(f), 'probe').ok, true); // released
+  R.releaseBusy(AGENT_BUSY(f), 'probe');
 }));
 
 t.test('.github change: catch-all owns -> failed:owns-violation, not pushed; explicit owns -> pushed', () => scenario(async (f) => {
@@ -103,8 +105,8 @@ t.test('cancel of a lost run is finalized by the worker command and frees the bu
   let reply; await cancelCmd.run([spec.runId], { reply: (r) => { reply = r; } });
   t.eq(reply.finalizedHere, true);
   t.eq([R.readJson(path.join(dir, 'exit')).failure, R.readJson(path.join(dir, 'exit')).code], ['cancelled', 130]);
-  t.eq(R.acquireBusy('agent', 'probe').ok, true);
-  R.releaseBusy('agent', 'probe');
+  t.eq(R.acquireBusy(AGENT_BUSY(f), 'probe').ok, true);
+  R.releaseBusy(AGENT_BUSY(f), 'probe');
 }));
 
 t.test('cancel of a run still starting (no heartbeat) is finalized immediately as failed:cancelled', () => scenario(async (f) => {
@@ -114,19 +116,19 @@ t.test('cancel of a run still starting (no heartbeat) is finalized immediately a
   let reply; await cancelCmd.run([spec.runId], { reply: (r) => { reply = r; } });
   t.eq(reply.finalizedHere, true);
   t.eq([R.readJson(path.join(dir, 'exit')).failure, R.readJson(path.join(dir, 'exit')).code, R.readRunState(dir).state], ['cancelled', 130, 'failed']);
-  t.eq(R.acquireBusy('agent', 'probe').ok, true); // busy marker freed
-  R.releaseBusy('agent', 'probe');
+  t.eq(R.acquireBusy(AGENT_BUSY(f), 'probe').ok, true); // busy marker freed
+  R.releaseBusy(AGENT_BUSY(f), 'probe');
 }));
 
 t.test('losing same-runId intake (winner mid-flight) errors and leaves winner run dir + busy marker intact', () => scenario(async (f) => {
   const spec = f.agentSpec();
   // winner has claimed dir + marker but not yet written run.json
   const dir = R.createRunDir(spec.runId);
-  t.eq(R.acquireBusy('agent', spec.runId), { ok: true });
+  t.eq(R.acquireBusy(AGENT_BUSY(f), spec.runId), { ok: true });
   fs.writeFileSync(path.join(dir, 'winner-marker'), 'x');
   t.throwsRemote(() => intakeRun({ spec, target: f.target, task: 'x' }), { class: 'exists' });
   t.ok(fs.existsSync(path.join(dir, 'winner-marker')), 'winner run dir survives');
-  t.eq(fs.readFileSync(path.join(R.rigHome(), 'agent.busy'), 'utf8'), spec.runId);
+  t.eq(fs.readFileSync(R.busyFile(AGENT_BUSY(f)), 'utf8'), spec.runId);
   // and the winner finishing normally afterwards still works for a sequential retry
   R.writeJsonAtomic(path.join(dir, 'run.json'), { v: 1, spec, target: f.target, specHash: require('../lib/run-spec-validator.cjs').specHash(spec), createdAt: Date.now() });
   t.eq(intakeRun({ spec, target: f.target, task: 'x' }).existing, true);

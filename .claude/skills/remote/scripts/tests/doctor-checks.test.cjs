@@ -66,4 +66,19 @@ t.test('fix hints: ssh cause-specific, ok checks have none, missing node points 
   const reach = D.withFixHints([{ id: 'reach', status: 'fail', msg: 'm: worker command not found on the machine' }], { name: 'm', cfg })[0];
   t.ok(reach.fix.includes('install-kit-from-local-repo.cjs --global'), reach.fix);
 });
+t.test('machine-id: match ok, mismatch fails with per-os RIG_MACHINE fix, missing warns, junk is not echoed', () => {
+  const cfg = { os: 'linux', ssh: 'rig@m', repo: '/r' };
+  const mid = (info, c = cfg) => D.evaluateMachine(input({ cfg: c, info: { protocol: 1, rigVersion: '2.0.0', ...info } })).find((x) => x.id === 'machine-id');
+  t.eq(mid({ machine: 'm' }).status, 'ok');
+  const bad = mid({ machine: 'other' });
+  t.eq(bad.status, 'fail');
+  t.ok(bad.fix.includes('RIG_MACHINE=m') && bad.fix.includes('.zshenv') && bad.fix.includes('rename registry key "m" to "other"'), bad.fix);
+  const win = mid({ machine: 'other' }, { ...cfg, os: 'windows' });
+  t.ok(win.fix.includes('setx RIG_MACHINE m'), win.fix);
+  const old = mid({});
+  t.eq(old.status, 'warn'); t.ok(old.fix.includes('install-kit-from-local-repo.cjs'), old.fix);
+  const junk = mid({ machine: `X; rm -rf /${'a'.repeat(100)}` });
+  t.eq(junk.status, 'fail'); t.ok(junk.msg.length < 120 && !junk.fix.includes('rename'), junk.msg);
+  t.eq(D.machineIdCheck('m', { machine: 'm' }).status, 'ok');
+});
 t.done();

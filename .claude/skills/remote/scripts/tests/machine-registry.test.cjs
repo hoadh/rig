@@ -90,4 +90,25 @@ t.test('windows pathPrepend may contain spaces (env-only) but not PATH delimiter
   bad({ ...win, pathPrepend: ['C:\\a\tb'] }, /pathPrepend\[0\]/);
 });
 
+t.test('repos map: valid keys/paths load; creds, non-normalized, dup, nested, -rig-test, windows case rejected', () => {
+  write({ m: { ...linux, repos: { 'github.com/o/a': '/home/ubuntu/rig/x', 'github.com/o/b': '/home/ubuntu/b' } } });
+  t.eq(reg.getMachine('m').repos['github.com/o/b'], '/home/ubuntu/b');
+  bad({ ...linux, repos: [] }, /repos must be an object/);
+  bad({ ...linux, repos: { 'u:tok@github.com/o/a': '/a' } }, /not a normalized origin/);
+  bad({ ...linux, repos: { 'git@github.com:o/a.git': '/a' } }, /not a normalized origin/);
+  bad({ ...linux, repos: { 'GitHub.com/o/a': '/a' } }, /not a normalized origin/);
+  bad({ ...linux, repos: { 'github.com/o/a': 'rel/path' } }, /absolute/);
+  bad({ ...linux, repos: { 'github.com/o/a': '/a', 'github.com/o/b': '/a/' } }, /share the clone path/);
+  bad({ ...linux, repos: { 'github.com/o/a': '/home/ubuntu/rig/x/inner' } }, /nested/);
+  bad({ ...linux, repos: { 'github.com/o/a': '/home/ubuntu/rig/x-rig-test' } }, /test clone/);
+  bad({ ...win, repos: { 'github.com/o/a': 'C:\\RIG\\X-rig-test' } }, /test clone/);
+  bad({ ...win, repos: { 'github.com/o/a': 'c:/rig/a', 'github.com/o/b': 'C:\\Rig\\A' } }, /share the clone path/);
+});
+
+t.test('repos map: empty map, key without path, clone inside another test clone rejected', () => {
+  bad({ ...linux, repos: {} }, /repos is empty/);
+  bad({ ...linux, repos: { __proto__x: '/a' } }, /not a normalized origin/);
+  bad({ ...linux, repos: { 'github.com/o/a': '/home/ubuntu/rig/x-rig-test/q' } }, /test clone/);
+});
+
 t.done().finally(() => fs.rmSync(dir, { recursive: true, force: true }));
