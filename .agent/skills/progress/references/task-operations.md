@@ -13,7 +13,7 @@ TaskCreate(
   subject: "Implement JWT auth middleware",
   description: "Add JWT validation to API routes. Verify tokens, extract claims, attach to context.",
   activeForm: "Implementing JWT auth middleware",
-  metadata: { feature: "auth", phase: 2, priority: "P1", effort: "2h",
+  metadata: { feature: "auth", phase: 2, priority: "P1",
               planDir: "plans/260205-auth/", phaseFile: "phase-02-api.md" }
 )
 ```
@@ -24,7 +24,7 @@ TaskCreate(
 - `activeForm` (optional): Present-continuous shown in spinner ("Implementing X")
 - `metadata` (optional): Arbitrary key-value pairs for tracking
 
-**Required metadata fields:** `phase`, `priority` (P1/P2/P3), `effort`, `planDir`, `phaseFile`
+**Required metadata fields:** `phase`, `priority` (P1/P2/P3), `planDir`, `phaseFile`
 **Optional metadata:** `step`, `critical`, `riskLevel`, `dependencies`, `feature`, `owner`
 
 ## TaskUpdate

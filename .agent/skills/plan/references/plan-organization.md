@@ -73,7 +73,6 @@ title: "Feature Implementation Plan"
 description: "Add user authentication with OAuth2 support"
 status: pending
 priority: P1
-effort: 8h
 issue: 123
 branch: kai/feat/oauth-auth
 tags: [auth, backend, security]

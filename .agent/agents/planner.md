@@ -108,7 +108,6 @@ title: "{Brief title}"
 description: "{One sentence for card preview}"
 status: pending
 priority: P2
-effort: {sum of phases, e.g., 4h}
 branch: {current git branch from context}
 tags: [relevant, tags]
 created: {YYYY-MM-DD}
