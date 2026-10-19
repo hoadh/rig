@@ -59,7 +59,6 @@ plans/
 │   ├── research/              # Research materials for this plan
 │   └── reports/               # Agent reports scoped to this plan
 ├── reports/                   # Standalone agent reports (not plan-scoped)
-├── templates/                 # Reusable plan templates
 └── visuals/                   # Generated diagrams, previews
 
 assets/

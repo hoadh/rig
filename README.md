@@ -59,7 +59,6 @@ Full index: [docs/README.md](./docs/README.md), organized by [Diataxis](https://
 │   └── statusline.cjs      # Status line
 ├── docs/                   # Project documentation (Diataxis layout)
 ├── guide/                  # Skills catalog
-├── plans/templates/        # Feature, bug-fix and refactor plan templates
 ├── scripts/                # Kit install, release and Antigravity sync scripts
 ├── CLAUDE.md               # Instructions loaded by Claude Code
 ├── AGENTS.md               # Agent coordination guidelines
@@ -133,7 +132,6 @@ Worker set-up, the dedicated OS user and known limits: [Run a plan across machin
 
 - **`CLAUDE.md`** — project instructions: architecture, standards, workflows.
 - **`.claude/rules/`** — rules the agents follow: YAGNI, KISS, DRY, small files, conventional commits without AI attribution.
-- **`plans/templates/`** — plan templates for features, bug fixes and refactors.
 - **`~/.claude/.rig.json`** — per-user Rig config (schema: `.claude/schemas/rig-config.schema.json`).
 
 ### API keys for `/rig:media`

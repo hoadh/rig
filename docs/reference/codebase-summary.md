@@ -168,7 +168,6 @@ Rig uses four hooks. Permission checks, naming rules and usage display use nativ
 ### For Agents
 - **CLAUDE.md**: Primary agent instructions
 - **.claude/rules/**: Development rules and protocols
-- **plans/templates/**: Implementation plan templates
 
 ## Development Principles
 

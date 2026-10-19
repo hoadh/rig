@@ -1,6 +1,6 @@
 /**
  * Builds the list of kit files to install and where each one goes:
- *   local  → <project>/.claude/**, <project>/CLAUDE.md, AGENTS.md, .repomixignore, .gitignore, plans/templates/**
+ *   local  → <project>/.claude/**, <project>/CLAUDE.md, AGENTS.md, .repomixignore, .gitignore
  *   global → ~/.claude/** (contents of .claude/) and ~/.claude/CLAUDE.md
  * Source files come from git (tracked + untracked-not-ignored), so ignored runtime state
  * (.env, hook logs, session state, venvs, caches) never leaves the repo.
@@ -20,7 +20,6 @@ const NEVER_COPY = [
 const PRESERVE_IF_EXISTS = new Set(['.gitignore', '.repomixignore', '.mcp.json', '.rig.json', 'CLAUDE.md', 'AGENTS.md']);
 
 const LOCAL_ROOT_FILES = ['CLAUDE.md', 'AGENTS.md', '.repomixignore', '.gitignore', '.mcp.json'];
-const LOCAL_ROOT_DIR_PREFIXES = ['plans/templates/'];
 
 function listRepoFiles(kitRoot) {
   let out;
@@ -39,7 +38,7 @@ function listRepoFiles(kitRoot) {
 function isKitFileForMode(relPath, isGlobal) {
   if (relPath.startsWith('.claude/')) return true;
   if (isGlobal) return relPath === 'CLAUDE.md';
-  return LOCAL_ROOT_FILES.includes(relPath) || LOCAL_ROOT_DIR_PREFIXES.some((p) => relPath.startsWith(p));
+  return LOCAL_ROOT_FILES.includes(relPath);
 }
 
 /**

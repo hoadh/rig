@@ -45,7 +45,7 @@ Check the result:
 ls ../rig-demo ../rig-demo/.claude
 ```
 
-The project now has `CLAUDE.md`, `AGENTS.md`, and `plans/templates/`, and `.claude/` contains `agents`, `hooks`, `rules`, `skills`, and `settings.json` (among others). Rig is now active for any Claude Code session started in `rig-demo`.
+The project now has `CLAUDE.md` and `AGENTS.md`, and `.claude/` contains `agents`, `hooks`, `rules`, `skills`, and `settings.json` (among others). Rig is now active for any Claude Code session started in `rig-demo`.
 
 ## 5. Start Claude Code in the demo project
 

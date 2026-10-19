@@ -45,8 +45,6 @@ plans/
 │   └── {type}-{YYMMDD-HHmm}-{slug}.md
 ├── research/                        # Standalone research
 │   └── researcher-{YYMMDD-HHmm}-{topic}.md
-├── templates/                       # Reusable plan templates
-│   └── {type}-template.md
 └── visuals/                         # Generated diagrams/previews
     └── {slug}.{ext}
 ```

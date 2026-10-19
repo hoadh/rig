@@ -15,7 +15,7 @@ Requirements: [Claude Code](https://code.claude.com/docs/en/setup), Git, Node.js
    ```bash
    node scripts/install-kit-from-local-repo.cjs --dir ../my-app --dry-run  # preview, writes nothing
    node scripts/install-kit-from-local-repo.cjs --global                   # → ~/.claude (every project)
-   node scripts/install-kit-from-local-repo.cjs --dir ../my-app            # → ../my-app/.claude + CLAUDE.md, AGENTS.md, plans/templates
+   node scripts/install-kit-from-local-repo.cjs --dir ../my-app            # → ../my-app/.claude + CLAUDE.md, AGENTS.md
    ```
    From inside a project, run `node ../rig/scripts/install-kit-from-local-repo.cjs` with no flag: it asks global vs. this directory.
 3. Add `--install-skills` to also install skill dependencies. Run with `--help` for all options.
