@@ -1,7 +1,7 @@
 # ADR 0002: Multi-Machine Remote Orchestration
 
 **Status**: Accepted (v1 scope; real-machine acceptance partly done, see Verification)
-**Date**: 2026-10-15 (amended 2026-10-18: several projects per machine)
+**Date**: 2026-10-15 (amended 2026-10-18: several projects per machine; 2026-10-21: no dispatcher subagent)
 **Extends**: [ADR 0001: Agent state lives in files](./0001-agent-state-lives-in-files.md)
 
 ## Context
@@ -17,6 +17,7 @@ Constraints carried over from ADR 0001: no database, no daemon, no new service t
 | Area | Decision |
 |---|---|
 | Data channel | Git origin is the only data channel. ssh is control only: validated command tokens, JSON on stdin, nonce-framed JSON reply. Workers never see the orchestrator working tree. |
+| Orchestration path | The orchestrator calls the deterministic `remote.cjs` CLI directly. No dispatcher subagent sits between the orchestrator and a remote worker (see Alternatives). |
 | Coordination | Branch `rig-coord/<slug>`: an orphan branch holding the plan mirror and the orchestrator lock. Single writer. Claim is a push of an orphan root, which cannot fast-forward an existing ref, so two claimants cannot both win. Fetch errors fail closed (exit 3). |
 | Machine registry | `~/.claude/rig-machines.json` on the orchestrator only. No secrets; keys that look like secrets are rejected. Optional `repos` map: one clone per project (see amendment). |
 | Worker repo | A Rig-dedicated clone per machine per project, used for nothing else. Git config, hooks and info are hashed against a baseline stored outside the clone; drift quarantines the clone (`failed:hooks-tampered`). |
@@ -83,6 +84,7 @@ Phase files add optional frontmatter, read only by multi-machine plans:
 - **Long-running SDK daemon on each worker**: adds a service to install and keep alive, against ADR 0001.
 - **Shared filesystem (NFS, Syncthing)**: no atomic claim, and worker edits would appear in the orchestrator tree.
 - **Write-ahead ledger for run state**: a second source of truth that can diverge from run dirs; rejected in favor of worker-side run files.
+- **Dispatcher subagent between orchestrator and workers** (rejected, 2026-10-21): a local agent that relays CLI calls. The worker already runs a headless agent, so this adds an LLM hop (tokens, latency, nondeterminism) only to call a shell CLI. It also moves the safety checks (spec validation, machine-id check, run lock, `allowedTools`) behind a nondeterministic layer, which weakens auditability, and a fresh subagent starts with empty context, not the plan and review gates the orchestrator holds. The real needs are cheaper: long waits use `status --wait` in the background; noisy logs (e.g. xcodebuild) get CLI summaries and error excerpts, with quiet build flags on the worker; failed runs get an on-demand `debugger` subagent.
 
 ## Verification
 
@@ -99,3 +101,4 @@ The Not-yet-verified items are described as limitations in the [how-to](../../ho
 - Two people or machines must run agents on the same plan at once and the single-writer lock is a bottleneck.
 - Worker trust needs a real sandbox (container or dedicated OS user per agent) rather than the seatbelt.
 - Collect should open a PR automatically (currently out of v1).
+- The orchestrator routinely has to read raw remote logs (fix the CLI output first), or coordination across 3+ machines becomes complex enough to justify a dispatcher (see Alternatives).

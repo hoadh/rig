@@ -198,7 +198,7 @@ Agents keep no state outside the file system ([ADR 0001](decisions/0001-agent-st
 
 ### Multi-Machine Execution (rig:remote)
 
-`rig:remote` (`.claude/skills/remote/`, [ADR 0002](decisions/0002-multi-machine-remote-orchestration.md)) runs plan phases and test commands on other machines. One orchestrator owns the plan. Workers run a headless agent per phase in a Rig-dedicated clone. Git is the only data channel; ssh is control only.
+`rig:remote` (`.claude/skills/remote/`, [ADR 0002](decisions/0002-multi-machine-remote-orchestration.md)) runs plan phases and test commands on other machines. One orchestrator owns the plan. Workers run a headless agent per phase in a Rig-dedicated clone. Git is the only data channel; ssh is control only. No agent sits between the orchestrator and a worker: the orchestrator drives the deterministic CLI over ssh.
 
 ```mermaid
 flowchart LR
@@ -210,9 +210,9 @@ flowchart LR
 
 | Component | Location | Role |
 |---|---|---|
-| Orchestrator CLI | `scripts/remote.cjs` | doctor, run, dispatch, status, cancel, review, collect, takeover |
-| Worker CLI | `scripts/worker.cjs` | baseline, info, start, status, list, cancel, exec, facts |
-| Machine registry | `~/.claude/rig-machines.json` (orchestrator only) | Machine ids, ssh target, OS, paths; no secrets |
+| Orchestrator CLI | `scripts/remote.cjs` | register, machines, setup, doctor, run, dispatch, status, cancel, review, collect, takeover |
+| Worker CLI | `scripts/worker.cjs` | prepare, baseline, info, start, status, list, cancel, exec, facts |
+| Machine registry | `~/.claude/rig-machines.json` (orchestrator only), written by `register` | Machine ids, ssh target, OS, paths; optional `repos` map (origin key -> clone path, one clone per project; a project missing from `repos` gets `no-clone`); no secrets. Format: `.claude/skills/remote/references/registry-format.md` |
 | Coordination branch | `rig-coord/<slug>` (orphan, single writer) | Plan mirror and orchestrator lock; claimed by create-only push |
 | Worker branch | `rig/<machine>/<slug>` (runner pushes only) | Agent commits after the owns/denylist guard |
 | Integration branch | `rig-int/<slug>` (collect only) | Reviewed worker branches merged in phase order |
@@ -223,6 +223,8 @@ flowchart LR
 | Failure | Handling |
 |---|---|
 | Unreachable worker, protocol mismatch | Exit 5; `doctor` diagnoses; no blind retry |
+| Spec branch is not `rig/<self>/<slug>` | Worker rejects the spec before any work starts (exit 2). `self` is `RIG_MACHINE`, or the lowercased hostname |
+| Second run on the same clone | Refused at start (`busy`, exit 1). Busy markers are per clone, so runs on other clones of the same machine proceed |
 | Coordination fetch error | Fail closed, exit 3 |
 | Second orchestrator claims a plan | Refused, exit 3; `takeover` requires user decision |
 | Owns violation, denylisted path | `failed:owns-violation`; not pushed; not auto-retried |
