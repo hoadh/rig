@@ -5,6 +5,11 @@ Devlog of shipped work, decisions, failures and lessons learned. Newest first.
 
 ## October 2026
 
+- **261018-remote-per-project-clones-machine-id-check.md**
+  - Shipped: one worker holds clones of several projects; `machine-id` check in doctor/setup; per-clone busy markers
+  - Strict resolution (`no-clone`, exit 2) over silent fallback to `repo`; legacy markers read-only
+  - Review 8.5 → 9.3: empty `repos: {}` silently broke every project; fixed with validation
+
 - **261016-replace-hooks-native-features-shipped.md**
   - Shipped (breaking): 11 kit hooks removed, privacy/heavy-dir → `permissions.ask`/`deny`, usage → statusline `rate_limits`
   - Installer strips retired hook registrations; tests asserted our JSON, not what CC consumed
@@ -33,7 +38,7 @@ Devlog of shipped work, decisions, failures and lessons learned. Newest first.
 
 ### By Topic
 - **Hooks and Claude Code integration**: replace-hooks-with-native-features, replace-hooks-native-features-shipped
-- **Multi-machine orchestration**: rig-remote-multi-machine-plan, rig-remote-implementation-and-acceptance
+- **Multi-machine orchestration**: rig-remote-multi-machine-plan, rig-remote-implementation-and-acceptance, remote-per-project-clones-machine-id-check
 - **Skills design**: fix-skill-v2-rewrite
 
 ### By Lesson Type
@@ -55,5 +60,5 @@ Devlog of shipped work, decisions, failures and lessons learned. Newest first.
 
 ---
 
-Last updated: 2026-10-17
-Total entries: 5
+Last updated: 2026-10-18
+Total entries: 6
