@@ -130,7 +130,7 @@ Options: `--max-turns n` (default 150), `--allowed-tools "A B"` (can only narrow
 node .claude/skills/remote/scripts/remote.cjs dispatch plans/<plan>/ plans/<plan>/phase-02-windows.md --resume --message-file feedback.md
 ```
 
-`--resume` continues the same agent session on the same branch. Put no secrets in `--message-file`; redaction is best effort.
+`--resume` continues the same agent session on the same branch: the newest run of that phase that has a session, so a failed run that never started does not block it. Put no secrets in `--message-file`; redaction is best effort.
 
 ## 5. Track
 

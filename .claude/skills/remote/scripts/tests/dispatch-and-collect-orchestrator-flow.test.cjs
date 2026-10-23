@@ -97,4 +97,23 @@ t.test('plan status: reads runs, writes report for finished run, exit 1 on failu
     t.eq(await capture(() => s.run([plan, '--json'], { self: 'mac', client: failed })), 1);
   } finally { process.chdir(os.tmpdir()); env.cleanup(); }
 });
+
+t.test('dispatch --resume skips a newer session-less run (not-started) and resumes the earlier session', async () => {
+  const { env, plan } = setup();
+  try {
+    const msg = path.join(env.root, 'fix.md');
+    fs.writeFileSync(msg, 'Fix the review findings.');
+    const status = { 'r-1': { claude: { session_id: 'S-EARLY' } }, 'r-2': {} };
+    const runs = [{ runId: 'r-1', kind: 'agent', state: 'done', phase: '01' }, { runId: 'r-2', kind: 'agent', state: 'failed', failure: 'not-started', phase: '01' }];
+    const client = fakeClient(runs, {});
+    client.fetchRunStatus = async (m, id) => ({ runId: id, state: 'done', result: status[id] });
+    t.eq(await capture(() => require('../commands/dispatch-command.cjs').run([plan, 'phase-01-build.md', '--resume', '--message-file', msg], ctxOf(client))), 0);
+    const { spec, task } = client.started[0];
+    t.eq([spec.agent.sessionId, spec.agent.resume, task], ['S-EARLY', true, 'Fix the review findings.']);
+    // no run with a session at all -> no-session refusal
+    const none = fakeClient([runs[1]]);
+    none.fetchRunStatus = async (m, id) => ({ runId: id, state: 'failed', result: {} });
+    await t.rejectsRemote((() => require('../commands/dispatch-command.cjs').run([plan, 'phase-01-build.md', '--resume', '--message-file', msg], ctxOf(none)))(), { exitCode: 1, cls: 'no-session' });
+  } finally { process.chdir(os.tmpdir()); env.cleanup(); }
+});
 t.done();

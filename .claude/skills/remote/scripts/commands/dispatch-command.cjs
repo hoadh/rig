@@ -53,6 +53,20 @@ function readMessage(file) {
 /** Test commands hinted to the agent: registry `Bash(<cmd>:*)` entries that are not git. */
 const testHintOf = (machine) => (machine.allowedTools || []).map((t) => /^Bash\((.+?)(?::\*)?\)$/.exec(t)).filter((m) => m && !m[1].startsWith('git ')).map((m) => m[1]).join(', ');
 
+/**
+ * Session of the newest phase run that has one. Runs that never reached claude
+ * (not-started, prepare/lock/auth failures) carry no session and are skipped, so they
+ * cannot hide the earlier session a correction round must resume. `runs` is oldest-first.
+ */
+async function latestSessionId(client, machine, runs) {
+  for (const r of [...runs].reverse()) {
+    const st = await client.fetchRunStatus(machine, r.runId);
+    const sid = st && st.result && st.result.claude && st.result.claude.session_id;
+    if (sid) return sid;
+  }
+  return null;
+}
+
 async function run(argv, ctx) {
   const self = V.assertMachineName(ctx.self, 'self machine id');
   const client = ctx.client || require('../lib/orchestrator-run-client.cjs');
@@ -81,9 +95,7 @@ async function run(argv, ctx) {
   if (active) throw new RemoteError(`${entry.machine} already has an active agent run ${active.runId} (${active.state})`, EXIT.ERROR, { class: 'agent-active', hint: `status ${args.planDir} --wait, or cancel ${entry.machine} ${active.runId}` });
   let sessionId = crypto.randomUUID();
   if (args.resume) {
-    const prev = runs.filter((r) => r.kind === 'agent' && String(r.phase) === entry.phase).pop();
-    const st = prev && await client.fetchRunStatus(entry.machine, prev.runId);
-    const sid = st && st.result && st.result.claude && st.result.claude.session_id;
+    const sid = await latestSessionId(client, entry.machine, runs.filter((r) => r.kind === 'agent' && String(r.phase) === entry.phase));
     if (!sid) throw new RemoteError(`no earlier agent session found for phase ${entry.phase} on ${entry.machine}`, EXIT.ERROR, { class: 'no-session', hint: 'dispatch without --resume' });
     sessionId = sid;
   }
