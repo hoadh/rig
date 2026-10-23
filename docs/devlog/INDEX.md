@@ -5,6 +5,11 @@ Devlog of shipped work, decisions, failures and lessons learned. Newest first.
 
 ## October 2026
 
+- **261023-remote-resume-skips-session-less-runs.md**
+  - Fixed: `dispatch --resume` read only the last run; a newer `not-started` run (no session) blocked correction rounds
+  - Now resumes the newest phase run that has a claude session
+  - Lesson: "last item" lookups must skip history entries that lack the needed property
+
 - **261018-remote-per-project-clones-machine-id-check.md**
   - Shipped: one worker holds clones of several projects; `machine-id` check in doctor/setup; per-clone busy markers
   - Strict resolution (`no-clone`, exit 2) over silent fallback to `repo`; legacy markers read-only
@@ -38,7 +43,7 @@ Devlog of shipped work, decisions, failures and lessons learned. Newest first.
 
 ### By Topic
 - **Hooks and Claude Code integration**: replace-hooks-with-native-features, replace-hooks-native-features-shipped
-- **Multi-machine orchestration**: rig-remote-multi-machine-plan, rig-remote-implementation-and-acceptance, remote-per-project-clones-machine-id-check
+- **Multi-machine orchestration**: rig-remote-multi-machine-plan, rig-remote-implementation-and-acceptance, remote-per-project-clones-machine-id-check, remote-resume-skips-session-less-runs
 - **Skills design**: fix-skill-v2-rewrite
 
 ### By Lesson Type
@@ -60,5 +65,5 @@ Devlog of shipped work, decisions, failures and lessons learned. Newest first.
 
 ---
 
-Last updated: 2026-10-18
-Total entries: 6
+Last updated: 2026-10-23
+Total entries: 7
