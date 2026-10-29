@@ -5,6 +5,11 @@ Devlog of shipped work, decisions, failures and lessons learned. Newest first.
 
 ## October 2026
 
+- **261028-insights-driven-rig-improvements-plan.md**
+  - Planned, not started: 13 phases closing 10 `/insights` gaps (secret-file Bash guard, verify-route, multi-repo ship, remote `dispatch --plan`)
+  - Red team: 15 findings, all accepted; 3 Critical fixed in the plan before any code
+  - Lesson: check that a mechanism exists before the plan promises it ("one commit per phase" had none)
+
 - **261023-remote-resume-skips-session-less-runs.md**
   - Fixed: `dispatch --resume` read only the last run; a newer `not-started` run (no session) blocked correction rounds
   - Now resumes the newest phase run that has a claude session
@@ -42,7 +47,7 @@ Devlog of shipped work, decisions, failures and lessons learned. Newest first.
 ## Reading Guide
 
 ### By Topic
-- **Hooks and Claude Code integration**: replace-hooks-with-native-features, replace-hooks-native-features-shipped
+- **Hooks and Claude Code integration**: replace-hooks-with-native-features, replace-hooks-native-features-shipped, insights-driven-rig-improvements-plan
 - **Multi-machine orchestration**: rig-remote-multi-machine-plan, rig-remote-implementation-and-acceptance, remote-per-project-clones-machine-id-check, remote-resume-skips-session-less-runs
 - **Skills design**: fix-skill-v2-rewrite
 
@@ -65,5 +70,5 @@ Devlog of shipped work, decisions, failures and lessons learned. Newest first.
 
 ---
 
-Last updated: 2026-10-23
-Total entries: 7
+Last updated: 2026-10-28
+Total entries: 8
