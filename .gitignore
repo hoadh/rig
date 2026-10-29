@@ -75,6 +75,9 @@ prompt.md
 # Hook diagnostics logs
 .claude/hooks/.logs/
 
+# Session state written by hooks (per-machine runtime, never installed)
+.claude/session-state/
+
 # Gemini CLI settings (symlink to .claude/.mcp.json)
 .gemini/settings.json
 .claude/settings.bak.json
