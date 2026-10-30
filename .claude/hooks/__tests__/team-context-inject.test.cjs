@@ -23,6 +23,29 @@ const os = require('os');
 
 const HOOK_PATH = path.join(__dirname, '..', 'team-context-inject.cjs');
 
+// Empty fixture home shared by runs that do not supply their own, so no test ever
+// touches the real ~/.claude. Removed on exit.
+const DEFAULT_HOME = fs.mkdtempSync(path.join(os.tmpdir(), 'team-inject-home-'));
+process.on('exit', () => {
+  try { fs.rmSync(DEFAULT_HOME, { recursive: true, force: true }); } catch (e) { /* ignore */ }
+});
+
+/**
+ * Build the child env with the home directory fully redirected.
+ * os.homedir() reads HOME on POSIX but USERPROFILE on Windows (HOMEDRIVE/HOMEPATH as
+ * a fallback), so all of them are pinned to the fixture home on every platform.
+ * @param {{env?: Object}} options
+ */
+function buildHookEnv(options) {
+  const env = { ...process.env, ...(options.env || {}) };
+  const home = (options.env && options.env.HOME) || DEFAULT_HOME;
+  env.HOME = home;
+  env.USERPROFILE = home;
+  delete env.HOMEDRIVE;
+  delete env.HOMEPATH;
+  return env;
+}
+
 /**
  * Execute team-context-inject.cjs with given stdin data and return stdout
  * @param {Object} inputData - Data to pass as JSON stdin
@@ -31,16 +54,9 @@ const HOOK_PATH = path.join(__dirname, '..', 'team-context-inject.cjs');
  */
 function runHook(inputData, options = {}) {
   return new Promise((resolve, reject) => {
-    const proc = spawn('node', [HOOK_PATH], {
+    const proc = spawn(process.execPath, [HOOK_PATH], {
       cwd: process.cwd(),
-      env: {
-        ...process.env,
-        // Clear team/task paths to simulate fresh environment
-        ...(options.clearPaths ? {
-          HOME: os.tmpdir(),
-        } : {}),
-        ...(options.env || {}),
-      }
+      env: buildHookEnv(options),
     });
 
     let stdout = '';
@@ -159,6 +175,7 @@ describe('team-context-inject.cjs', () => {
           result.output.hookSpecificOutput.additionalContext,
           'Should have additionalContext'
         );
+        assert.ok(result.output.hookSpecificOutput.additionalContext.includes('## Team Context'), 'Team context must be emitted (proves fixture home is honored)');
       } finally {
         fs.rmSync(tmpDir, { recursive: true, force: true });
       }
@@ -219,6 +236,15 @@ describe('team-context-inject.cjs', () => {
           'alice@team-a\\..\\windows',
           'alice@team-a/../../sensitive'
         ];
+
+        // Positive control: the same fixture home with a well-formed id DOES emit team context,
+        // so the rejections below are real and not a vacuous empty-home result
+        const control = await runHook({ agent_id: 'alice@team-a' }, { env: { HOME: tmpDir } });
+        assert.strictEqual(control.exitCode, 0);
+        assert.ok(
+          (control.output?.hookSpecificOutput?.additionalContext || '').includes('## Team Context'),
+          'Control: valid agent_id must emit team context from the fixture home'
+        );
 
         for (const agentId of malformedIds) {
           const result = await runHook({
@@ -400,6 +426,7 @@ describe('team-context-inject.cjs', () => {
           context.includes('none'),
           'Should show "none" when no other peers exist'
         );
+        assert.ok(context.includes('## Team Context'), 'Team context must be emitted (proves fixture home is honored)');
       } finally {
         fs.rmSync(tmpDir, { recursive: true, force: true });
       }
@@ -459,6 +486,7 @@ describe('team-context-inject.cjs', () => {
           context.includes('conventional') || context.includes('feat:'),
           'Should include commit convention info'
         );
+        assert.ok(context.includes('## Team Context'), 'Team context must be emitted (proves fixture home is honored)');
       } finally {
         fs.rmSync(tmpDir, { recursive: true, force: true });
       }
@@ -484,6 +512,7 @@ describe('team-context-inject.cjs', () => {
         // Commit convention is always present, so Rig Context should appear
         // but with minimal content
         assert.ok(context.length > 0, 'Should still return context');
+        assert.ok(context.includes('## Team Context'), 'Team context must be emitted (proves fixture home is honored)');
       } finally {
         fs.rmSync(tmpDir, { recursive: true, force: true });
       }
@@ -550,6 +579,7 @@ describe('team-context-inject.cjs', () => {
 
         // Should not crash, task summary just won't appear
         assert.ok(context.length > 0, 'Should still return context');
+        assert.ok(context.includes('## Team Context'), 'Team context must be emitted (proves fixture home is honored)');
       } finally {
         fs.rmSync(tmpDir, { recursive: true, force: true });
       }
@@ -688,9 +718,9 @@ describe('team-context-inject.cjs', () => {
   describe('Error Handling & Robustness', () => {
 
     it('exits 0 on JSON parse error (fail-open)', async () => {
-      const proc = spawn('node', [HOOK_PATH], {
+      const proc = spawn(process.execPath, [HOOK_PATH], {
         cwd: process.cwd(),
-        env: process.env
+        env: buildHookEnv({})
       });
 
       // Send invalid JSON
@@ -794,6 +824,7 @@ describe('team-context-inject.cjs', () => {
           'string',
           'additionalContext should be string'
         );
+        assert.ok(result.output.hookSpecificOutput.additionalContext.includes('## Team Context'), 'Team context must be emitted (proves fixture home is honored)');
       } finally {
         fs.rmSync(tmpDir, { recursive: true, force: true });
       }

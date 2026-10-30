@@ -35,6 +35,18 @@ function expect(actual) {
   return { ...matchers(false), not: matchers(true) };
 }
 
+/**
+ * Shell-independent command for execSafe: prints text via node so cmd.exe, PowerShell,
+ * sh and zsh all yield identical stdout (echo quoting differs per shell).
+ * Double quotes outside, single quotes inside: every shell keeps both intact.
+ * @param {string} text - JS string-literal body to print (write \\n for a newline)
+ * @param {number} [delayMs] - Keep the process alive this long after printing
+ */
+function nodeEcho(text, delayMs = 0) {
+  const delay = delayMs ? `;setTimeout(()=>{},${delayMs})` : '';
+  return `node -e "process.stdout.write('${text}')${delay}"`;
+}
+
 // Module under test
 const {
   // Git detection
@@ -145,8 +157,8 @@ describe('isGitRepo', () => {
     expect(isGitRepo(subDir)).toBe(true);
   });
 
-  test('returns false for /tmp (non-git directory)', () => {
-    expect(isGitRepo('/tmp')).toBe(false);
+  test('returns false for the OS temp dir (non-git directory)', () => {
+    expect(isGitRepo(os.tmpdir())).toBe(false);
   });
 
   test('uses process.cwd() when no argument provided', () => {
@@ -217,7 +229,7 @@ describe('getGitBranch', () => {
   });
 
   test('returns null for non-git directory (no git command executed)', () => {
-    process.chdir('/tmp');
+    process.chdir(os.tmpdir());
     // This should NOT execute git command, just return null from isGitRepo check
     const result = getGitBranch();
     expect(result).toBe(null);
@@ -317,7 +329,7 @@ describe('isValidPythonPath', () => {
   });
 
   test('returns false for directory', () => {
-    expect(isValidPythonPath('/tmp')).toBe(false);
+    expect(isValidPythonPath(os.tmpdir())).toBe(false);
   });
 
   test('returns true for valid Python binary', () => {
@@ -579,7 +591,7 @@ describe('detectFramework', () => {
 
 describe('execSafe', () => {
   test('returns output for successful command', () => {
-    const result = execSafe('echo "hello"');
+    const result = execSafe(nodeEcho('hello'));
     expect(result).toBe('hello');
   });
 
@@ -590,17 +602,17 @@ describe('execSafe', () => {
 
   test('returns null on timeout', () => {
     // Command that would take longer than timeout
-    const result = execSafe('sleep 10', 100);
+    const result = execSafe(nodeEcho('x', 10000), 100);
     expect(result).toBe(null);
   });
 
   test('trims output', () => {
-    const result = execSafe('echo "  hello  "');
+    const result = execSafe(nodeEcho('  hello  '));
     expect(result).toBe('hello');
   });
 
   test('handles newlines in output', () => {
-    const result = execSafe('echo "line1\nline2"');
+    const result = execSafe(nodeEcho('line1\\nline2'));
     expect(result).toBe('line1\nline2');
   });
 });
@@ -651,7 +663,7 @@ describe('Edge Cases (Issue #455)', () => {
 
     test('handles path traversal up to root without infinite loop', () => {
       // Deep directory should eventually reach root and terminate
-      const deepPath = '/tmp/a/b/c/d/e/f/g/h/i/j/k/l/m/n/o/p';
+      const deepPath = path.join(os.tmpdir(), ...'abcdefghijklmnop'.split(''));
       const result = isGitRepo(deepPath);
       expect(typeof result).toBe('boolean');
     });

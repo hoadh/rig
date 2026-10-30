@@ -72,10 +72,12 @@ function runHook(inputData, options = {}) {
  */
 function getGitRoot(cwd = process.cwd()) {
   try {
-    return execSync('git rev-parse --show-toplevel', {
+    // git prints forward slashes on Windows (C:/x); normalize to the native form
+    // the hook emits so startsWith/includes comparisons are separator-correct
+    return path.normalize(execSync('git rev-parse --show-toplevel', {
       encoding: 'utf8',
       cwd
-    }).trim();
+    }).trim());
   } catch (e) {
     return null;
   }
@@ -432,20 +434,20 @@ describe('subagent-init.cjs', () => {
 
       const context = result.output?.hookSpecificOutput?.additionalContext || '';
 
-      // Paths should be absolute (start with /)
+      // Paths should be absolute, rooted at the git root (native separators)
       const reportsMatch = context.match(/Reports:\s*([^\n]+)/);
       const plansMatch = context.match(/Plan dir:\s*([^\n]+)/);
 
       if (reportsMatch) {
         assert.ok(
-          reportsMatch[1].startsWith('/') || reportsMatch[1].includes(gitRoot),
+          path.isAbsolute(reportsMatch[1].trim()) && reportsMatch[1].trim().startsWith(gitRoot),
           `Reports path should be absolute: ${reportsMatch[1]}`
         );
       }
 
       if (plansMatch) {
         assert.ok(
-          plansMatch[1].startsWith('/') || plansMatch[1].includes(gitRoot),
+          path.isAbsolute(plansMatch[1].trim()) && plansMatch[1].trim().startsWith(gitRoot),
           `Plans path should be absolute: ${plansMatch[1]}`
         );
       }
