@@ -226,12 +226,10 @@ def run_single_query(
                     elif event.get("type") == "result":
                         return triggered
         finally:
-            # Clean up process on any exit path (return, exception, timeout)
+            # Clean up process on any exit path (return, exception, timeout).
+            # The tree kill closes the pipe's write end, so the daemon reader sees EOF;
+            # stdout is not closed here because the reader may be inside os.read().
             kill_process_tree(process)
-            try:
-                process.stdout.close()  # unblocks reader thread on Windows
-            except (OSError, ValueError):
-                pass
 
         return triggered
     finally:
