@@ -229,7 +229,7 @@ Use `networkUrl` to access from other devices on the same network.
 
 **Images not loading**: Ensure image paths are relative to markdown file
 
-**Server won't stop**: Check `md-novel-viewer-*.pid` in the OS temp dir (`os.tmpdir()`: `/tmp` on Linux/macOS, `%TEMP%` on Windows) for stale PID files
+**Server won't stop**: Check `md-novel-viewer-*.pid` in `/tmp` (Linux/macOS) or `%TEMP%` (Windows, `os.tmpdir()`) for stale PID files
 
 **Remote access denied**: Use `--host 0.0.0.0` to bind to all interfaces
 

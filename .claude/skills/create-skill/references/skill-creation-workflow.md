@@ -130,6 +130,8 @@ Combat undertriggering with automated optimization:
 - **Single-pass:** `python -m scripts.improve_description` — one iteration
 - **Iterative loop:** `python -m scripts.run_loop` — train/test split, convergence detection
 
+If `python` is not found, try `python3`, then `py -3`.
+
 ## Step 8: Package & Validate
 
 ```bash

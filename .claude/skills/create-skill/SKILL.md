@@ -122,7 +122,7 @@ Optimization patterns: `references/benchmark-optimization-guide.md`
 
 ## Scripts
 
-Run every script from this skill's directory with `python` (works on Windows, macOS, Linux; do not rely on the `#!` shebang or `./script.py`).
+Run every script from this skill's directory with `python` (works on Windows, macOS, Linux; do not rely on the `#!` shebang or `./script.py`). If `python` is not found, try `python3`, then `py -3`.
 Scripts that import `scripts.*` (`run_eval`, `run_loop`, `improve_description`) MUST run as modules: `python -m scripts.<name>`.
 Running them as `python scripts/<name>.py` fails with `ModuleNotFoundError`. All others run as `python scripts/<name>.py`.
 

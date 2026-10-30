@@ -19,6 +19,7 @@ const { spawnSync } = require('child_process');
 const { buildCopyPlan } = require('./install-kit/kit-source-file-list-and-copy-plan.cjs');
 const { isTransformableFile, rewriteContentForGlobalInstall } = require('./install-kit/kit-path-rewrite-for-install-mode.cjs');
 const { mergeKitSettings } = require('./install-kit/settings-json-merge-preserving-user-hooks.cjs');
+const { skillsInstallerCommand } = require('./install-kit/skills-installer-command.cjs');
 const { deleteRetiredKitFiles } = require('./install-kit/retired-kit-hooks-and-files-cleanup.cjs');
 
 const KIT_ROOT = path.resolve(__dirname, '..');
@@ -181,7 +182,9 @@ async function main() {
   printSummary(ctx, runInstall(ctx));
   if (opts.installSkills && !ctx.dryRun) {
     const skillsDir = ctx.isGlobal ? path.join(ctx.targetRoot, 'skills') : path.join(ctx.targetRoot, '.claude', 'skills');
-    const res = spawnSync('bash', [path.join(skillsDir, 'install.sh'), ...(opts.yes ? ['-y'] : [])], { cwd: skillsDir, stdio: 'inherit' });
+    const { cmd, args } = skillsInstallerCommand(process.platform, skillsDir, opts.yes);
+    const res = spawnSync(cmd, args, { cwd: skillsDir, stdio: 'inherit' });
+    if (res.error) throw new Error(`Could not start skills installer (${cmd}): ${res.error.message}`);
     if (res.status !== 0) throw new Error(`Skills installer exited with code ${res.status}`);
   }
 }

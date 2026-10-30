@@ -344,3 +344,19 @@ class TestRealNpxResolution:
         assert success is False
         assert "Invalid component name" in message
         assert not fake_npx_path.exists(), "npx must not run for invalid names"
+
+    @pytest.mark.parametrize("good", ["@acme/button", "@my-org/data-table", "button"])
+    def test_accepts_scoped_registry_items(self, project, fake_npx_path, good):
+        success, message = ShadcnInstaller(project_root=project).add_components([good])
+
+        assert success is True, message
+        assert good in fake_npx_path.read_text()
+
+    @pytest.mark.parametrize(
+        "bad", ["@acme/", "@/x", "@a/b/c", "@a&b/c", "@a/b;c", "@a/b c", "@@a/b", "a/b", "@A/b"]
+    )
+    def test_rejects_malformed_scoped_items(self, project, fake_npx_path, bad):
+        success, message = ShadcnInstaller(project_root=project).add_components([bad])
+
+        assert success is False
+        assert "Invalid component name" in message

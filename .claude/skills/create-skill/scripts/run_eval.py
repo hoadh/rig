@@ -61,6 +61,29 @@ def start_stdout_reader(stream) -> "queue.Queue[bytes | None]":
     return chunks
 
 
+def kill_process_tree(process: "subprocess.Popen") -> None:
+    """Kill the child; on Windows also its descendants (claude.cmd -> cmd.exe -> node).
+
+    Only acts while the child is running, so a recycled PID is never targeted.
+    POSIX behavior is a plain kill().
+    """
+    if process.poll() is not None:
+        return
+    if sys.platform == "win32":
+        try:
+            subprocess.run(
+                ["taskkill", "/T", "/F", "/PID", str(process.pid)],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=10,
+            )
+        except (OSError, subprocess.SubprocessError):
+            pass  # fall through to plain kill
+    if process.poll() is None:
+        process.kill()
+    process.wait()
+
+
 def run_single_query(
     query: str,
     skill_name: str,
@@ -99,7 +122,9 @@ def run_single_query(
         cmd = [
             # which() honors PATHEXT so Windows finds claude.cmd / claude.exe
             shutil.which("claude") or "claude",
-            "-p", query,
+            # Query goes via stdin, never argv: which() may resolve claude.CMD on
+            # Windows, and argv text would be re-parsed by cmd.exe (injection).
+            "-p",
             "--output-format", "stream-json",
             "--verbose",
             "--include-partial-messages",
@@ -114,11 +139,17 @@ def run_single_query(
 
         process = subprocess.Popen(
             cmd,
+            stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
             cwd=project_root,
             env=env,
         )
+        try:
+            process.stdin.write(query.encode("utf-8"))
+            process.stdin.close()
+        except (BrokenPipeError, OSError):
+            pass  # child exited early; stdout handling below reports the outcome
 
         triggered = False
         start_time = time.time()
@@ -196,9 +227,11 @@ def run_single_query(
                         return triggered
         finally:
             # Clean up process on any exit path (return, exception, timeout)
-            if process.poll() is None:
-                process.kill()
-                process.wait()
+            kill_process_tree(process)
+            try:
+                process.stdout.close()  # unblocks reader thread on Windows
+            except (OSError, ValueError):
+                pass
 
         return triggered
     finally:

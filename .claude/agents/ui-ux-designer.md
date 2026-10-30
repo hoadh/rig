@@ -20,6 +20,7 @@ python .claude/skills/ui-design/scripts/search.py "<style-keywords>" --domain st
 python .claude/skills/ui-design/scripts/search.py "<mood>" --domain typography
 python .claude/skills/ui-design/scripts/search.py "<industry>" --domain color
 ```
+If `python` is not found, try `python3`, then `py -3`.
 
 **Ensure token efficiency while maintaining high quality.**
 

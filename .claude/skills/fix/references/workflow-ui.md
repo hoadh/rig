@@ -12,6 +12,7 @@ python .claude/skills/ui-design/scripts/search.py "<product-type>" --domain prod
 python .claude/skills/ui-design/scripts/search.py "<style>" --domain style
 python .claude/skills/ui-design/scripts/search.py "accessibility" --domain ux
 ```
+If `python` is not found, try `python3`, then `py -3`.
 
 ## Task Setup (Before Starting)
 
