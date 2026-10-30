@@ -453,6 +453,27 @@ describe('subagent-init.cjs', () => {
       }
     });
 
+    it('does not double-root absolute paths.plans / paths.docs', async () => {
+      const tmp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'rig-subagent-abs-')));
+      try {
+        execSync('git init -q', { cwd: tmp });
+        const absPlans = path.join(tmp, 'elsewhere', 'plans');
+        const absDocs = path.join(tmp, 'elsewhere', 'docs');
+        fs.mkdirSync(path.join(tmp, '.claude'), { recursive: true });
+        fs.writeFileSync(path.join(tmp, '.claude', '.rig.json'),
+          JSON.stringify({ paths: { plans: absPlans, docs: absDocs } }));
+
+        const result = await runHook({ agent_type: 'test-agent', agent_id: 'abs-paths', cwd: tmp }, { cwd: tmp });
+        const context = result.output?.hookSpecificOutput?.additionalContext || '';
+        const pathsLine = (context.match(/- Paths:\s*([^\n]+)/) || [])[1] || '';
+
+        assert.strictEqual(pathsLine.trim(), `${absPlans}/ | ${absDocs}/`, `Paths line: ${pathsLine}`);
+        assert.strictEqual(pathsLine.split(tmp).length - 1, 2, 'project root appears once per path');
+      } finally {
+        fs.rmSync(tmp, { recursive: true, force: true });
+      }
+    });
+
   });
 
   describe('Advanced Git Scenarios', () => {

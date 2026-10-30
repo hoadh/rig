@@ -54,6 +54,8 @@ const {
   getGitRemoteUrl,
   getGitBranch,
   getGitRoot,
+  samePath,
+  buildContextOutput,
 
   // Python detection
   findPythonBinary,
@@ -270,6 +272,35 @@ describe('getGitRoot', () => {
     if (root) {
       expect(fs.existsSync(root)).toBe(true);
     }
+  });
+});
+
+describe('samePath', () => {
+  test('ignores separator form and trailing separators', () => {
+    const p = path.join(os.tmpdir(), 'rig-same', 'repo');
+    expect(samePath(p, p.split(path.sep).join('/'))).toBe(true);
+    expect(samePath(p, p + path.sep)).toBe(true);
+    expect(samePath(p, path.join(p, 'sub'))).toBe(false);
+  });
+
+  test('is case-insensitive only on win32', () => {
+    const p = path.join(os.tmpdir(), 'rig-same', 'Repo');
+    expect(samePath(p, p.toUpperCase())).toBe(process.platform === 'win32');
+  });
+});
+
+describe('buildContextOutput', () => {
+  const config = { plan: { namingFormat: '{date}-{slug}' } };
+  const resolved = { path: null, resolvedBy: null };
+
+  test('omits Root when git root is cwd in git form (C:/x on win32)', () => {
+    const gitForm = process.cwd().split(path.sep).join('/');
+    expect(buildContextOutput(config, {}, resolved, gitForm).includes('Root:')).toBe(false);
+  });
+
+  test('includes Root when git root differs from cwd', () => {
+    const other = path.join(os.tmpdir(), 'rig-other-root');
+    expect(buildContextOutput(config, {}, resolved, other).includes(`Root: ${other}`)).toBe(true);
   });
 });
 

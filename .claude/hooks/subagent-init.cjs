@@ -125,8 +125,9 @@ async function main() {
 
     // Extract task list ID for Claude Code Tasks coordination (shared helper, DRY)
     const taskListId = extractTaskListId(resolved);
-    const plansPath = path.join(baseDir, normalizePath(config.paths?.plans) || 'plans');
-    const docsPath = path.join(baseDir, normalizePath(config.paths?.docs) || 'docs');
+    // resolve (not join): configured paths may be absolute
+    const plansPath = path.resolve(baseDir, normalizePath(config.paths?.plans) || 'plans');
+    const docsPath = path.resolve(baseDir, normalizePath(config.paths?.docs) || 'docs');
     const thinkingLanguage = config.locale?.thinkingLanguage || '';
 
     // Build compact context (~200 tokens)

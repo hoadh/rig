@@ -41,19 +41,10 @@ try {
     detectFramework,
     getGitBranch,
     getGitRoot,
+    samePath,
     getCodingLevelGuidelines,
     buildContextOutput
   } = require('./lib/project-detector.cjs');
-
-/**
- * Compare two filesystem paths ignoring separator form and, on Windows, letter case.
- * git prints C:/repo while process.cwd() is C:\repo.
- */
-function samePath(a, b) {
-  const ra = path.resolve(a);
-  const rb = path.resolve(b);
-  return process.platform === 'win32' ? ra.toLowerCase() === rb.toLowerCase() : ra === rb;
-}
 
 /**
  * Detect if this session is running inside an Agent Team.
