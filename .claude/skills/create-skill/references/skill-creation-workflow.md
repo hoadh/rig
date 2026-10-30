@@ -127,8 +127,8 @@ See `references/eval-infrastructure-guide.md` for details.
 
 Combat undertriggering with automated optimization:
 
-- **Single-pass:** `scripts/improve_description.py` — one iteration
-- **Iterative loop:** `scripts/run_loop.py` — train/test split, convergence detection
+- **Single-pass:** `python -m scripts.improve_description` — one iteration
+- **Iterative loop:** `python -m scripts.run_loop` — train/test split, convergence detection
 
 ## Step 8: Package & Validate
 

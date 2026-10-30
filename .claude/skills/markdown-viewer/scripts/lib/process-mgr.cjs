@@ -4,9 +4,11 @@
  */
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
-const PID_DIR = '/tmp';
+// os.tmpdir() is portable ('/tmp' would resolve to C:\tmp on Windows and may not exist)
+const PID_DIR = os.tmpdir();
 const PID_PREFIX = 'md-novel-viewer-';
 
 /**

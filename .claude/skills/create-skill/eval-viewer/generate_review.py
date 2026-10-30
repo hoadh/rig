@@ -387,6 +387,10 @@ class ReviewHandler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
+    # Piped stdout on Windows defaults to cp1252 and crashes on non-ASCII output
+    for _stream in (sys.stdout, sys.stderr):
+        if hasattr(_stream, "reconfigure"):
+            _stream.reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser(description="Generate and serve eval review")
     parser.add_argument("workspace", type=Path, help="Path to workspace directory")
     parser.add_argument("--port", "-p", type=int, default=3117, help="Server port (default: 3117)")

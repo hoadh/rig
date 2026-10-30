@@ -211,6 +211,10 @@ def is_rate_limit_error(error: Exception) -> bool:
 
 
 if __name__ == '__main__':
+    # Piped stdout on Windows defaults to cp1252 and crashes on non-ASCII output
+    for _stream in (sys.stdout, sys.stderr):
+        if hasattr(_stream, "reconfigure"):
+            _stream.reconfigure(encoding="utf-8", errors="replace")
     # Demo/test the rotator
     print("=== KeyRotator Demo ===\n")
 

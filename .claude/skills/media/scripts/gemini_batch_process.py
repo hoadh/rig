@@ -1046,6 +1046,10 @@ def save_results(results: List[Dict[str, Any]], output_file: str, format_output:
 
 
 def main():
+    # Piped stdout on Windows defaults to cp1252 and crashes on non-ASCII output
+    for _stream in (sys.stdout, sys.stderr):
+        if hasattr(_stream, "reconfigure"):
+            _stream.reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser(
         description='Batch process media files with Gemini API',
         formatter_class=argparse.RawDescriptionHelpFormatter,

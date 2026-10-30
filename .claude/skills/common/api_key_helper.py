@@ -399,6 +399,10 @@ def get_client(skill_dir: Optional[Path] = None):
 
 
 if __name__ == '__main__':
+    # Piped stdout on Windows defaults to cp1252 and crashes on non-ASCII output
+    for _stream in (sys.stdout, sys.stderr):
+        if hasattr(_stream, "reconfigure"):
+            _stream.reconfigure(encoding="utf-8", errors="replace")
     # Test the API key detection
     api_key = get_api_key_or_exit()
     print(f"✓ Found API key: {api_key[:8]}..." + "*" * (len(api_key) - 8))
