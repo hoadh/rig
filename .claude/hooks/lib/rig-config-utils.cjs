@@ -404,11 +404,13 @@ function sanitizePath(pathValue, projectRoot) {
   }
 
   // For relative paths, resolve and validate
-  const resolved = path.resolve(projectRoot, normalized);
+  // Resolve the root too so a non-normalized root (C:/repo on Windows) compares correctly
+  const root = path.resolve(projectRoot);
+  const resolved = path.resolve(root, normalized);
 
   // Prevent path traversal outside project (../ attacks)
   // But allow if user explicitly set absolute path
-  if (!resolved.startsWith(projectRoot + path.sep) && resolved !== projectRoot) {
+  if (!resolved.startsWith(root + path.sep) && resolved !== root) {
     // This is a relative path trying to escape - block it
     return null;
   }
@@ -604,7 +606,7 @@ function getReportsPath(planPath, resolvedBy, planConfig, pathsConfig, baseDir =
   // Guard: if reportPath is already absolute (Issue #335 made planPath absolute),
   // don't double-join with baseDir — path.join concatenates, not resolves
   if (baseDir) {
-    return path.isAbsolute(reportPath) ? reportPath : path.join(baseDir, reportPath);
+    return path.isAbsolute(reportPath) ? path.normalize(reportPath) : path.join(baseDir, reportPath);
   }
   return reportPath + '/';
 }
@@ -761,7 +763,9 @@ function getGitBranch(cwd = null) {
  * @returns {string|null} Git root absolute path or null if not in git repo
  */
 function getGitRoot(cwd = null) {
-  return execSafe('git rev-parse --show-toplevel', { cwd: cwd || undefined });
+  const root = execSafe('git rev-parse --show-toplevel', { cwd: cwd || undefined });
+  // git prints forward slashes on Windows (C:/repo); return native form (C:\repo)
+  return root && process.platform === 'win32' ? path.normalize(root) : root;
 }
 
 /**

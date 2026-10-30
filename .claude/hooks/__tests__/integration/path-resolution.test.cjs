@@ -278,11 +278,11 @@ describe('Issue #327: Path Resolution Integration', () => {
       assert.strictEqual(result.exitCode, 0);
       const context = result.output?.hookSpecificOutput?.additionalContext || '';
 
-      // Reports and Plans paths should be absolute (start with /)
+      // Reports and Plans paths should be absolute (platform-native check)
       const reportsMatch = context.match(/Reports:\s*([^\n]+)/);
       if (reportsMatch) {
         assert.ok(
-          reportsMatch[1].startsWith('/'),
+          path.isAbsolute(reportsMatch[1]),
           `Reports path should be absolute: ${reportsMatch[1]}`
         );
       }

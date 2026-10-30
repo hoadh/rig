@@ -220,7 +220,9 @@ function getGitBranch() {
  */
 function getGitRoot() {
   if (!isGitRepo()) return null;
-  return execSafe('git rev-parse --show-toplevel');
+  const root = execSafe('git rev-parse --show-toplevel');
+  // git prints forward slashes on Windows (C:/repo); return native form (C:\repo)
+  return root && process.platform === 'win32' ? path.normalize(root) : root;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

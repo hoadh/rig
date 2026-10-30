@@ -27,6 +27,9 @@ const {
 // Real path of the temp dir: on macOS os.tmpdir() is under /var, a symlink to /private/var,
 // while git reports the resolved path.
 const TMP = fs.realpathSync(os.tmpdir());
+// Platform-neutral fixture root (a POSIX '/home/user/project' is not absolute on Windows)
+const PROJECT_DIR = path.join(TMP, 'home', 'user', 'project');
+const SUBFOLDER_DIR = path.join(TMP, 'project', 'subfolder');
 
 let passed = 0;
 let failed = 0;
@@ -192,10 +195,10 @@ console.log('\n=== getReportsPath with baseDir tests (Issue #291) ===\n');
 test('getReportsPath returns absolute path when baseDir provided', () => {
   const planConfig = { reportsDir: 'reports' };
   const pathsConfig = { plans: 'plans' };
-  const baseDir = '/home/user/project';
+  const baseDir = PROJECT_DIR;
 
   const result = getReportsPath(null, null, planConfig, pathsConfig, baseDir);
-  assertEquals(result, '/home/user/project/plans/reports');
+  assertEquals(result, path.join(PROJECT_DIR, 'plans', 'reports'));
 });
 
 test('getReportsPath returns relative path when no baseDir', () => {
@@ -209,22 +212,34 @@ test('getReportsPath returns relative path when no baseDir', () => {
 test('getReportsPath uses plan path for session-resolved plans', () => {
   const planConfig = { reportsDir: 'reports' };
   const pathsConfig = { plans: 'plans' };
-  const baseDir = '/home/user/project';
+  const baseDir = PROJECT_DIR;
 
   const result = getReportsPath('plans/my-plan', 'session', planConfig, pathsConfig, baseDir);
-  assertEquals(result, '/home/user/project/plans/my-plan/reports');
+  assertEquals(result, path.join(PROJECT_DIR, 'plans', 'my-plan', 'reports'));
 });
 
 test('getReportsPath ignores plan path for branch-resolved plans', () => {
   const planConfig = { reportsDir: 'reports' };
   const pathsConfig = { plans: 'plans' };
-  const baseDir = '/home/user/project';
+  const baseDir = PROJECT_DIR;
 
   const result = getReportsPath('plans/my-plan', 'branch', planConfig, pathsConfig, baseDir);
-  assertEquals(result, '/home/user/project/plans/reports');
+  assertEquals(result, path.join(PROJECT_DIR, 'plans', 'reports'));
 });
 
 console.log('\n=== getGitRoot/getGitBranch with cwd parameter (Issue #291) ===\n');
+
+test('getGitRoot returns an absolute path in native separator form', () => {
+  const root = getGitRoot();
+  assertEquals(path.isAbsolute(root), true, 'absolute');
+  assertEquals(root, path.normalize(root), 'native separators');
+});
+
+test('getReportsPath returns native separators for an absolute session plan', () => {
+  const plan = path.join(PROJECT_DIR, 'plans', 'p');
+  const result = getReportsPath(plan, 'session', { reportsDir: 'reports' }, { plans: 'plans' }, PROJECT_DIR);
+  assertEquals(result, path.join(plan, 'reports'));
+});
 
 test('getGitRoot accepts cwd parameter', () => {
   const gitRoot = getGitRoot();
@@ -311,13 +326,13 @@ test('escapeShellValue returns non-string as-is', () => {
 test('getReportsPath does not double-join when planPath is already absolute (Issue #335)', () => {
   const planConfig = { reportsDir: 'reports' };
   const pathsConfig = { plans: 'plans' };
-  const baseDir = '/home/user/project';
+  const baseDir = PROJECT_DIR;
   // Issue #335 made planPath absolute in session state
-  const absolutePlanPath = '/home/user/project/plans/my-plan';
+  const absolutePlanPath = path.join(PROJECT_DIR, 'plans', 'my-plan');
 
   const result = getReportsPath(absolutePlanPath, 'session', planConfig, pathsConfig, baseDir);
-  // Should NOT produce /home/user/project/home/user/project/plans/my-plan/reports
-  assertEquals(result, '/home/user/project/plans/my-plan/reports');
+  // Should NOT produce <project>/<project>/plans/my-plan/reports
+  assertEquals(result, path.join(PROJECT_DIR, 'plans', 'my-plan', 'reports'));
 });
 
 console.log('\n=== getReportsPath edge cases ===\n');
@@ -325,37 +340,37 @@ console.log('\n=== getReportsPath edge cases ===\n');
 test('getReportsPath with empty reportsDir falls back to "reports"', () => {
   const planConfig = { reportsDir: '' };
   const pathsConfig = { plans: 'plans' };
-  const baseDir = '/home/user/project';
+  const baseDir = PROJECT_DIR;
 
   const result = getReportsPath(null, null, planConfig, pathsConfig, baseDir);
-  assertEquals(result, '/home/user/project/plans/reports');
+  assertEquals(result, path.join(PROJECT_DIR, 'plans', 'reports'));
 });
 
 test('getReportsPath with null reportsDir falls back to "reports"', () => {
   const planConfig = { reportsDir: null };
   const pathsConfig = { plans: 'plans' };
-  const baseDir = '/home/user/project';
+  const baseDir = PROJECT_DIR;
 
   const result = getReportsPath(null, null, planConfig, pathsConfig, baseDir);
-  assertEquals(result, '/home/user/project/plans/reports');
+  assertEquals(result, path.join(PROJECT_DIR, 'plans', 'reports'));
 });
 
 test('getReportsPath with empty plansDir falls back to "plans"', () => {
   const planConfig = { reportsDir: 'reports' };
   const pathsConfig = { plans: '' };
-  const baseDir = '/home/user/project';
+  const baseDir = PROJECT_DIR;
 
   const result = getReportsPath(null, null, planConfig, pathsConfig, baseDir);
-  assertEquals(result, '/home/user/project/plans/reports');
+  assertEquals(result, path.join(PROJECT_DIR, 'plans', 'reports'));
 });
 
 test('getReportsPath with null plansDir falls back to "plans"', () => {
   const planConfig = { reportsDir: 'reports' };
   const pathsConfig = { plans: null };
-  const baseDir = '/home/user/project';
+  const baseDir = PROJECT_DIR;
 
   const result = getReportsPath(null, null, planConfig, pathsConfig, baseDir);
-  assertEquals(result, '/home/user/project/plans/reports');
+  assertEquals(result, path.join(PROJECT_DIR, 'plans', 'reports'));
 });
 
 console.log('\n=== sanitizeConfig tests ===\n');
@@ -390,8 +405,8 @@ test('path.join concatenates paths (does NOT discard baseDir)', () => {
   // Document Node.js behavior: path.join concatenates, path.resolve would discard
   // path.join('/base', '/absolute') = '/base/absolute' (concatenates, strips leading /)
   // path.resolve('/base', '/absolute') = '/absolute' (absolute overrides)
-  const result = path.join('/home/user/project', '/tmp/all-plans');
-  assertEquals(result, '/home/user/project/tmp/all-plans');
+  const result = path.join(PROJECT_DIR, '/tmp/all-plans');
+  assertEquals(result, path.join(PROJECT_DIR, 'tmp', 'all-plans'));
 });
 
 console.log('\n=== Detached HEAD state tests ===\n');
@@ -696,8 +711,8 @@ test('resolvePlanPath returns absolute path as-is (Issue #335)', () => {
   try {
     // Store absolute path in session
     writeSessionState(sessionId, {
-      sessionOrigin: '/project/subfolder',
-      activePlan: '/project/subfolder/plans/260111-feature',
+      sessionOrigin: SUBFOLDER_DIR,
+      activePlan: path.join(SUBFOLDER_DIR, 'plans', '260111-feature'),
       timestamp: Date.now()
     });
 
@@ -705,7 +720,7 @@ test('resolvePlanPath returns absolute path as-is (Issue #335)', () => {
     const result = resolvePlanPath(sessionId, config);
 
     assertEquals(result.resolvedBy, 'session');
-    assertEquals(result.path, '/project/subfolder/plans/260111-feature');
+    assertEquals(result.path, path.join(SUBFOLDER_DIR, 'plans', '260111-feature'));
   } finally {
     cleanupSession(sessionId);
   }
@@ -716,7 +731,7 @@ test('resolvePlanPath resolves relative path using sessionOrigin (Issue #335)', 
   try {
     // Store relative path (legacy behavior)
     writeSessionState(sessionId, {
-      sessionOrigin: '/project/subfolder',
+      sessionOrigin: SUBFOLDER_DIR,
       activePlan: 'plans/260111-feature',  // Relative
       timestamp: Date.now()
     });
@@ -726,7 +741,7 @@ test('resolvePlanPath resolves relative path using sessionOrigin (Issue #335)', 
 
     assertEquals(result.resolvedBy, 'session');
     // Should resolve using sessionOrigin
-    assertEquals(result.path, '/project/subfolder/plans/260111-feature');
+    assertEquals(result.path, path.join(SUBFOLDER_DIR, 'plans', '260111-feature'));
   } finally {
     cleanupSession(sessionId);
   }

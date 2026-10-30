@@ -58,6 +58,45 @@ function runHook(inputData) {
   });
 }
 
+/**
+ * Parse a CLAUDE_ENV_FILE (`export KEY="escaped"` lines) into a plain object,
+ * reversing escapeShellValue so Windows backslash paths compare as real paths.
+ */
+function parseEnvFile(text) {
+  const out = {};
+  for (const line of text.split('\n')) {
+    const m = line.match(/^export ([A-Z_0-9]+)="(.*)"$/);
+    if (m) out[m[1]] = m[2].replace(/\\(.)/g, '$1');
+  }
+  return out;
+}
+
+/** Run the hook in `cwd` with an env file; resolves parsed env vars. */
+function runHookWithEnvFile({ cwd, sessionId, activePlan, localConfig }) {
+  const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'session-init-envfile-'));
+  const envFile = path.join(tmpRoot, 'env.sh');
+  const statePath = path.join(os.tmpdir(), `rig-session-${sessionId}.json`);
+  return new Promise((resolve, reject) => {
+    if (activePlan) fs.writeFileSync(statePath, JSON.stringify({ activePlan }));
+    if (localConfig) {
+      fs.mkdirSync(path.join(cwd, '.claude'), { recursive: true });
+      fs.writeFileSync(path.join(cwd, '.claude', '.rig.json'), JSON.stringify(localConfig));
+    }
+    const proc = spawn('node', [HOOK_PATH], { cwd, env: { ...process.env, CLAUDE_ENV_FILE: envFile } });
+    proc.stdin.end(JSON.stringify({ source: 'startup', session_id: sessionId }));
+    proc.on('close', (code) => {
+      try {
+        resolve({ code, env: parseEnvFile(fs.readFileSync(envFile, 'utf8')) });
+      } catch (e) { reject(e); }
+    });
+    proc.on('error', reject);
+    setTimeout(() => { proc.kill('SIGTERM'); reject(new Error('timeout')); }, 5000);
+  }).finally(() => {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+    fs.rmSync(statePath, { force: true });
+  });
+}
+
 describe('session-init.cjs', () => {
 
   describe('Issue #277 Mitigation: Compact Warning', () => {
@@ -307,6 +346,42 @@ describe('session-init.cjs', () => {
 
   });
 
+  describe('Env file absolute paths (no double-joined project root)', () => {
+    it('RIG_REPORTS_PATH is plan/reports once when a session plan is active', async () => {
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'session-init-p1-'));
+      const planDir = path.join(tmp, 'plans', '261016-1200-sample-plan');
+      try {
+        fs.mkdirSync(planDir, { recursive: true });
+        const { code, env } = await runHookWithEnvFile({
+          cwd: tmp, sessionId: `p1-${process.pid}-${Date.now()}`, activePlan: planDir
+        });
+        assert.strictEqual(code, 0);
+        assert.strictEqual(env.RIG_REPORTS_PATH, path.join(planDir, 'reports'), 'reports path not double-joined');
+        assert.strictEqual(env.RIG_REPORTS_PATH.split(tmp).length - 1, 1, 'project root appears exactly once');
+        assert.strictEqual(env.RIG_PLANS_PATH, path.join(tmp, 'plans'), 'relative paths.plans resolved against cwd');
+      } finally {
+        fs.rmSync(tmp, { recursive: true, force: true });
+      }
+    });
+
+    it('RIG_PLANS_PATH keeps an absolute paths.plans as-is', async () => {
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'session-init-p1abs-'));
+      const absPlans = path.join(tmp, 'elsewhere', 'plans');
+      try {
+        const { code, env } = await runHookWithEnvFile({
+          cwd: tmp,
+          sessionId: `p1abs-${process.pid}-${Date.now()}`,
+          localConfig: { paths: { plans: absPlans } }
+        });
+        assert.strictEqual(code, 0);
+        assert.strictEqual(env.RIG_PLANS_PATH, absPlans, 'absolute paths.plans not re-joined');
+        assert.strictEqual(env.RIG_REPORTS_PATH, path.join(absPlans, 'reports'), 'default reports under absolute plans');
+      } finally {
+        fs.rmSync(tmp, { recursive: true, force: true });
+      }
+    });
+  });
+
   describe('Env file', () => {
     it('exports CLAUDE_CODE_TASK_LIST_ID = active plan dir name', async () => {
       const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'session-init-env-'));
@@ -327,7 +402,7 @@ describe('session-init.cjs', () => {
         assert.strictEqual(result, 0);
         const env = fs.readFileSync(envFile, 'utf8');
         assert.match(env, /CLAUDE_CODE_TASK_LIST_ID="?261016-1200-sample-plan"?/);
-        assert.ok(env.includes(planDir), 'RIG_ACTIVE_PLAN exported');
+        assert.strictEqual(parseEnvFile(env).RIG_ACTIVE_PLAN, planDir, 'RIG_ACTIVE_PLAN exported');
       } finally {
         fs.rmSync(tmp, { recursive: true, force: true });
         fs.rmSync(statePath, { force: true });

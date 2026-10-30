@@ -46,6 +46,16 @@ try {
   } = require('./lib/project-detector.cjs');
 
 /**
+ * Compare two filesystem paths ignoring separator form and, on Windows, letter case.
+ * git prints C:/repo while process.cwd() is C:\repo.
+ */
+function samePath(a, b) {
+  const ra = path.resolve(a);
+  const rb = path.resolve(b);
+  return process.platform === 'win32' ? ra.toLowerCase() === rb.toLowerCase() : ra === rb;
+}
+
+/**
  * Detect if this session is running inside an Agent Team.
  * Scans ~/.claude/teams/ for active team configs and checks membership.
  * Note: Returns first team found — Claude Code supports one team per session.
@@ -116,18 +126,19 @@ async function main() {
       });
     }
 
-    // Reports path only uses active plans, not suggested ones
-    const reportsPath = getReportsPath(resolved.path, resolved.resolvedBy, config.plan, config.paths);
+    // Compute base directory for absolute paths (Issue #327: use CWD for subdirectory support)
+    // Git root is only shown for reference; CWD determines where files are created
+    const baseDir = process.cwd();
+
+    // Reports path only uses active plans, not suggested ones.
+    // baseDir makes the result absolute-safe: an absolute session plan path is not re-joined
+    const reportsPath = getReportsPath(resolved.path, resolved.resolvedBy, config.plan, config.paths, baseDir);
 
     // Extract task list ID for Claude Code Tasks coordination (shared helper)
     const taskListId = extractTaskListId(resolved);
 
     const gitBranch = getGitBranch();
     const gitRoot = getGitRoot();
-
-    // Compute base directory for absolute paths (Issue #327: use CWD for subdirectory support)
-    // Git root is only shown for reference; CWD determines where files are created
-    const baseDir = process.cwd();
 
     // Compute resolved naming pattern (date + issue resolved, {slug} kept as placeholder)
     const namePattern = resolveNamingPattern(config.plan, gitBranch);
@@ -149,8 +160,8 @@ async function main() {
       }
 
       // Absolute paths based on CWD for subdirectory workflow support (Issue #327)
-      writeEnv(envFile, 'RIG_REPORTS_PATH', path.join(baseDir, reportsPath));
-      writeEnv(envFile, 'RIG_PLANS_PATH', path.join(baseDir, config.paths.plans));
+      writeEnv(envFile, 'RIG_REPORTS_PATH', reportsPath);
+      writeEnv(envFile, 'RIG_PLANS_PATH', path.resolve(baseDir, config.paths.plans));
       writeEnv(envFile, 'RIG_PROJECT_ROOT', baseDir);
       writeEnv(envFile, 'RIG_GIT_BRANCH', gitBranch || '');
     }
@@ -168,7 +179,7 @@ async function main() {
     }
 
     // Info: Show git root when running from subdirectory (Issue #327: now supported)
-    if (gitRoot && gitRoot !== process.cwd()) {
+    if (gitRoot && !samePath(gitRoot, process.cwd())) {
       console.log(`📁 Subdirectory mode: Plans/docs will be created in current directory`);
       console.log(`   Git root: ${gitRoot}`);
     }

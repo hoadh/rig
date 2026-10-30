@@ -172,7 +172,7 @@ describe('rig-config-utils.cjs', () => {
 
   describe('sanitizePath', () => {
 
-    const projectRoot = '/project';
+    const projectRoot = path.resolve(os.tmpdir(), 'project');
 
     it('allows normal relative paths', () => {
       assert.strictEqual(sanitizePath('plans', projectRoot), 'plans');
@@ -198,6 +198,18 @@ describe('rig-config-utils.cjs', () => {
     it('returns null for empty input', () => {
       assert.strictEqual(sanitizePath('', projectRoot), null);
       assert.strictEqual(sanitizePath(null, projectRoot), null);
+    });
+
+    it('accepts a non-normalized root (forward slashes / trailing separator)', () => {
+      const forwardRoot = projectRoot.replace(/\\/g, '/');
+      assert.strictEqual(sanitizePath('plans', forwardRoot), 'plans');
+      assert.strictEqual(sanitizePath('plans', forwardRoot + '/'), 'plans');
+    });
+
+    it('still blocks traversal with a non-normalized root', () => {
+      const forwardRoot = projectRoot.replace(/\\/g, '/');
+      assert.strictEqual(sanitizePath('../escape', forwardRoot), null);
+      assert.strictEqual(sanitizePath('src/../../escape', forwardRoot + '/'), null);
     });
 
   });
@@ -375,9 +387,9 @@ describe('rig-config-utils.cjs', () => {
     });
 
     it('returns absolute path when baseDir provided', () => {
-      const baseDir = '/project';
+      const baseDir = path.resolve(os.tmpdir(), 'project');
       const result = getReportsPath(null, null, planConfig, pathsConfig, baseDir);
-      assert.ok(result.startsWith('/project'), 'Should start with baseDir');
+      assert.ok(result.startsWith(baseDir), 'Should start with baseDir');
     });
 
   });
@@ -511,7 +523,8 @@ describe('rig-config-utils.cjs', () => {
     it('returns absolute path for git directory', () => {
       const result = getGitRoot();
       if (result) {
-        assert.ok(result.startsWith('/'), 'Should be absolute path');
+        assert.ok(path.isAbsolute(result), 'Should be absolute path');
+        assert.strictEqual(result, path.normalize(result), 'Should use native separators');
       }
     });
 
