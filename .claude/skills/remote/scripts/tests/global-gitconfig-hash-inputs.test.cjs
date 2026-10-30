@@ -20,13 +20,27 @@ function withEnv(vars, fn) {
 }
 const git = (repo, hm, ...args) => cp.execFileSync('git', ['-C', repo, ...args], { encoding: 'utf8', env: { PATH: process.env.PATH, HOME: hm, GIT_CONFIG_NOSYSTEM: '1' } });
 const home = () => fs.mkdtempSync(path.join(os.tmpdir(), 'rig-gc-home-'));
+const fwd = (p) => p.replace(/\\/g, '/'); // git config values: a backslash is an escape, so write paths with forward slashes
 const rp = (p) => fs.realpathSync.native(p); // hashed include paths are physical (macOS tmp is a symlink)
 
 t.test('M2: fixed set = ~/.gitconfig, ~/.config/git/config, XDG when set and different (deduped)', () => {
-  const h = '/h';
-  t.eq(G.fixedGlobalConfigFiles({ HOME: h }), ['/h/.gitconfig', '/h/.config/git/config']);
-  t.eq(G.fixedGlobalConfigFiles({ HOME: h, XDG_CONFIG_HOME: '/x' }), ['/h/.gitconfig', '/h/.config/git/config', '/x/git/config']);
-  t.eq(G.fixedGlobalConfigFiles({ HOME: h, XDG_CONFIG_HOME: '/h/.config' }), ['/h/.gitconfig', '/h/.config/git/config']);
+  const h = '/hm/u'; const j = path.join; // multi-segment: a lone `/h` is an MSYS drive path on win32
+  t.eq(G.fixedGlobalConfigFiles({ HOME: h }), [j(h, '.gitconfig'), j(h, '.config', 'git', 'config')]);
+  t.eq(G.fixedGlobalConfigFiles({ HOME: h, XDG_CONFIG_HOME: '/x' }), [j(h, '.gitconfig'), j(h, '.config', 'git', 'config'), j('/x', 'git', 'config')]);
+  t.eq(G.fixedGlobalConfigFiles({ HOME: h, XDG_CONFIG_HOME: j(h, '.config') }), [j(h, '.gitconfig'), j(h, '.config', 'git', 'config')]);
+});
+
+t.test('H6: MSYS-form HOME resolves to the real drive path on win32, is untouched on POSIX', () => {
+  const got = G.fixedGlobalConfigFiles({ HOME: '/c/Users/x' });
+  if (process.platform === 'win32') {
+    t.eq(got, ['C:\\Users\\x\\.gitconfig', 'C:\\Users\\x\\.config\\git\\config']);
+    t.eq(G.fixedGlobalConfigFiles({ HOME: '/d' })[0], 'D:\\.gitconfig');
+    t.eq(G.fixedGlobalConfigFiles({ HOME: 'C:\\Users\\y' })[0], 'C:\\Users\\y\\.gitconfig'); // native form is kept
+    t.eq(G.fixedGlobalConfigFiles({ HOME: '' })[0], path.join(os.homedir(), '.gitconfig')); // empty -> os.homedir()
+    t.eq(G.globalConfigHashParts('/unused', { HOME: '/c/nonexistent-rig-h6' }).length, 2); // same normalized home feeds the hash parts
+  } else {
+    t.eq(got, ['/c/Users/x/.gitconfig', '/c/Users/x/.config/git/config']);
+  }
 });
 
 t.test('M2: XDG_CONFIG_HOME is on the env handoff allowlist', () => {
@@ -55,7 +69,7 @@ t.test('M3: edits to an [include] target and an [includeIf] target change the ba
     const repo = env.clone('w');
     const inc = path.join(hm, 'inc cfg'); const incIf = path.join(hm, 'inc-if'); const other = path.join(hm, 'other');
     fs.writeFileSync(inc, '[user]\n\tname = a\n'); fs.writeFileSync(incIf, '[user]\n\temail = a@b\n'); fs.writeFileSync(other, 'x');
-    fs.writeFileSync(path.join(hm, '.gitconfig'), `[include]\n\tpath = "${inc}"\n[includeIf "gitdir:${env.root}/"]\n\tpath = ${incIf}\n`);
+    fs.writeFileSync(path.join(hm, '.gitconfig'), `[include]\n\tpath = "${fwd(inc)}"\n[includeIf "gitdir:${fwd(env.root)}/"]\n\tpath = ${fwd(incIf)}\n`);
     withEnv({ HOME: hm, XDG_CONFIG_HOME: undefined }, () => {
       t.eq(G.globalConfigHashParts(repo).map(([l]) => l.split('\0')[1]).filter(Boolean).sort(), [inc, incIf].map(rp).sort());
       H.knownGoodGitControlBaseline.write(repo);
@@ -80,7 +94,7 @@ t.test('R4-M1: hasconfig: includeIf target (active at runtime, invisible to `con
   try {
     const repo = env.clone('w');
     const tgt = path.join(hm, 'hascfg'); fs.writeFileSync(tgt, '[user]\n\tname = a\n');
-    fs.writeFileSync(path.join(hm, '.gitconfig'), `[includeIf "hasconfig:remote.*.url:**"]\n\tpath = ${tgt}\n`);
+    fs.writeFileSync(path.join(hm, '.gitconfig'), `[includeIf "hasconfig:remote.*.url:**"]\n\tpath = ${fwd(tgt)}\n`);
     withEnv({ HOME: hm, XDG_CONFIG_HOME: undefined }, () => {
       H.knownGoodGitControlBaseline.write(repo);
       fs.writeFileSync(tgt, '[credential]\n\thelper = !evil\n');
@@ -95,7 +109,7 @@ t.test('R4-M2: onbranch: includeIf no longer makes the hash depend on HEAD (chec
   try {
     const repo = env.clone('w');
     const tgt = path.join(hm, 'onbr'); fs.writeFileSync(tgt, '[user]\n\tname = a\n');
-    fs.writeFileSync(path.join(hm, '.gitconfig'), `[includeIf "onbranch:rig/*"]\n\tpath = ${tgt}\n`);
+    fs.writeFileSync(path.join(hm, '.gitconfig'), `[includeIf "onbranch:rig/*"]\n\tpath = ${fwd(tgt)}\n`);
     withEnv({ HOME: hm, XDG_CONFIG_HOME: undefined }, () => {
       git(repo, hm, 'checkout', '-q', '-B', 'other');
       H.knownGoodGitControlBaseline.write(repo);
@@ -113,7 +127,7 @@ t.test('R4-M1: relative and ~/ paths, nested includes, cycles, include from the 
     fs.mkdirSync(path.join(hm, 'sub')); fs.mkdirSync(path.join(xdg, 'git'), { recursive: true });
     fs.writeFileSync(path.join(hm, '.gitconfig'), '[include]\n\tpath = sub/a.cfg\n[includeIf "gitdir:/nowhere/"]\n\tpath = ~/tilde.cfg\n');
     fs.writeFileSync(path.join(hm, 'sub', 'a.cfg'), '[include]\n\tpath = b.cfg\n'); // relative to sub/, nested
-    fs.writeFileSync(path.join(hm, 'sub', 'b.cfg'), `[include]\n\tpath = ../.gitconfig\n\tpath = ${path.join(hm, 'sub', 'a.cfg')}\n\tpath = c.cfg\n`); // cycles + deeper
+    fs.writeFileSync(path.join(hm, 'sub', 'b.cfg'), `[include]\n\tpath = ../.gitconfig\n\tpath = ${fwd(path.join(hm, 'sub', 'a.cfg'))}\n\tpath = c.cfg\n`); // cycles + deeper
     fs.writeFileSync(path.join(hm, 'sub', 'c.cfg'), '[user]\n\tname = leaf\n');
     fs.writeFileSync(path.join(hm, 'tilde.cfg'), '[user]\n\tname = t\n');
     fs.writeFileSync(path.join(xdg, 'git', 'config'), '[include]\n\tpath = x.cfg\n');
@@ -179,14 +193,14 @@ t.test('R4-L5: files are hashed in full (no size cap); too many files = non-quar
     withEnv({ HOME: hm, XDG_CONFIG_HOME: undefined }, () => {
       t.eq(I.hashGitControlFiles(repo), I.hashGitControlFiles(repo)); // no global config at all is stable
       const big = path.join(hm, 'big'); const body = `[user]\n\tname = n\n${'# pad\n'.repeat(400000)}`; // > 2 MB
-      fs.writeFileSync(big, body); fs.writeFileSync(path.join(hm, '.gitconfig'), `[include]\n\tpath = ${big}\n`);
+      fs.writeFileSync(big, body); fs.writeFileSync(path.join(hm, '.gitconfig'), `[include]\n\tpath = ${fwd(big)}\n`);
       const h0 = I.hashGitControlFiles(repo);
       fs.writeFileSync(big, `${body}[credential]\n\thelper = !evil\n`);
       t.ok(I.hashGitControlFiles(repo) !== h0, 'tail edit of a >1MB file is detected');
       fs.writeFileSync(big, body);
       H.knownGoodGitControlBaseline.write(repo);
       let cfg = '';
-      for (let i = 0; i <= G.MAX_INCLUDED; i++) { const f = path.join(hm, `i${i}`); fs.writeFileSync(f, `[user]\n\tname = n${i}\n`); cfg += `[include]\n\tpath = ${f}\n`; }
+      for (let i = 0; i <= G.MAX_INCLUDED; i++) { const f = path.join(hm, `i${i}`); fs.writeFileSync(f, `[user]\n\tname = n${i}\n`); cfg += `[include]\n\tpath = ${fwd(f)}\n`; }
       fs.writeFileSync(path.join(hm, '.gitconfig'), cfg);
       let err = null;
       try { G.globalConfigHashParts(repo); } catch (e) { err = e; }
@@ -213,6 +227,7 @@ t.test('R5-L1: tokenizer follows git grammar - continuation only inside values (
 });
 
 t.test('R5-L2: include target is resolved like the kernel (link/.. is physical, not lexical)', () => {
+  if (process.platform === 'win32') return; // Win32 path normalization collapses `link\..` lexically (also in git); the physical `..` semantic is a POSIX kernel property
   const hm = home();
   try {
     fs.mkdirSync(path.join(hm, 'real', 'deep'), { recursive: true });

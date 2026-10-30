@@ -25,9 +25,21 @@ const { includePathsOfText } = require('./git-config-include-path-tokenizer.cjs'
 
 const MAX_INCLUDED = 64;
 
+/**
+ * HOME as a native path. On win32 an MSYS/Git-Bash style `/c/Users/dev` becomes `C:\Users\dev`
+ * (otherwise path.join yields the wrong drive-less `\c\Users\dev`). Empty -> os.homedir(). POSIX: untouched.
+ */
+function homeDir(env) {
+  const raw = env.HOME;
+  if (!raw) return os.homedir();
+  if (process.platform !== 'win32') return raw;
+  const m = /^\/([a-zA-Z])(\/.*)?$/.exec(raw);
+  return m ? path.win32.normalize(`${m[1].toUpperCase()}:${m[2] || '/'}`) : raw;
+}
+
 /** Fixed user-level config files (deduped, stable order). Reads HOME first: tests redirect it. */
 function fixedGlobalConfigFiles(env = process.env) {
-  const home = env.HOME || os.homedir();
+  const home = homeDir(env);
   const list = [path.join(home, '.gitconfig'), path.join(home, '.config', 'git', 'config')];
   if (env.XDG_CONFIG_HOME) list.push(path.join(env.XDG_CONFIG_HOME, 'git', 'config')); // "" = unset, like git
   return [...new Set(list)];
@@ -67,7 +79,7 @@ function readConfigFile(full) {
  * @throws {RunFailure} 'prepare' when more than MAX_INCLUDED extra files are reached
  */
 function globalConfigHashParts(repo, env = process.env) { // eslint-disable-line no-unused-vars -- repo kept for caller compatibility
-  const home = env.HOME || os.homedir();
+  const home = homeDir(env);
   const fixed = fixedGlobalConfigFiles(env);
   const seen = new Set(fixed.map(physicalPath)); // dedupe by physical path
   const extra = new Map(); // path -> marker

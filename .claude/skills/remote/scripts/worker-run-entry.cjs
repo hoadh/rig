@@ -10,6 +10,10 @@
  * Lifecycle safety: heartbeat + busy-ownership watchdog run on a worker thread
  * (sync git cannot freeze it); SIGTERM/SIGHUP/SIGINT kill the recorded agent
  * process tree; ownership of the busy marker is verified at start.
+ * win32: no signal handlers run on TerminateProcess (taskkill /F, schtasks /End, reboot); cancel uses the sentinel
+ * (superviseChild polls it); the non-detached agent child died with the runner in the H3 probe (libuv job object;
+ * plans/261030-1408-windows-compatibility-fixes/reports/probe-h3-runner-kill.md); a lost run is cleaned by
+ * `remote cancel` (forceFinalize -> guarded taskkill, identity-checked).
  */
 const fs = require('fs');
 const path = require('path');

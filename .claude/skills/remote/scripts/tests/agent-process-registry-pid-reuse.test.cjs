@@ -17,7 +17,7 @@ t.test('matching start identity: recorded group is killed and the record removed
   const dir = tmp(); const c = sleeper(); c.unref();
   try {
     P.recordAgentPid(dir, c.pid);
-    if (unix) t.ok(P.processStartIdentity(c.pid) !== '' && fs.readFileSync(P.pidFile(dir), 'utf8').split('\n')[1] !== '');
+    t.ok(P.processStartIdentity(c.pid) !== '' && fs.readFileSync(P.pidFile(dir), 'utf8').split('\n')[1] !== '');
     t.eq(P.killRecordedAgent(dir), true);
     t.ok(await wait(() => !alive(c.pid)));
     t.ok(!fs.existsSync(P.pidFile(dir)));
@@ -74,6 +74,57 @@ t.test('M4: start identity is timezone independent (TZ=UTC pinned)', () => {
     process.env.TZ = 'Pacific/Kiritimati';
     try { t.eq(P.processStartIdentity(c.pid), a); } finally { if (saved === undefined) delete process.env.TZ; else process.env.TZ = saved; }
   } finally { try { process.kill(-c.pid, 'SIGKILL'); } catch { /* gone */ } }
+});
+
+/** win32: real process, real PowerShell identity reads (no fakes). */
+const winSleeper = () => cp.spawn(process.execPath, ['-e', 'setTimeout(()=>{},30000)'], { stdio: 'ignore', windowsHide: true });
+const winKill = (c) => { try { c.kill(); } catch { /* gone */ } };
+
+t.test('win32: identity is a UTC ISO start time; psReading ok for live, gone for dead', () => {
+  if (unix) return;
+  const c = winSleeper(); c.unref();
+  try {
+    const r = P.psReading(c.pid);
+    t.eq(r.state, 'ok');
+    t.ok(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?Z$/.test(r.identity), r.identity);
+    t.eq(P.processStartIdentity(c.pid), r.identity); // stable across reads
+    t.eq(P.psReading(NaN), { state: 'error' });
+  } finally { winKill(c); }
+  const dead = cp.spawnSync(process.execPath, ['-e', '0']).pid;
+  t.eq(P.psReading(dead), { state: 'gone' });
+});
+
+t.test('win32: tampered identity -> no kill, process survives, record dropped; intact -> killed', async () => {
+  if (unix) return;
+  const dir = tmp(); const c = winSleeper(); c.unref();
+  try {
+    P.recordAgentPid(dir, c.pid);
+    const [l1, l2] = fs.readFileSync(P.pidFile(dir), 'utf8').split('\n');
+    t.eq(Number(l1), c.pid);
+    t.ok(l2 !== '', 'identity recorded');
+    fs.writeFileSync(P.pidFile(dir), `${c.pid}\n1970-01-01T00:00:00.0000000Z\n`);
+    t.eq(P.killRecordedAgent(dir), false);
+    await new Promise((r) => setTimeout(r, 300));
+    t.ok(alive(c.pid), 'pid with a different start time must survive');
+    t.ok(!fs.existsSync(P.pidFile(dir)), 'stale record is dropped');
+    fs.writeFileSync(P.pidFile(dir), `${c.pid}\n`); // identity-less record: win32 has no group fallback
+    t.eq(P.killRecordedAgent(dir), false);
+    t.ok(alive(c.pid), 'identity-less record must not kill on win32');
+    fs.writeFileSync(P.pidFile(dir), `${l1}\n${l2}\n`);
+    t.eq(P.killRecordedAgent(dir), true);
+    t.ok(await wait(() => !alive(c.pid)), 'matching identity kills');
+    t.ok(!fs.existsSync(P.pidFile(dir)));
+  } finally { winKill(c); fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+t.test('win32: dead pid with a recorded identity -> no kill', () => {
+  if (unix) return;
+  const dir = tmp();
+  try {
+    const dead = cp.spawnSync(process.execPath, ['-e', '0']).pid;
+    fs.writeFileSync(P.pidFile(dir), `${dead}\n2020-01-01T00:00:00.0000000Z\n`);
+    t.eq(P.killRecordedAgent(dir), false);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
 t.test('killPidTree rejects invalid pids; dead pid -> false', () => {
