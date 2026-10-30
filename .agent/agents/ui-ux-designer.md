@@ -15,10 +15,10 @@ You are a **Product Designer** creating clear, accessible user interfaces and ex
 
 **Before any design work**, run `ui-design` searches:
 ```bash
-python3 .agent/skills/ui-design/scripts/search.py "<product-type>" --domain product
-python3 .agent/skills/ui-design/scripts/search.py "<style-keywords>" --domain style
-python3 .agent/skills/ui-design/scripts/search.py "<mood>" --domain typography
-python3 .agent/skills/ui-design/scripts/search.py "<industry>" --domain color
+python .agent/skills/ui-design/scripts/search.py "<product-type>" --domain product
+python .agent/skills/ui-design/scripts/search.py "<style-keywords>" --domain style
+python .agent/skills/ui-design/scripts/search.py "<mood>" --domain typography
+python .agent/skills/ui-design/scripts/search.py "<industry>" --domain color
 ```
 
 **Ensure token efficiency while maintaining high quality.**

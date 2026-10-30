@@ -2,6 +2,7 @@
 
 import json
 import subprocess
+import sys
 from pathlib import Path
 from unittest.mock import MagicMock, mock_open, patch
 
@@ -11,11 +12,18 @@ import pytest
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import shadcn_add
 from shadcn_add import ShadcnInstaller
 
 
 class TestShadcnInstaller:
     """Test ShadcnInstaller class."""
+
+    @pytest.fixture(autouse=True)
+    def _stub_npx_resolution(self, monkeypatch):
+        """Mock-based tests assert the literal "npx" argv; real-path tests live in
+        TestRealNpxResolution and use the real shutil.which."""
+        monkeypatch.setattr(shadcn_add.shutil, "which", lambda name: name)
 
     @pytest.fixture
     def temp_project(self, tmp_path):
@@ -264,3 +272,75 @@ class TestShadcnInstaller:
         assert success is True
         assert "button" in message
         assert "card" in message
+
+
+def _make_fake_npx(bin_dir: Path, log_file: Path) -> None:
+    """Create a fake npx that records its argv, named as the platform resolves it."""
+    if sys.platform == "win32":
+        fake = bin_dir / "npx.cmd"
+        fake.write_bytes(f'@echo off\r\necho %* > "{log_file}"\r\n'.encode())
+    else:
+        fake = bin_dir / "npx"
+        fake.write_text(f'#!/bin/sh\necho "$@" > "{log_file}"\n')
+        fake.chmod(0o755)
+
+
+class TestRealNpxResolution:
+    """Exercise the real shutil.which + subprocess.run path (no subprocess mock).
+
+    Regression: on Windows, subprocess.run(["npx", ...]) raised WinError 2 because
+    CreateProcess ignores PATHEXT; mocked tests hid it.
+    """
+
+    @pytest.fixture
+    def project(self, tmp_path):
+        root = tmp_path / "proj"
+        (root / "components" / "ui").mkdir(parents=True)
+        (root / "components.json").write_text(
+            json.dumps({"aliases": {"components": "@/components"}})
+        )
+        return root
+
+    @pytest.fixture
+    def fake_npx_path(self, tmp_path, monkeypatch):
+        """PATH containing only a fake npx; returns the argv log file."""
+        bin_dir = tmp_path / "bin"
+        bin_dir.mkdir()
+        log_file = tmp_path / "argv.log"
+        _make_fake_npx(bin_dir, log_file)
+        monkeypatch.setenv("PATH", str(bin_dir))
+        return log_file
+
+    def test_runs_fake_npx_from_path(self, project, fake_npx_path):
+        success, message = ShadcnInstaller(project_root=project).add_components(
+            ["button", "card"]
+        )
+
+        assert success is True, message
+        assert "shadcn@latest add button card" in fake_npx_path.read_text()
+
+    def test_add_all_runs_fake_npx_from_path(self, project, fake_npx_path):
+        success, message = ShadcnInstaller(project_root=project).add_all_components()
+
+        assert success is True, message
+        assert "--all" in fake_npx_path.read_text()
+
+    def test_missing_npx_reports_not_found(self, project, tmp_path, monkeypatch):
+        empty = tmp_path / "empty"
+        empty.mkdir()
+        monkeypatch.setenv("PATH", str(empty))
+
+        success, message = ShadcnInstaller(project_root=project).add_components(["button"])
+
+        assert success is False
+        assert "npx not found" in message
+
+    @pytest.mark.parametrize(
+        "bad", ["button&calc", "a|b", "x;y", "$(id)", "a b", "../x", "A", "-rf", "%PATH%", '"q"']
+    )
+    def test_rejects_unsafe_component_names(self, project, fake_npx_path, bad):
+        success, message = ShadcnInstaller(project_root=project).add_components([bad])
+
+        assert success is False
+        assert "Invalid component name" in message
+        assert not fake_npx_path.exists(), "npx must not run for invalid names"

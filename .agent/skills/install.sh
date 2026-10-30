@@ -191,6 +191,14 @@ check_bash_version() {
 }
 
 OS=$(detect_os)
+
+# Windows shells (Git Bash/MSYS/Cygwin): this script targets Linux/macOS/WSL.
+# Redirect to install.ps1 before touching Python (python3 is a Store stub there).
+if [[ "$OS" == "msys" ]] || [[ "$OS" == "cygwin" ]]; then
+    echo "Windows detected. Run: powershell -ExecutionPolicy Bypass -File .claude\\skills\\install.ps1" >&2
+    exit 1
+fi
+
 check_bash_version
 
 # Check if command exists

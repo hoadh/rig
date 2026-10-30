@@ -37,9 +37,9 @@ Use this skill when:
 
 MCP servers configured in `.agent/.mcp.json`.
 
-**Gemini CLI Integration** (recommended): Create symlink to `.gemini/settings.json`:
+**Gemini CLI Integration** (recommended): Copy config to `.gemini/settings.json` (re-copy after editing `.mcp.json`; `ln -sf` silently copies on Windows Git Bash):
 ```bash
-mkdir -p .gemini && ln -sf ../.agent/.mcp.json .gemini/settings.json
+mkdir -p .gemini && cp .agent/.mcp.json .gemini/settings.json
 ```
 
 See [references/configuration.md](references/configuration.md) and [references/gemini-cli-integration.md](references/gemini-cli-integration.md).
@@ -151,7 +151,7 @@ Command-line interface for MCP operations. Commands:
 **Method 1: Gemini CLI** (recommended)
 ```bash
 npm install -g @google/gemini-cli
-mkdir -p .gemini && ln -sf ../.agent/.mcp.json .gemini/settings.json
+mkdir -p .gemini && cp .agent/.mcp.json .gemini/settings.json
 # IMPORTANT: Use stdin piping, NOT -p flag (deprecated, skips MCP init)
 # <suffix> = JSON format suffix from references/gemini-cli-integration.md
 gemini -y -m <gemini.model> <<'PROMPT'

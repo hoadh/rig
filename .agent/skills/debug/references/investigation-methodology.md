@@ -44,7 +44,7 @@ gh run list --workflow=<workflow> --limit 5
 # View failed run logs
 gh run view <run-id> --log-failed
 # Download full logs
-gh run view <run-id> --log > /tmp/ci-logs.txt
+gh run view <run-id> --log > "$(node -p "require('os').tmpdir()")/ci-logs.txt"
 ```
 
 **For codebase understanding:**

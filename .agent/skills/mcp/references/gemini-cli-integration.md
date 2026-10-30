@@ -64,8 +64,11 @@ Gemini CLI reads MCP servers from `.gemini/settings.json`. Create a symlink to `
 # Create .gemini directory
 mkdir -p .gemini
 
-# Create symlink (Unix/Linux/macOS)
-ln -sf ../.agent/.mcp.json .gemini/settings.json
+# Copy config (all platforms; re-copy after editing .mcp.json)
+cp .agent/.mcp.json .gemini/settings.json
+
+# Or symlink (macOS/Linux only; Git Bash on Windows silently copies instead)
+# ln -sf ../.agent/.mcp.json .gemini/settings.json
 
 # Create symlink (Windows - requires admin or developer mode)
 mklink .gemini\settings.json ..\.claude\.mcp.json

@@ -94,6 +94,10 @@ def format_output(result, full=False):
 
 
 if __name__ == "__main__":
+    # Piped stdout on Windows defaults to cp1252 and crashes on non-ASCII output
+    for _stream in (sys.stdout, sys.stderr):
+        if hasattr(_stream, "reconfigure"):
+            _stream.reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser(description="UI Pro Max Search")
     parser.add_argument("query", help="Search query")
     parser.add_argument("--domain", "-d", choices=list(CSV_CONFIG.keys()), help="Search domain")

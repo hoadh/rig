@@ -59,8 +59,8 @@ Primary execution method:
 # Check availability
 command -v gemini >/dev/null 2>&1 || exit 1
 
-# Setup symlink if needed
-[ ! -f .gemini/settings.json ] && mkdir -p .gemini && ln -sf ../.agent/.mcp.json .gemini/settings.json
+# Setup config copy if needed (re-copy after editing .mcp.json; ln -sf copies silently on Windows Git Bash)
+[ ! -f .gemini/settings.json ] && mkdir -p .gemini && cp .agent/.mcp.json .gemini/settings.json
 
 # Execute task (use stdin piping for MCP operations, append the format suffix)
 gemini -y -m <gemini.model> <<'PROMPT'

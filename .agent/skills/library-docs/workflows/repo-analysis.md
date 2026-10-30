@@ -21,18 +21,18 @@
    → Verify: Official, active, has docs/
 
 2. Clone repository
-   → Bash: git clone [repo-url] /tmp/docs-analysis
+   → Bash: git clone [repo-url] "$(node -p "require('os').tmpdir()")/docs-analysis"
    → Optional: checkout specific version/tag
 
 3. Install Repomix (if needed)
    → Bash: npm install -g repomix
 
 4. Pack repository
-   → Bash: cd /tmp/docs-analysis && repomix --output repomix-output.xml
+   → Bash: cd "$(node -p "require('os').tmpdir()")/docs-analysis" && repomix --output repomix-output.xml
    → Repomix creates AI-friendly single file
 
 5. Read packed file
-   → Read: /tmp/docs-analysis/repomix-output.xml
+   → Read: "$(node -p "require('os').tmpdir()")/docs-analysis"/repomix-output.xml
    → Extract: README, docs/, examples/, API files
 
 6. Analyze structure
@@ -55,14 +55,14 @@ WebSearch: "MyLibrary github repository"
 # Found: https://github.com/org/mylibrary
 
 # 2. Clone
-git clone https://github.com/org/mylibrary /tmp/docs-analysis
+git clone https://github.com/org/mylibrary "$(node -p "require('os').tmpdir()")/docs-analysis"
 
 # 3. Pack with Repomix
-cd /tmp/docs-analysis
+cd "$(node -p "require('os').tmpdir()")/docs-analysis"
 repomix --output repomix-output.xml
 
 # 4. Read
-Read: /tmp/docs-analysis/repomix-output.xml
+Read: "$(node -p "require('os').tmpdir()")/docs-analysis"/repomix-output.xml
 # Single XML file with entire codebase
 
 # 5. Extract documentation

@@ -10,9 +10,11 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import select
+import queue
+import shutil
 import subprocess
 import sys
+import threading
 import time
 import uuid
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -32,6 +34,31 @@ def find_project_root() -> Path:
         if (parent / ".claude").is_dir():
             return parent
     return current
+
+
+def start_stdout_reader(stream) -> "queue.Queue[bytes | None]":
+    """Pump a child's stdout into a queue from a daemon thread.
+
+    select.select() only works on sockets on Windows (WinError 10093 for pipes),
+    so a blocking reader thread is the portable way to read with a timeout.
+    Chunks are raw bytes; None marks EOF (also pushed if the read fails).
+    """
+    chunks: "queue.Queue[bytes | None]" = queue.Queue()
+
+    def pump() -> None:
+        try:
+            while True:
+                chunk = os.read(stream.fileno(), 8192)
+                if not chunk:
+                    break
+                chunks.put(chunk)
+        except (OSError, ValueError):
+            pass  # pipe closed underneath us (process killed): treat as EOF
+        finally:
+            chunks.put(None)
+
+    threading.Thread(target=pump, daemon=True).start()
+    return chunks
 
 
 def run_single_query(
@@ -70,7 +97,8 @@ def run_single_query(
         command_file.write_text(command_content)
 
         cmd = [
-            "claude",
+            # which() honors PATHEXT so Windows finds claude.cmd / claude.exe
+            shutil.which("claude") or "claude",
             "-p", query,
             "--output-format", "stream-json",
             "--verbose",
@@ -98,21 +126,16 @@ def run_single_query(
         # Track state for stream event detection
         pending_tool_name = None
         accumulated_json = ""
+        chunks = start_stdout_reader(process.stdout)
 
         try:
             while time.time() - start_time < timeout:
-                if process.poll() is not None:
-                    remaining = process.stdout.read()
-                    if remaining:
-                        buffer += remaining.decode("utf-8", errors="replace")
-                    break
+                try:
+                    chunk = chunks.get(timeout=1.0)
+                except queue.Empty:
+                    continue  # no output yet; loop re-checks the overall timeout
 
-                ready, _, _ = select.select([process.stdout], [], [], 1.0)
-                if not ready:
-                    continue
-
-                chunk = os.read(process.stdout.fileno(), 8192)
-                if not chunk:
+                if chunk is None:  # EOF: process closed stdout
                     break
                 buffer += chunk.decode("utf-8", errors="replace")
 

@@ -50,11 +50,11 @@ Follow the process in `references/skill-creation-workflow.md`:
 1. **Capture Intent** — What should skill do? When trigger? What output? (AskUserQuestion)
 2. **Research** — Activate `/library-docs`, `/research` for best practices
 3. **Plan** — Identify reusable scripts, references, assets
-4. **Initialize** — `scripts/init_skill.py <name> --path <dir>`
+4. **Initialize** — `python scripts/init_skill.py <name> --path <dir>`
 5. **Write** — Implement resources, write SKILL.md, optimize for benchmarks
 6. **Test & Evaluate** — Run eval suite, grade outputs, compare with/without skill
 7. **Optimize Description** — AI-powered trigger accuracy optimization
-8. **Package** — `scripts/package_skill.py <path>`
+8. **Package** — `python scripts/package_skill.py <path>`
 9. **Iterate** — Generalize from feedback, keep prompts lean
 
 ## Eval & Testing (CRITICAL)
@@ -64,8 +64,8 @@ Eval infrastructure for quantitative skill validation:
 2. Spawn **parallel** with-skill + baseline runs (critical for fair timing)
 3. Draft assertions while runs execute
 4. Grade outputs with grader agent template
-5. Aggregate results: `scripts/aggregate_benchmark.py`
-6. Launch viewer: `scripts/generate_review.py` → interactive HTML review
+5. Aggregate results: `python scripts/aggregate_benchmark.py`
+6. Launch viewer: `python eval-viewer/generate_review.py` → interactive HTML review
 7. Collect human feedback via viewer → `feedback.json`
 
 Details: `references/eval-infrastructure-guide.md`
@@ -87,8 +87,8 @@ description: Process CSV files and tabular data. Use this skill whenever
 
 Automated optimization:
 
-- **Single-pass:** `scripts/improve_description.py` — one iteration from failed triggers
-- **Iterative loop:** `scripts/run_loop.py` — train/test split, 5-15 iterations, convergence detection
+- **Single-pass:** `python -m scripts.improve_description` — one iteration from failed triggers
+- **Iterative loop:** `python -m scripts.run_loop` — train/test split, 5-15 iterations, convergence detection
 
 ## Benchmark Optimization
 
@@ -122,16 +122,20 @@ Optimization patterns: `references/benchmark-optimization-guide.md`
 
 ## Scripts
 
+Run every script from this skill's directory with `python` (works on Windows, macOS, Linux; do not rely on the `#!` shebang or `./script.py`).
+Scripts that import `scripts.*` (`run_eval`, `run_loop`, `improve_description`) MUST run as modules: `python -m scripts.<name>`.
+Running them as `python scripts/<name>.py` fails with `ModuleNotFoundError`. All others run as `python scripts/<name>.py`.
+
 | Script | Purpose |
 |--------|---------|
 | `scripts/init_skill.py` | Initialize new skill from template |
 | `scripts/package_skill.py` | Validate + package skill as zip |
 | `scripts/quick_validate.py` | Quick frontmatter validation |
-| `scripts/run_eval.py` | Test skill triggering on queries |
+| `scripts/run_eval.py` (`-m scripts.run_eval`) | Test skill triggering on queries |
 | `scripts/aggregate_benchmark.py` | Consolidate runs into summary stats |
-| `scripts/improve_description.py` | AI-powered description optimization |
-| `scripts/run_loop.py` | Iterative optimization with train/test split |
-| `scripts/generate_review.py` | Generate interactive HTML eval viewer |
+| `scripts/improve_description.py` (`-m scripts.improve_description`) | AI-powered description optimization |
+| `scripts/run_loop.py` (`-m scripts.run_loop`) | Iterative optimization with train/test split |
+| `eval-viewer/generate_review.py` | Generate interactive HTML eval viewer |
 
 ## Validation & Distribution
 

@@ -104,7 +104,7 @@ Adding `--html` to any generation flag switches output from Markdown to a self-c
 
 **Output:** Single `.html` file with all CSS/JS inline. Opens directly in browser — no server needed.
 **Location:** `{plan_dir}/visuals/{slug}.html` (same plan-aware logic as markdown mode)
-**Browser open:** `open` (macOS) / `xdg-open` (Linux) / `start` (Windows)
+**Browser open:** `open` (macOS) / `xdg-open` (Linux) / `start "" "{path}"` (Windows; Git Bash: `cmd //c start "" "{path}"`)
 **MANDATORY — Theme Toggle:** Every HTML page MUST include a light/dark theme toggle button. See `html-css-patterns.md` → "Theme Toggle Button" for the exact CSS, HTML, and JS to include. Pages without the toggle are considered incomplete.
 
 ### Reference Loading (HTML mode)

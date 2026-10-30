@@ -336,6 +336,10 @@ def generate_markdown(benchmark: dict) -> str:
 
 
 def main():
+    # Piped stdout on Windows defaults to cp1252 and crashes on non-ASCII output
+    for _stream in (sys.stdout, sys.stderr):
+        if hasattr(_stream, "reconfigure"):
+            _stream.reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser(
         description="Aggregate benchmark run results into summary statistics"
     )

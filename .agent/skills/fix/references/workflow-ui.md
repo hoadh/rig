@@ -8,9 +8,9 @@ For fixing visual/UI issues. Requires design skills. Uses native Claude Tasks fo
 
 ## Pre-fix Research
 ```bash
-python3 .agent/skills/ui-design/scripts/search.py "<product-type>" --domain product
-python3 .agent/skills/ui-design/scripts/search.py "<style>" --domain style
-python3 .agent/skills/ui-design/scripts/search.py "accessibility" --domain ux
+python .agent/skills/ui-design/scripts/search.py "<product-type>" --domain product
+python .agent/skills/ui-design/scripts/search.py "<style>" --domain style
+python .agent/skills/ui-design/scripts/search.py "accessibility" --domain ux
 ```
 
 ## Task Setup (Before Starting)

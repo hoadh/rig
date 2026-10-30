@@ -8,10 +8,33 @@ Wraps shadcn CLI for programmatic component installation.
 
 import argparse
 import json
+import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 from typing import List, Optional
+
+# shadcn component names: lowercase alphanumerics and hyphens only. Enforced before
+# any subprocess call because on Windows npx resolves to npx.cmd, which CreateProcess
+# runs through cmd.exe (shell metacharacters in argv would be interpreted).
+COMPONENT_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+
+
+def validate_component_names(components: List[str]) -> Optional[str]:
+    """Return an error message if any component name is unsafe, else None."""
+    invalid = [c for c in components if not COMPONENT_NAME_RE.fullmatch(c)]
+    if invalid:
+        return (
+            f"Invalid component name(s): {', '.join(invalid)}. "
+            "Use lowercase letters, digits and hyphens only"
+        )
+    return None
+
+
+def resolve_npx() -> Optional[str]:
+    """Resolve npx honoring PATHEXT (npx.cmd on Windows); None if not installed."""
+    return shutil.which("npx")
 
 
 class ShadcnInstaller:
@@ -80,6 +103,10 @@ class ShadcnInstaller:
         if not components:
             return False, "No components specified"
 
+        name_error = validate_component_names(components)
+        if name_error:
+            return False, name_error
+
         if not self.check_shadcn_config():
             return (
                 False,
@@ -106,13 +133,18 @@ class ShadcnInstaller:
         if self.dry_run:
             return True, f"Would run: {' '.join(cmd)}"
 
-        # Execute command
+        # Execute command (argv[0] resolved via PATHEXT so Windows finds npx.cmd)
+        npx = resolve_npx()
+        if npx is None:
+            return False, "npx not found. Ensure Node.js is installed"
         try:
             result = subprocess.run(
-                cmd,
+                [npx] + cmd[1:],
                 cwd=self.project_root,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 check=True,
             )
 
@@ -152,12 +184,17 @@ class ShadcnInstaller:
         if self.dry_run:
             return True, f"Would run: {' '.join(cmd)}"
 
+        npx = resolve_npx()
+        if npx is None:
+            return False, "npx not found. Ensure Node.js is installed"
         try:
             result = subprocess.run(
-                cmd,
+                [npx] + cmd[1:],
                 cwd=self.project_root,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 check=True,
             )
 
@@ -193,6 +230,10 @@ class ShadcnInstaller:
 
 def main():
     """CLI entry point."""
+    # Piped stdout on Windows defaults to cp1252; never crash on non-ASCII output
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser(
         description="Add shadcn/ui components to your project",
         formatter_class=argparse.RawDescriptionHelpFormatter,
