@@ -11,11 +11,68 @@
  */
 const path = require('path');
 
-// Hook names (without `.cjs`) under `.claude/hooks/` that the kit no longer ships
-const RETIRED_KIT_HOOKS = [];
+// Hook names (without `.cjs`) under `.claude/hooks/` that the kit no longer ships.
+// Replaced by native Claude Code features (permissions rules, plan/task tooling); see
+// docs/devlog/261016-replace-hooks-with-native-features.md. Stale registrations also block commands
+// (scout-block) or auto-allow every Write (descriptive-name).
+const RETIRED_KIT_HOOKS = [
+  'cook-after-plan-reminder',
+  'descriptive-name',
+  'plan-format-kanban',
+  'post-edit-simplify-reminder',
+  'privacy-block',
+  'scout-block',
+  'session-state',
+  'skill-dedup',
+  'task-completed-handler',
+  'teammate-idle-handler',
+  'usage-context-awareness',
+];
 
-// Paths relative to the installed `.claude/` dir (~/.claude for global, <project>/.claude for local)
-const RETIRED_KIT_FILES = [];
+// Paths relative to the installed `.claude/` dir (~/.claude for global, <project>/.claude for local).
+// Support files of the retired hooks above (exact paths only, never globs).
+const RETIRED_KIT_FILES = [
+  // hook libs
+  'hooks/lib/privacy-checker.cjs',
+  'hooks/lib/scout-checker.cjs',
+  'hooks/lib/session-state-manager.cjs',
+  // scout-block modules and vendored ignore parser
+  'hooks/scout-block/broad-pattern-detector.cjs',
+  'hooks/scout-block/error-formatter.cjs',
+  'hooks/scout-block/path-extractor.cjs',
+  'hooks/scout-block/pattern-matcher.cjs',
+  'hooks/scout-block/vendor/ignore.cjs',
+  // scout-block in-tree tests
+  'hooks/scout-block/tests/test-broad-pattern-detector.cjs',
+  'hooks/scout-block/tests/test-build-command-allowlist.cjs',
+  'hooks/scout-block/tests/test-error-formatter.cjs',
+  'hooks/scout-block/tests/test-full-flow-edge-cases.cjs',
+  'hooks/scout-block/tests/test-monorepo-scenarios.cjs',
+  'hooks/scout-block/tests/test-path-extractor.cjs',
+  'hooks/scout-block/tests/test-pattern-matcher.cjs',
+  // retired hook tests under hooks/tests (incl. rigignore fixtures)
+  'hooks/tests/scout-block/broad-pattern-detector.test.cjs',
+  'hooks/tests/scout-block/path-extractor.test.cjs',
+  'hooks/tests/scout-block/pattern-matcher.test.cjs',
+  'hooks/tests/scout-block/scout-checker.test.cjs',
+  'hooks/tests/scout-block/fixtures/rigignore-custom.txt',
+  'hooks/tests/scout-block/fixtures/rigignore-default.txt',
+  'hooks/tests/scout-block/fixtures/rigignore-negation.txt',
+  'hooks/tests/test-modularization-hook.cjs',
+  'hooks/tests/test-privacy-block.cjs',
+  'hooks/tests/test-rigignore.cjs',
+  'hooks/tests/test-scout-block.cjs',
+  // retired hook unit tests
+  'hooks/__tests__/descriptive-name.test.cjs',
+  'hooks/__tests__/plan-format-kanban.test.cjs',
+  'hooks/__tests__/privacy-block.test.cjs',
+  'hooks/__tests__/skill-dedup.test.cjs',
+  'hooks/__tests__/task-completed-handler.test.cjs',
+  'hooks/__tests__/teammate-idle-handler.test.cjs',
+  // scout-block config (no shipped consumer left)
+  '.rigignore',
+  // NOT listed: session-state/ (runtime dir of the retired hook, no shipped file); remove manually
+];
 
 /**
  * Builds the cleanup functions for a set of retired hooks and files.

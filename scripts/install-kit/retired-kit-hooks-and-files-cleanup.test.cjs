@@ -20,6 +20,64 @@ test('shipped lists: every entry is a safe relative path, empty lists match noth
   }
 });
 
+const REPO_CLAUDE = path.resolve(__dirname, '..', '..', '.claude');
+
+test('shipped guard: no retired hook or file exists in the repo .claude/ (never delete a live file)', () => {
+  assert.strictEqual(shipped.RETIRED_KIT_HOOKS.length, 11);
+  for (const name of shipped.RETIRED_KIT_HOOKS) {
+    assert.ok(!fs.existsSync(path.join(REPO_CLAUDE, 'hooks', `${name}.cjs`)), `hooks/${name}.cjs is shipped`);
+  }
+  for (const rel of shipped.RETIRED_KIT_FILES) assert.ok(!fs.existsSync(path.join(REPO_CLAUDE, rel)), `${rel} is shipped`);
+});
+
+test('shipped lists strip nothing from the repo settings.json', () => {
+  const settings = JSON.parse(fs.readFileSync(path.join(REPO_CLAUDE, 'settings.json'), 'utf8'));
+  assert.deepStrictEqual(shipped.stripRetiredKitHooks(settings), []);
+});
+
+test('shipped lists on a stale global settings shape leave exactly the 4 shipped hooks', () => {
+  const cmd = (n) => ({ type: 'command', command: `node "$HOME/.claude/hooks/${n}.cjs"` });
+  const settings = { hooks: {
+    SessionStart: [{ matcher: 'startup|resume|clear|compact', hooks: [cmd('session-init'), cmd('session-state')] }],
+    SubagentStart: [{ matcher: '*', hooks: [cmd('subagent-init'), cmd('team-context-inject')] }],
+    SubagentStop: [{ matcher: '^(Plan|planner)$', hooks: [cmd('cook-after-plan-reminder')] }, { hooks: [cmd('session-state')] }],
+    UserPromptSubmit: [{ hooks: [cmd('dev-rules-reminder'), cmd('usage-context-awareness')] }],
+    PreToolUse: [{ matcher: 'Write', hooks: [cmd('descriptive-name')] },
+      { matcher: 'Bash|Glob|Grep|Read|Edit|Write', hooks: [cmd('scout-block'), cmd('privacy-block')] }],
+    Stop: [{ hooks: [cmd('session-state')] }],
+    PostToolUse: [{ matcher: 'Edit|Write|MultiEdit', hooks: [cmd('post-edit-simplify-reminder'), cmd('plan-format-kanban')] },
+      { matcher: 'Bash|Edit|Write|MultiEdit|NotebookEdit', hooks: [cmd('usage-context-awareness')] }],
+  } };
+  const removed = shipped.stripRetiredKitHooks(settings);
+  assert.strictEqual(removed.length, 11);
+  assert.strictEqual(new Set(removed).size, 8);
+  const left = Object.values(settings.hooks).flat().flatMap((e) => e.hooks.map((h) => h.command)).sort();
+  assert.deepStrictEqual(left, ['dev-rules-reminder', 'session-init', 'subagent-init', 'team-context-inject']
+    .map((n) => `node "$HOME/.claude/hooks/${n}.cjs"`));
+});
+
+test('shipped lists clean a full stale inventory, drop emptied dirs and keep shipped files', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'retired-kit-full-'));
+  try {
+    const put = (rel) => {
+      fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
+      fs.writeFileSync(path.join(dir, rel), 'x');
+    };
+    const stale = [...shipped.RETIRED_KIT_HOOKS.map((n) => `hooks/${n}.cjs`), ...shipped.RETIRED_KIT_FILES];
+    const keep = ['hooks/session-init.cjs', 'hooks/dev-rules-reminder.cjs', 'hooks/lib/rig-config-utils.cjs', 'hooks/__tests__/session-init.test.cjs'];
+    [...stale, ...keep].forEach(put);
+
+    const { deleted, keptReferenced } = shipped.deleteRetiredKitFiles({ claudeDir: dir, fs });
+    assert.deepStrictEqual(keptReferenced, []);
+    assert.deepStrictEqual(deleted.sort(), [...stale].sort());
+    for (const rel of stale) assert.ok(!fs.existsSync(path.join(dir, rel)), rel);
+    for (const sub of ['hooks/scout-block', 'hooks/tests']) assert.ok(!fs.existsSync(path.join(dir, sub)), `${sub} removed`);
+    for (const rel of keep) assert.ok(fs.existsSync(path.join(dir, rel)), `${rel} kept`);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('matches only the kit command form of a retired hook', () => {
   for (const cmd of [
     'node "$HOME/.claude/hooks/privacy-block.cjs"',
