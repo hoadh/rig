@@ -91,6 +91,7 @@ If you prefer manual installation or the automated script fails:
 # Create virtual environment
 python3 -m venv .venv  # On Windows: python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+# If `python3` is not found, try `python`, then `py -3`.
 
 # Install all skill dependencies
 pip install -r .agent/skills/media/scripts/requirements.txt

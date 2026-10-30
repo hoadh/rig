@@ -15,10 +15,11 @@ import sys
 from pathlib import Path
 from typing import List, Optional
 
-# shadcn component names: lowercase alphanumerics and hyphens only. Enforced before
+# shadcn component names: lowercase alphanumerics and hyphens, optionally a registry
+# item `@scope/name` (`@` and `/` are not cmd.exe metacharacters). Enforced before
 # any subprocess call because on Windows npx resolves to npx.cmd, which CreateProcess
 # runs through cmd.exe (shell metacharacters in argv would be interpreted).
-COMPONENT_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+COMPONENT_NAME_RE = re.compile(r"^(@[a-z0-9][a-z0-9-]*/)?[a-z0-9][a-z0-9-]*$")
 
 
 def validate_component_names(components: List[str]) -> Optional[str]:
@@ -27,7 +28,7 @@ def validate_component_names(components: List[str]) -> Optional[str]:
     if invalid:
         return (
             f"Invalid component name(s): {', '.join(invalid)}. "
-            "Use lowercase letters, digits and hyphens only"
+            "Use lowercase letters, digits and hyphens (or @scope/name)"
         )
     return None
 

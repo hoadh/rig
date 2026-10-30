@@ -7,8 +7,9 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-// os.tmpdir() is portable ('/tmp' would resolve to C:\tmp on Windows and may not exist)
-const PID_DIR = os.tmpdir();
+// POSIX keeps '/tmp' (macOS os.tmpdir() is a per-user /var/folders path, which would
+// hide servers already running from /tmp). Windows has no /tmp, so use os.tmpdir().
+const PID_DIR = process.platform === 'win32' ? os.tmpdir() : '/tmp';
 const PID_PREFIX = 'md-novel-viewer-';
 
 /**

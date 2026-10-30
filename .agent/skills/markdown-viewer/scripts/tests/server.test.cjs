@@ -88,6 +88,12 @@ test('writePidFile and readPidFile work correctly', () => {
   assertEqual(afterRemove, null, 'Should be null after remove');
 });
 
+test('PID files live in /tmp on POSIX and os.tmpdir() on Windows', () => {
+  const { getPidFilePath } = require('../lib/process-mgr.cjs');
+  const expectedDir = process.platform === 'win32' ? os.tmpdir() : '/tmp';
+  assertEqual(path.dirname(getPidFilePath(9876)), expectedDir, 'PID dir');
+});
+
 test('findRunningInstances returns array', () => {
   const instances = findRunningInstances();
   assertTrue(Array.isArray(instances), 'Should return array');

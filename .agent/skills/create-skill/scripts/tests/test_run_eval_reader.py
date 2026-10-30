@@ -39,6 +39,12 @@ FAKE_CLAUDE = textwrap.dedent(
         emit({"type": "stream_event", "event": {"type": "content_block_start",
               "content_block": {"type": "tool_use", "name": "Bash"}}})
         time.sleep(8)
+    elif mode == "record":
+        # Save what arrived on stdin and argv, then finish normally.
+        out = os.environ["FAKE_CLAUDE_OUT"]
+        with open(out, "w", encoding="utf-8") as f:
+            json.dump({"stdin": sys.stdin.read(), "argv": sys.argv[1:]}, f)
+        emit({"type": "result"})
     elif mode == "silent":
         time.sleep(8)
     """
@@ -119,3 +125,18 @@ def test_run_single_query_times_out_when_silent(tmp_path, monkeypatch):
     start = time.time()
     assert run_single_query("q", "demo", "demo skill", 2, str(tmp_path)) is False
     assert time.time() - start < 6
+
+
+def test_query_with_cmd_metacharacters_is_not_executed_and_arrives_intact(tmp_path, monkeypatch):
+    """C1 regression: query must travel via stdin, not argv (cmd.exe injection)."""
+    marker = tmp_path / "marker.txt"
+    out = tmp_path / "recorded.json"
+    monkeypatch.setenv("FAKE_CLAUDE_OUT", str(out))
+    _install_fake_claude(tmp_path, monkeypatch, "record")
+    query = 'a" & echo PWNED>marker.txt & "'
+    assert run_single_query(query, "demo", "demo skill", 20, str(tmp_path)) is False
+    recorded = json.loads(out.read_text(encoding="utf-8"))
+    assert recorded["stdin"] == query
+    assert query not in recorded["argv"] and "a\"" not in " ".join(recorded["argv"])
+    assert not marker.exists()
+    assert not (tmp_path / "bin" / "marker.txt").exists()
