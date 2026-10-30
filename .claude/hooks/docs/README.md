@@ -164,11 +164,11 @@ Add custom patterns to these arrays. Bash commands are not filtered by these rul
 
 **No notifications received:**
 - Verify env vars are set: `echo $TELEGRAM_BOT_TOKEN`
-- Check throttle state: `cat /tmp/rig-noti-throttle.json`
+- Check throttle state: `cat "$(node -p "require('os').tmpdir()")/rig-noti-throttle.json"` (OS temp dir via `os.tmpdir()`)
 - Test manually with echo pipe above
 
 **Provider throttled:**
-- Wait 5 minutes or delete `/tmp/rig-noti-throttle.json`
+- Wait 5 minutes or delete `rig-noti-throttle.json` in the OS temp dir
 
 **Hooks not triggering:**
 - Verify hooks are added to `.claude/settings.json`

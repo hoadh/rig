@@ -20,7 +20,7 @@ gh run view <run-id>
 gh run view <run-id> --log-failed
 
 # Download complete logs
-gh run view <run-id> --log > /tmp/ci-full.txt
+gh run view <run-id> --log > "$(node -p "require('os').tmpdir()")/ci-full.txt"
 
 # Re-run failed jobs
 gh run rerun <run-id> --failed

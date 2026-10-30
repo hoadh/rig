@@ -173,7 +173,7 @@ python -m http.server 3000 --directory ./dist &
 node "$SKILL_DIR/navigate.js" --url http://localhost:3000
 ```
 
-**Note**: when port 3000 is busy, find an available port with `lsof -i :3000` and use a different one.
+**Note**: when port 3000 is busy, find an available port with `lsof -i :3000` (Windows: `netstat -ano | findstr :3000`) and use a different one.
 
 ## Quick Start
 

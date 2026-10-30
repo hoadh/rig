@@ -8,7 +8,8 @@ Bisection script to find which test creates unwanted files or state pollution.
 ### Setup Test Scenario
 ```bash
 # Create test directory
-mkdir -p /tmp/polluter-test && cd /tmp/polluter-test
+TMP_DIR="$(node -p "require('os').tmpdir()")"
+mkdir -p "$TMP_DIR/polluter-test" && cd "$TMP_DIR/polluter-test"
 
 # Create clean test
 cat > test1.test.js << 'EOF'
@@ -54,7 +55,7 @@ Found 3 test files
 
 ### Cleanup
 ```bash
-rm -rf /tmp/polluter-test
+rm -rf "$TMP_DIR/polluter-test"
 ```
 
 ## Test Results

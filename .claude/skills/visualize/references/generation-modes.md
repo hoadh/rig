@@ -153,7 +153,7 @@ Must use `/rig:mermaidjs-v11` for any Mermaid diagrams.
 ### HTML Step 4: Open in Browser
 - macOS: `open "{output-path}"`
 - Linux: `xdg-open "{output-path}"`
-- Windows: `start "{output-path}"`
+- Windows: `start "" "{output-path}"` (Git Bash: `cmd //c start "" "{output-path}"`)
 - No server needed — file is self-contained
 - Report file path and confirm browser opened
 
