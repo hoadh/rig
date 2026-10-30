@@ -1,0 +1,3 @@
+*.sh text eol=lf
+.claude/skills/ui-design/data/** text eol=lf
+.agent/skills/ui-design/data/** text eol=lf

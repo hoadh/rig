@@ -55,6 +55,14 @@ The script will:
 - Install Python packages
 - Verify all installations
 
+From Git Bash/MSYS/Cygwin, `install.sh` exits with a hint; run the installer from PowerShell instead:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .claude\skills\install.ps1
+```
+
+On Windows use `python` (not `python3`, which is a Microsoft Store stub) and `.venv\Scripts\python.exe` (not `.venv/bin/python3`).
+
 ### What Gets Installed
 
 **System Tools:**
@@ -81,7 +89,7 @@ If you prefer manual installation or the automated script fails:
 
 ```bash
 # Create virtual environment
-python3 -m venv .venv
+python3 -m venv .venv  # On Windows: python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 # Install all skill dependencies
