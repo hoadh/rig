@@ -38,7 +38,7 @@ t.test('start returns at once (starting), runner finishes detached; status + lis
   const spec = f.agentSpec();
   const payload = { spec, target: f.target, task: 'go' };
   const s = call('start', [], payload);
-  t.eq([s.reply.runId, s.reply.state, s.reply.method], [spec.runId, 'starting', 'node-detached']);
+  t.eq([s.reply.runId, s.reply.state, s.reply.method], [spec.runId, 'starting', process.platform === 'win32' ? 'schtasks-headless' : 'node-detached']);
   const again = call('start', [], payload); // same runId, same spec: no second process
   t.eq(again.reply.method, 'existing');
   t.ok(['starting', 'running', 'done'].includes(again.reply.state));
@@ -48,6 +48,7 @@ t.test('start returns at once (starting), runner finishes detached; status + lis
   const st = call('status', [spec.runId]).reply;
   t.eq([st.state, st.pushed, st.result.pushed], ['done', true, true]);
   t.ok(f.onOrigin());
+  t.eq(f.stubRan(), 1, 'stub claude must have run exactly once');
   t.eq(call('list', []).reply.runs.map((r) => [r.runId, r.state]), [[spec.runId, 'done']]);
   t.eq(call('start', [], payload).reply.error.class, 'finished');
   t.eq(call('status', ['r2601019999-zzzzzz']).reply.error.class, 'not-found');
@@ -67,7 +68,7 @@ t.test('busy: second agent start refused while one is running; cancel then ends 
 }));
 
 t.test('exec: foreground; command output stays in the log, protocol stdout is exactly one RIGJSON line', () => scenario(async (f) => {
-  const spec = f.commandSpec('echo NOISY-OUTPUT-MARKER; echo err-line 1>&2');
+  const spec = f.commandSpec(process.platform === 'win32' ? "echo NOISY-OUTPUT-MARKER; [Console]::Error.WriteLine('err-line')" : 'echo NOISY-OUTPUT-MARKER; echo err-line 1>&2');
   const r = call('exec', [], { spec, target: f.target });
   t.eq([r.reply.exit, r.reply.failure], [0, null]);
   t.eq(r.stdout.trim().split('\n').length, 1);

@@ -8,6 +8,8 @@ const t = require('./minimal-test-harness.cjs');
 
 process.env.RIG_HOME = fs.mkdtempSync(path.join(os.tmpdir(), 'rig-harden-home-'));
 const { makeRepoWithBareRemote } = require('./temp-git-repo-with-bare-remote.cjs');
+const { gitConfigPath } = require('./platform-test-fixtures.cjs');
+const { systemLineEndingPins } = require('../lib/system-line-ending-config-forwarder.cjs');
 const { prepareAgentClone } = require('../lib/worker-repo-preparer.cjs');
 const { safeGit, tryGit } = require('../lib/safe-git-runner.cjs');
 const { prepareTestClone } = require('../lib/worker-test-clone-preparer.cjs');
@@ -48,7 +50,7 @@ t.test('(a) tampered hooksPath/sshCommand in repo config does not affect safeGit
     fs.mkdirSync(evilHooks);
     fs.writeFileSync(path.join(evilHooks, 'reference-transaction'), `#!/bin/sh\ntouch '${marker}'\n`, { mode: 0o755 });
     fs.writeFileSync(path.join(f.env.root, 'evil-ssh'), `#!/bin/sh\ntouch '${marker}'\n`, { mode: 0o755 });
-    fs.appendFileSync(cfgPath(f.repo), `[core]\n\thooksPath = ${evilHooks}\n\tsshCommand = ${path.join(f.env.root, 'evil-ssh')}\n`);
+    fs.appendFileSync(cfgPath(f.repo), `[core]\n\thooksPath = ${gitConfigPath(evilHooks)}\n\tsshCommand = ${gitConfigPath(path.join(f.env.root, 'evil-ssh'))}\n`);
     t.eq(safeGit(f.repo, ['config', '--get', 'core.hooksPath']), pinnedHooksPath());
     t.eq(safeGit(f.repo, ['config', '--get', 'core.sshCommand']), 'ssh');
     safeGit(f.repo, ['commit', '--allow-empty', '-q', '-m', 'x']);
@@ -79,7 +81,8 @@ t.test('(b) agent child env: git commit never runs a planted clone hook; no ssh/
     const parent = { ...process.env, GIT_SSH_COMMAND: 'evil', GIT_ASKPASS: '/evil', GIT_CONFIG_GLOBAL: '/evil', GIT_CONFIG_COUNT: '9', SSH_AUTH_SOCK: '/s' };
     const env = buildAgentChildEnv(parent, {});
     for (const k of ['GIT_SSH_COMMAND', 'GIT_ASKPASS', 'GIT_CONFIG_GLOBAL', 'SSH_AUTH_SOCK']) t.ok(!(k in env), `${k} leaked`);
-    t.eq(env.GIT_CONFIG_COUNT, '5'); // allowlist dropped the parent's 9; our pins survive
+    // allowlist dropped the parent's 9; our 5 pins + forwarded system line-ending pins (Git for Windows: core.autocrlf) survive
+    t.eq(env.GIT_CONFIG_COUNT, String(5 + systemLineEndingPins(parent).length));
     t.eq(env.GIT_CONFIG_NOSYSTEM, '1');
     fs.writeFileSync(path.join(f.repo, 'a.txt'), 'a');
     const git = (...a) => cp.execFileSync('git', ['-C', f.repo, ...a], { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });

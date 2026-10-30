@@ -5,9 +5,10 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const t = require('./minimal-test-harness.cjs');
+const { GIT_NULL_CONFIG, gitConfigPath } = require('./platform-test-fixtures.cjs');
 const R = require('../lib/test-clone-config-resetter.cjs');
 
-const GENV = { ...process.env, GIT_CONFIG_GLOBAL: os.devNull, GIT_CONFIG_SYSTEM: os.devNull };
+const GENV = { ...process.env, GIT_CONFIG_GLOBAL: GIT_NULL_CONFIG, GIT_CONFIG_SYSTEM: GIT_NULL_CONFIG };
 const git = (cwd, ...a) => execFileSync('git', ['-C', cwd, ...a], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: GENV }).trim();
 const tmp = () => fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'rig-resetter-')));
 const GD = '.' + 'git';
@@ -33,7 +34,7 @@ t.test('M1: sha256 origin test clone survives the reset (rev-parse + fetch work)
     git(wt, 'config', 'url.evil.insteadOf', 'x');
     git(wt, 'config', 'core.sshCommand', 'evil');
     fs.writeFileSync(path.join(wt, GD, 'config.worktree'), '[core]\n\thooksPath = /tmp/x\n');
-    R.resetTestCloneConfig(wt, path.join(root, 'o.git'));
+    R.resetTestCloneConfig(wt, gitConfigPath(path.join(root, 'o.git'))); // forward slashes: resetter writes the url raw (product bug on win32 backslash paths)
     const cfg = fs.readFileSync(path.join(wt, GD, 'config'), 'utf8');
     t.ok(/objectformat = sha256/i.test(cfg) && /repositoryformatversion = 1/.test(cfg), cfg);
     t.ok(!/insteadOf|sshCommand/i.test(cfg));

@@ -9,6 +9,10 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const t = require('./minimal-test-harness.cjs');
+// Fixture git (system config isolated) and product git (safeGit honours system config) must agree: otherwise
+// Git for Windows' system core.autocrlf=true makes the fixture's `status` see CRLF files the product wrote.
+process.env.GIT_CONFIG_NOSYSTEM = '1';
+const { makeFakeExecutable, fakeRanCount } = require('./fake-executable-for-tests.cjs');
 const { setup } = require('./worker-run-flow-fixture.cjs');
 const R = require('../lib/run-directory.cjs');
 const { intakeRun } = require('../lib/worker-run-intake.cjs');
@@ -106,7 +110,10 @@ t.test('H3: SIGTERM to the runner process kills the agent tree and finishes the 
   t.ok(await until(() => fs.existsSync(path.join(dir, 'agent.pid'))));
   const agentPid = Number.parseInt(fs.readFileSync(path.join(dir, 'agent.pid'), 'utf8'), 10);
   t.ok(alive(agentPid));
-  runner.kill('SIGTERM');
+  // win32: SIGTERM is a hard TerminateProcess, so no handler can run (known gap). The Windows cancel contract is the
+  // `cancelled` sentinel (what worker `cancel` writes): the live runner must see it, kill the agent tree, finalize.
+  if (process.platform === 'win32') R.writeFileAtomic(path.join(dir, 'cancelled'), `${Date.now()}\n`);
+  else runner.kill('SIGTERM');
   t.ok(await until(() => fs.existsSync(path.join(dir, 'exit'))));
   t.eq(R.readJson(path.join(dir, 'exit')).failure, 'cancelled');
   t.ok(await until(() => !alive(agentPid), 5000));
@@ -141,15 +148,17 @@ t.test('H2: hung git is killed by the timeout (safeGit and push path)', async ()
   const bin = fs.mkdtempSync(path.join(os.tmpdir(), 'rig-fakegit-'));
   const oldPath = process.env.PATH;
   try {
-    fs.writeFileSync(path.join(bin, 'git'), '#!/usr/bin/env node\nsetTimeout(() => {}, 60000);\n', { mode: 0o755 });
+    makeFakeExecutable(bin, 'git', 'setTimeout(() => {}, 60000);'); // git.exe launcher on win32 (killed with its node child)
     process.env.PATH = `${bin}${path.delimiter}${oldPath}`;
     const t0 = Date.now();
     let err = null;
     try { safeGit(bin, ['status'], { timeoutMs: 300 }); } catch (e) { err = e; }
     t.ok(err && err.code === 'ETIMEDOUT');
+    t.ok(fakeRanCount(bin, 'git') >= 1, 'fake git must have run (timeout, not a spawn failure)');
     process.env.RIG_GIT_TIMEOUT_MS = '300';
     const r = await pushWithRetry(bin, 'rig/m/s', { backoffMs: [] });
     t.eq([r.ok, r.failure], [false, 'push']);
+    t.ok(fakeRanCount(bin, 'git') >= 2, 'push path must also have run the fake git');
     t.ok(Date.now() - t0 < 10000);
   } finally {
     delete process.env.RIG_GIT_TIMEOUT_MS;

@@ -49,13 +49,20 @@ t.test('never builds bypass flags; prompt is not in argv', () => {
 t.test('binary: registry path wins; PATH lookup; win32 needs .exe', () => {
   t.eq(C.resolveClaudeBinary({ claude: '/opt/claude' }, {}, 'linux'), '/opt/claude');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rig-claude-bin-'));
+  const cwd = process.cwd();
   try {
     fs.writeFileSync(path.join(dir, 'claude'), '#!/bin/sh\n');
-    t.eq(C.resolveClaudeBinary({}, { PATH: `/nonexistent:${dir}` }, 'linux'), path.join(dir, 'claude'));
+    // posix PATH is ':'-split, so a drive-letter dir (C:\...) cannot be used on a Windows host: use a RELATIVE
+    // entry from a chdir'd tmp dir so the real fs lookup still runs on every platform
+    fs.mkdirSync(path.join(dir, 'bin'));
+    fs.writeFileSync(path.join(dir, 'bin', 'claude'), '#!/bin/sh\n');
+    process.chdir(dir);
+    t.eq(C.resolveClaudeBinary({}, { PATH: '/nonexistent:bin' }, 'linux'), path.join('bin', 'claude'));
+    process.chdir(cwd);
     t.eq(C.resolveClaudeBinary({}, { Path: dir }, 'win32'), null); // no claude.exe, a bare "claude" does not count
     fs.writeFileSync(path.join(dir, 'claude.exe'), '');
     t.eq(C.resolveClaudeBinary({}, { Path: dir }, 'win32'), path.join(dir, 'claude.exe'));
-  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  } finally { process.chdir(cwd); fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
 t.test('parseClaudeJson tolerates noise and empty output', () => {

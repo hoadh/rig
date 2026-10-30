@@ -15,6 +15,8 @@ const cp = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const { makeRepoWithBareRemote, git } = require('./temp-git-repo-with-bare-remote.cjs');
+const { makeFakeExecutable } = require('./fake-executable-for-tests.cjs');
+const { hostOs, hostShell, GIT_NULL_CONFIG, prependPath, installFakeScheduledTasks } = require('./platform-test-fixtures.cjs');
 
 const REMOTE_CJS = path.join(__dirname, '..', 'remote.cjs');
 const WORKER_CJS = path.join(__dirname, '..', 'worker.cjs');
@@ -39,13 +41,13 @@ function createFixture(orchestrators = ['alpha', 'delta']) {
   function register(name, repo) {
     const stubDir = path.join(root, 'stubs', name);
     fs.mkdirSync(stubDir, { recursive: true });
-    const claude = path.join(stubDir, 'claude');
-    fs.writeFileSync(claude, `#!${process.execPath}\nrequire(${JSON.stringify(STUB_CJS)});\n`, { mode: 0o755 });
+    const claude = makeFakeExecutable(stubDir, 'claude', `require(${JSON.stringify(STUB_CJS)});`); // <dir>/claude.exe on win32
     stubs[name] = stubDir;
     // Record the known-good git baseline exactly as a user does after a fresh clone (stored in the machine's own RIG_HOME).
-    const b = cp.spawnSync(process.execPath, [WORKER_CJS, 'baseline', '--repo', repo], { env: { ...process.env, RIG_HOME: path.join(lb, name, 'rig-home') }, encoding: 'utf8', input: JSON.stringify({ nonce: 'ab'.repeat(16), protocol: 1, payload: null }) });
+    const b = cp.spawnSync(process.execPath, [WORKER_CJS, 'baseline', '--repo', repo], { env: { ...process.env, HOME: home, USERPROFILE: home, RIG_HOME: path.join(lb, name, 'rig-home') }, // same HOME as envFor: on win32 the pinned hooksPath lives under HOME and is part of the baseline hash
+ encoding: 'utf8', input: JSON.stringify({ nonce: 'ab'.repeat(16), protocol: 1, payload: null }) });
     if (b.status !== 0) throw new Error(`baseline for ${name} failed: ${b.stderr}`);
-    machines[name] = { ssh: 'rig@loopback', os: process.platform === 'darwin' ? 'macos' : 'linux', shell: 'bash', repo, pathPrepend: [], node: process.execPath, claude };
+    machines[name] = { ssh: 'rig@loopback', os: hostOs(), shell: hostShell(), repo, pathPrepend: [], node: process.execPath, claude };
     writeRegistry();
   }
 
@@ -68,11 +70,15 @@ function createFixture(orchestrators = ['alpha', 'delta']) {
   };
 
   /** Env of a CLI process acting as machine `as` (cwd = that machine's clone). */
-  const envFor = (as, extra = {}) => ({
-    ...process.env, HOME: home, USERPROFILE: home, GIT_CONFIG_GLOBAL: '/dev/null', GIT_TERMINAL_PROMPT: '0', RIG_MACHINE: as,
+  // win32: the product always launches via schtasks; a fake scheduler (real XML + runner, fake Task Scheduler) is first on PATH
+  const fakeBin = path.join(root, 'fakebin');
+  fs.mkdirSync(fakeBin, { recursive: true });
+  installFakeScheduledTasks(fakeBin, {});
+  const envFor = (as, extra = {}) => prependPath({
+    ...process.env, HOME: home, USERPROFILE: home, GIT_CONFIG_GLOBAL: GIT_NULL_CONFIG, GIT_TERMINAL_PROMPT: '0', RIG_MACHINE: as,
     RIG_REMOTE_TRANSPORT: 'local', RIG_MACHINES_FILE: registryFile, RIG_REMOTE_WORKER_PATH: WORKER_CJS, RIG_LOOPBACK_ROOT: lb,
     RIG_HEARTBEAT_MS: '300', RIG_HEARTBEAT_STALE_MS: '5000', RIG_STATUS_POLL_MS: '300', RIG_REMOTE_NO_TMUX: '1', ...extra,
-  });
+  }, fakeBin);
 
   /** Sync CLI call. @returns {{code, out, err}} */
   function cli(as, args, { env, cwd, input } = {}) {

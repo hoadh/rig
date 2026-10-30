@@ -10,6 +10,8 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { makeRepoWithBareRemote } = require('./temp-git-repo-with-bare-remote.cjs');
+const { makeFakeExecutable, fakeRanCount } = require('./fake-executable-for-tests.cjs');
+const { hostOs, hostShell, installFakeScheduledTasks, removeDirRetrying } = require('./platform-test-fixtures.cjs');
 
 const SLUG = 'plan-a';
 const BRANCH = `rig/tester/${SLUG}`;
@@ -46,9 +48,11 @@ function setup() {
   env.git(main, 'push', '-q', 'origin', `rig-coord/${SLUG}`);
   env.git(main, 'checkout', '-q', 'main');
   require('../lib/hardened-git-config-env.cjs').writeKnownGoodBaseline(env.clone('w')); // fresh dedicated clone, trusted state
-  const stub = path.join(home, 'claude');
-  fs.writeFileSync(stub, STUB, { mode: 0o755 });
-  const target = { ssh: 'u@h', os: 'macos', shell: 'bash', repo: env.clone('w'), pathPrepend: [], node: process.execPath, claude: stub };
+  const stub = makeFakeExecutable(home, 'claude', STUB); // <home>/claude.exe on win32; the mode file stays next to it
+  // win32: the product launches runs via schtasks; a fake scheduler (real XML + runner) stands in for the Task Scheduler service
+  const savedPath = Object.fromEntries(Object.entries(process.env).filter(([k]) => k.toUpperCase() === 'PATH'));
+  installFakeScheduledTasks(path.join(home, 'fakebin'), process.env);
+  const target = { ssh: 'u@h', os: hostOs(), shell: hostShell(), repo: env.clone('w'), pathPrepend: [], node: process.execPath, claude: stub };
   let n = 0;
   const runId = () => `r2601010000${String(10 + n++).padStart(2, '0')}-abcde${n}`;
   const agentSpec = (over = {}) => ({
@@ -58,9 +62,10 @@ function setup() {
   const commandSpec = (command, over = {}) => ({ v: 1, runId: runId(), orchestrator: 'mac', kind: 'command', ref: baseSha, command, timeoutSec: 30, ...over });
   return {
     env, target, baseSha, agentSpec, commandSpec,
+    stubRan: () => fakeRanCount(home, 'claude'), // times the stub claude was started (kills vacuous passes)
     setMode: (m) => fs.writeFileSync(path.join(home, 'mode'), m),
     onOrigin: (b = BRANCH) => { try { env.git(env.origin, 'rev-parse', '--verify', `refs/heads/${b}`); return true; } catch { return false; } },
-    cleanup: () => { env.cleanup(); fs.rmSync(home, { recursive: true, force: true }); },
+    cleanup: () => { Object.assign(process.env, savedPath); env.cleanup(); removeDirRetrying(home); }, // win32: a just-finished runner may still hold its cwd
   };
 }
 

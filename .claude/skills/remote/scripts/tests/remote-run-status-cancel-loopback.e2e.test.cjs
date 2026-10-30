@@ -10,13 +10,13 @@ const fs = require('fs');
 const path = require('path');
 const t = require('./minimal-test-harness.cjs');
 const { createFixture } = require('./remote-loopback-e2e-fixture.cjs');
+const { processesMatching } = require('./platform-test-fixtures.cjs');
 
 const fx = createFixture(['alpha']);
 const beta = fx.addWorker('beta');
 const runIdOf = (out) => /\b(r\d{12}-[a-z0-9]+)\b/.exec(out)[1];
 /** pids of processes whose command line mentions `needle` (this test process excluded). */
-const pidsMatching = (needle) => cp.execFileSync('ps', ['-axo', 'pid=,command='], { encoding: 'utf8' }).split('\n')
-  .filter((l) => l.includes(needle) && !l.includes('ps -axo')).map((l) => Number(l.trim().split(/\s+/)[0])).filter((p) => p !== process.pid);
+const pidsMatching = (needle) => processesMatching(needle).map((r) => r.pid);
 
 t.test('--help lists the subcommands and no publish', () => {
   const r = fx.cli('alpha', ['--help']);
@@ -55,7 +55,7 @@ t.test('detach + status --wait -> done; start with the same runId is idempotent'
   const again = await startAgain();
   t.eq(again.reply.method, 'existing');
   t.eq(fx.allRuns().filter((r) => r.runId === runId).length, 1);
-  t.eq(pidsMatching(runId).filter((p) => /worker-run-entry/.test(cp.execFileSync('ps', ['-p', String(p), '-o', 'command='], { encoding: 'utf8' }))).length <= 1, true);
+  t.eq(processesMatching(runId).filter((r) => /worker-run-entry/.test(r.command)).length <= 1, true);
   const st = fx.cli('alpha', ['status', 'beta', runId, '--wait', '--json']);
   t.eq(st.code, 0, st.err);
   const j = JSON.parse(st.out);

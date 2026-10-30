@@ -11,6 +11,7 @@ const fs = require('fs');
 const path = require('path');
 const t = require('./minimal-test-harness.cjs');
 const { createFixture } = require('./remote-loopback-e2e-fixture.cjs');
+const { filesExistCommand } = require('./platform-test-fixtures.cjs');
 
 const fx = createFixture(['alpha']);
 fx.addWorker('beta');
@@ -51,7 +52,7 @@ t.test('plan flow: dispatch -> status --wait -> unreviewed refused -> review -> 
   t.eq(review(dir, PHASES[0].file, slug, 'beta').code, 0);
   t.eq(review(dir, PHASES[1].file, slug, 'gamma').code, 0);
   t.ok(/reviewedSha: [0-9a-f]{40}/.test(fs.readFileSync(path.join(dir, PHASES[0].file), 'utf8')));
-  const c = fx.cli('alpha', ['collect', dir, '--test', 'beta=test -f src/beta/a.js && test -f src/gamma/b.js', '--test', 'gamma=test -f src/gamma/b.js']);
+  const c = fx.cli('alpha', ['collect', dir, '--test', `beta=${filesExistCommand('src/beta/a.js', 'src/gamma/b.js')}`, '--test', `gamma=${filesExistCommand('src/gamma/b.js')}`]);
   t.eq(c.code, 0, c.out + c.err);
   t.ok(/merged=\[beta,gamma\]/.test(c.out), c.out);
   t.ok(/test beta: done exit=0/.test(c.out) && /test gamma: done exit=0/.test(c.out), c.out);

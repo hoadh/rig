@@ -4,6 +4,7 @@ const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
 const t = require('./minimal-test-harness.cjs');
+const { GIT_NULL_CONFIG } = require('./platform-test-fixtures.cjs');
 const F = require('../lib/system-line-ending-config-forwarder.cjs');
 const H = require('../lib/hardened-git-config-env.cjs');
 const { buildAgentChildEnv } = require('../lib/agent-child-env.cjs');
@@ -69,14 +70,14 @@ t.test('real git: agent env with forwarded autocrlf sees a CRLF checkout as clea
   if (!gitSupportsSystemVar) { console.log('       SKIP: git < 2.32'); return; }
   withSystemConfig('[core]\n\tautocrlf = true\n', (sysEnv) => {
     const repo = path.join(tmp, 'repo');
-    const base = { ...sysEnv, GIT_CONFIG_GLOBAL: os.devNull };
+    const base = { ...sysEnv, GIT_CONFIG_GLOBAL: GIT_NULL_CONFIG };
     const g = (env, ...a) => execFileSync('git', ['-C', repo, ...a], { encoding: 'utf8', env }).trim();
     execFileSync('git', ['init', '-q', repo], { env: base });
     fs.writeFileSync(path.join(repo, 'a.txt'), 'one\r\ntwo\r\n');
     g(base, 'add', 'a.txt');
     g({ ...base, GIT_AUTHOR_NAME: 'a', GIT_AUTHOR_EMAIL: 'a@b', GIT_COMMITTER_NAME: 'a', GIT_COMMITTER_EMAIL: 'a@b' }, 'commit', '-q', '-m', 'x');
     fs.utimesSync(path.join(repo, 'a.txt'), new Date(), new Date(Date.now() + 5000));
-    const agent = { ...buildAgentChildEnv({ ...sysEnv, PATH: process.env.PATH }, {}), GIT_CONFIG_GLOBAL: os.devNull };
+    const agent = { ...buildAgentChildEnv({ ...sysEnv, PATH: process.env.PATH }, {}), GIT_CONFIG_GLOBAL: GIT_NULL_CONFIG };
     t.eq(g(agent, 'status', '--porcelain'), '');
     t.eq(g(base, 'status', '--porcelain'), '');
   });

@@ -3,6 +3,9 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const t = require('./minimal-test-harness.cjs');
+// Fixture git (system config isolated) and product git (safeGit honours system config) must agree: otherwise
+// Git for Windows' system core.autocrlf=true makes the fixture's `status` see CRLF files the product wrote.
+process.env.GIT_CONFIG_NOSYSTEM = '1';
 
 process.env.RIG_HOME = fs.mkdtempSync(path.join(os.tmpdir(), 'rig-prep-home-'));
 const { makeRepoWithBareRemote } = require('./temp-git-repo-with-bare-remote.cjs');

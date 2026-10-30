@@ -4,6 +4,7 @@ const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
 const t = require('./minimal-test-harness.cjs');
+const { GIT_NULL_CONFIG } = require('./platform-test-fixtures.cjs');
 const { makeRepoWithBareRemote } = require('./temp-git-repo-with-bare-remote.cjs');
 const H = require('../lib/hardened-git-config-env.cjs');
 
@@ -54,7 +55,7 @@ t.test('real git: repo-local config cannot override the pinned values; a hook do
     const marker = path.join(repo, 'hook-ran');
     fs.mkdirSync(path.join(repo, 'evil-hooks'));
     fs.writeFileSync(path.join(repo, 'evil-hooks', 'pre-commit'), `#!/bin/sh\ntouch "${marker}"\n`, { mode: 0o755 });
-    const childEnv = { ...process.env, GIT_CONFIG_GLOBAL: os.devNull, ...H.hardenedGitConfigEnv({ baseEnv: process.env }) };
+    const childEnv = { ...process.env, GIT_CONFIG_GLOBAL: GIT_NULL_CONFIG, ...H.hardenedGitConfigEnv({ baseEnv: process.env }) };
     const get = (k) => execFileSync('git', ['-C', repo, 'config', '--get', k], { encoding: 'utf8', env: childEnv }).trim();
     t.eq(get('core.sshCommand'), 'ssh');
     t.eq(get('core.hooksPath'), H.pinnedHooksPath());
@@ -110,10 +111,11 @@ t.test('H5 real git: a pre-push planted in the old ~/.rig/empty-hooks location d
     fs.rmSync(dir, { recursive: true, force: true });
     fs.mkdirSync(dir, { recursive: true });
     const marker = path.join(env.root, 'pre-push-ran');
+    safeGit(repo, ['commit', '--allow-empty', '-q', '-m', 'x']); // before planting: on win32 a non-empty hooks dir fails every safeGit call closed
     fs.writeFileSync(path.join(dir, 'pre-push'), `#!/bin/sh\ntouch "${marker}"\n`, { mode: 0o755 });
-    safeGit(repo, ['commit', '--allow-empty', '-q', '-m', 'x']);
     if (process.platform === 'win32') {
       t.assert.throws(() => safeGit(repo, ['push', 'origin', 'HEAD:refs/heads/h5']), /./); // fails closed
+      t.ok(!fs.existsSync(marker), 'planted pre-push must not run (win32 fails closed)');
     } else {
       safeGit(repo, ['push', 'origin', 'HEAD:refs/heads/h5']);
       t.ok(!fs.existsSync(marker), 'planted pre-push must not run');

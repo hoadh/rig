@@ -7,6 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const t = require('./minimal-test-harness.cjs');
 const { makeRepoWithBareRemote } = require('./temp-git-repo-with-bare-remote.cjs');
+const { hostOs, hostShell } = require('./platform-test-fixtures.cjs');
 
 const env = makeRepoWithBareRemote({ clones: ['main'] });
 process.env.RIG_MACHINE = 'box';
@@ -16,7 +17,7 @@ process.env.RIG_MACHINES_FILE = path.join(env.root, 'machines.json');
 const repo = path.join(env.root, 'worker', 'app');
 fs.writeFileSync(process.env.RIG_MACHINES_FILE, JSON.stringify({ machines: {
   // node stands in for claude: the probe only runs `--version`
-  box: { ssh: 'rig@box', os: process.platform === 'darwin' ? 'macos' : 'linux', shell: 'bash', repo, pathPrepend: [], node: process.execPath, claude: process.execPath },
+  box: { ssh: 'rig@box', os: hostOs(), shell: hostShell(), repo, pathPrepend: [], node: process.execPath, claude: process.execPath },
 } }));
 
 const setup = require('../commands/setup-command.cjs');
@@ -71,7 +72,7 @@ t.test('worker id mismatch: machine-id fails with fix, prepare never called', as
   const r = await setup.setupMachine('box', {}, client);
   t.eq(r.ready, false);
   const s = r.steps.find((x) => x.id === 'machine-id');
-  t.eq(s.status, 'fail'); t.ok(s.fix.includes('RIG_MACHINE=box'), s.fix);
+  t.eq(s.status, 'fail'); t.ok(s.fix.includes(hostOs() === 'windows' ? 'setx RIG_MACHINE box' : 'RIG_MACHINE=box'), s.fix); // windows workers get a setx hint
   t.eq(calls, ['info']);
   let out = '';
   const write = process.stdout.write;

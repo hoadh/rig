@@ -9,17 +9,20 @@ const { execFileSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { isolatedGitEnv, gitConfigPath, removeDirRetrying } = require('./platform-test-fixtures.cjs');
 
 function git(cwd, ...args) {
   return execFileSync('git', ['-C', cwd, ...args], {
     encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
-    env: { ...process.env, GIT_CONFIG_GLOBAL: os.devNull, GIT_CONFIG_SYSTEM: os.devNull },
+    env: isolatedGitEnv(),
   }).trim();
 }
 
 function makeRepoWithBareRemote({ clones = ['main'], files = { 'README.md': '# test\n' } } = {}) {
   const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'rig-remote-test-')));
-  const origin = path.join(root, 'origin.git');
+  // forward slashes on win32: test-clone-config-resetter writes the origin url raw into .git/config and git
+  // reads a backslash escape (like "\U" in C:\Users) as a bad config line. See report: product bug.
+  const origin = gitConfigPath(path.join(root, 'origin.git'));
   execFileSync('git', ['init', '--bare', '-q', '--initial-branch=main', origin]);
   const dirs = {};
   const identify = (dir) => {
@@ -52,7 +55,7 @@ function makeRepoWithBareRemote({ clones = ['main'], files = { 'README.md': '# t
       git(dirs[name], 'commit', '-q', '-m', msg);
       return git(dirs[name], 'rev-parse', 'HEAD');
     },
-    cleanup: () => fs.rmSync(root, { recursive: true, force: true }),
+    cleanup: () => removeDirRetrying(root), // win32: late handle release
   };
 }
 
