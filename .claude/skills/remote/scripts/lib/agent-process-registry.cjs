@@ -74,7 +74,12 @@ function processStartIdentity(pid) {
 }
 
 function recordAgentPid(dir, pid) {
-  if (pid) fs.writeFileSync(pidFile(dir), `${pid}\n${processStartIdentity(pid)}\n`, { mode: 0o600 });
+  if (!pid) return;
+  const identity = processStartIdentity(pid);
+  if (!identity && process.platform === 'win32') {
+    note(`agent pid ${pid}: could not read its start identity (Get-Process); the kill guard will refuse to kill this agent`);
+  }
+  fs.writeFileSync(pidFile(dir), `${pid}\n${identity}\n`, { mode: 0o600 });
 }
 
 function clearAgentPid(dir) {

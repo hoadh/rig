@@ -6,21 +6,20 @@
  *
  * POSIX: `<dir>/<name>` = `#!<node>` script (mode 0755).
  * win32: libuv only spawns real .exe files, so `<dir>/<name>.js` holds the body and `<dir>/<name>.exe` is a tiny
- * C# launcher (compiled once per run with the .NET Framework csc.exe, cached under os.tmpdir()) that runs
+ * C# launcher (compiled once per process with the .NET Framework csc.exe into a private temp dir removed at exit) that runs
  * `node <name>.js <args>` inside a Job Object with KILL_ON_JOB_CLOSE: killing the launcher kills node too, the
  * same single-process semantics as a hung git.exe. Node's path is stored in `<name>.exe.node` because
  * allowlisted child envs (RIG_TEST_NODE) do not survive into the fake.
  * Every fake appends one line to `<dir>/<name>.ran` before running its body (kills vacuous passes).
  */
 const cp = require('child_process');
-const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
 const WIN = process.platform === 'win32';
 
-// Constant source only (never test input): the cache file name carries its hash, so a stale/tampered copy is never reused.
+// Constant source only (never test input).
 const LAUNCHER_CS = `
 using System; using System.Diagnostics; using System.IO; using System.Runtime.InteropServices; using System.Text;
 static class L {
@@ -62,24 +61,26 @@ static class L {
 }
 `;
 
-/** Compiles the launcher once per source hash; returns the cached exe path. Throws (never skips) if csc.exe is missing. */
+let builtLauncher = null;
+/**
+ * Compiles the launcher once per process into a private mkdtemp dir (mode 0700-equivalent, removed at exit) and
+ * returns that exe. Nothing is read back from a shared, predictable path, so a planted file cannot be run.
+ * Throws (never skips) if csc.exe is missing.
+ */
 function launcherExe() {
-  const sha = crypto.createHash('sha256').update(LAUNCHER_CS).digest('hex').slice(0, 8);
-  const cached = path.join(os.tmpdir(), `rig-test-shim-${sha}.exe`);
-  if (fs.existsSync(cached)) return cached;
+  if (builtLauncher && fs.existsSync(builtLauncher)) return builtLauncher;
   const win = process.env.windir || process.env.SystemRoot || 'C:\\Windows';
   const csc = ['Framework64', 'Framework'].map((d) => path.join(win, 'Microsoft.NET', d, 'v4.0.30319', 'csc.exe')).find((p) => fs.existsSync(p));
   if (!csc) throw new Error('csc.exe (.NET Framework 4) not found under %windir%\\Microsoft.NET: cannot build the Windows test shim');
-  const work = fs.mkdtempSync(path.join(os.tmpdir(), 'rig-test-shim-build-'));
-  try {
-    const src = path.join(work, 'launcher.cs');
-    const out = path.join(work, 'launcher.exe');
-    fs.writeFileSync(src, LAUNCHER_CS);
-    const r = cp.spawnSync(csc, ['/nologo', '/target:exe', `/out:${out}`, src], { encoding: 'utf8', windowsHide: true });
-    if (r.status !== 0) throw new Error(`csc.exe failed (${r.status}): ${r.stdout}${r.stderr}`);
-    try { fs.renameSync(out, cached); } catch { if (!fs.existsSync(cached)) throw new Error('cannot publish shim exe'); } // lost a race: other copy is identical
-  } finally { fs.rmSync(work, { recursive: true, force: true }); }
-  return cached;
+  const work = fs.mkdtempSync(path.join(os.tmpdir(), 'rig-test-shim-'));
+  process.on('exit', () => { try { fs.rmSync(work, { recursive: true, force: true }); } catch { /* best effort */ } });
+  const src = path.join(work, 'launcher.cs');
+  const out = path.join(work, 'launcher.exe');
+  fs.writeFileSync(src, LAUNCHER_CS);
+  const r = cp.spawnSync(csc, ['/nologo', '/target:exe', `/out:${out}`, src], { encoding: 'utf8', windowsHide: true });
+  if (r.status !== 0) throw new Error(`csc.exe failed (${r.status}): ${r.stdout}${r.stderr}`);
+  builtLauncher = out;
+  return out;
 }
 
 /**

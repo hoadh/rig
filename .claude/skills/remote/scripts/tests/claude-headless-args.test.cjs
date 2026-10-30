@@ -56,6 +56,9 @@ t.test('binary: registry path wins; PATH lookup; win32 needs .exe', () => {
     // entry from a chdir'd tmp dir so the real fs lookup still runs on every platform
     fs.mkdirSync(path.join(dir, 'bin'));
     fs.writeFileSync(path.join(dir, 'bin', 'claude'), '#!/bin/sh\n');
+    if (process.platform !== 'win32') { // POSIX: absolute PATH dir (':'-split cannot carry a drive-letter dir on Windows)
+      t.eq(C.resolveClaudeBinary({}, { PATH: `/nonexistent:${dir}` }, 'linux'), path.join(dir, 'claude'));
+    }
     process.chdir(dir);
     t.eq(C.resolveClaudeBinary({}, { PATH: '/nonexistent:bin' }, 'linux'), path.join('bin', 'claude'));
     process.chdir(cwd);

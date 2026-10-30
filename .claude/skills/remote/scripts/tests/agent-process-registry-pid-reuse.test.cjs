@@ -6,6 +6,7 @@ const os = require('os');
 const path = require('path');
 const t = require('./minimal-test-harness.cjs');
 const P = require('../lib/agent-process-registry.cjs');
+const { makeFakeExecutable, fakeRanCount } = require('./fake-executable-for-tests.cjs');
 
 const sleeper = () => cp.spawn(process.execPath, ['-e', 'setTimeout(()=>{},60000)'], { detached: true, stdio: 'ignore' });
 const alive = (pid) => { try { process.kill(pid, 0); return true; } catch { return false; } };
@@ -90,8 +91,14 @@ t.test('win32: identity is a UTC ISO start time; psReading ok for live, gone for
     t.eq(P.processStartIdentity(c.pid), r.identity); // stable across reads
     t.eq(P.psReading(NaN), { state: 'error' });
   } finally { winKill(c); }
-  const dead = cp.spawnSync(process.execPath, ['-e', '0']).pid;
-  t.eq(P.psReading(dead), { state: 'gone' });
+  // a just-exited pid can be recycled at once on Windows: accept the first of a few dead pids that reads as gone
+  const readings = [];
+  for (let i = 0; i < 3; i++) {
+    const dead = cp.spawnSync(process.execPath, ['-e', '0']).pid;
+    readings.push(P.psReading(dead));
+    if (readings[i].state === 'gone') break;
+  }
+  t.ok(readings.some((r) => r.state === 'gone'), `a dead pid reads as gone: ${JSON.stringify(readings)}`);
 });
 
 t.test('win32: tampered identity -> no kill, process survives, record dropped; intact -> killed', async () => {
@@ -163,6 +170,52 @@ t.test('R4-L4: one transient ps failure is retried and the matching identity sti
     t.eq(withFakePs(body, () => P.killRecordedAgent(dir)), true);
     t.ok(await wait(() => !alive(c.pid)));
   } finally { try { process.kill(-c.pid, 'SIGKILL'); } catch { /* gone */ } fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+/** win32: put a fake powershell.exe first on PATH (psReadingWin32 spawns it by name). */
+function withFakePowershell(jsBody, fn) {
+  const bin = tmp(); const saved = process.env.PATH;
+  makeFakeExecutable(bin, 'powershell', jsBody);
+  process.env.PATH = `${bin}${path.delimiter}${saved}`;
+  try { return fn(bin); } finally { process.env.PATH = saved; fs.rmSync(bin, { recursive: true, force: true }); }
+}
+
+t.test('R4-L4 win32: recorded identity + Get-Process failing -> retried once, still failing -> NO kill', async () => {
+  if (unix) return;
+  const dir = tmp(); const c = winSleeper(); c.unref();
+  try {
+    P.recordAgentPid(dir, c.pid); // real identity recorded
+    t.ok(fs.readFileSync(P.pidFile(dir), 'utf8').split('\n')[1] !== '', 'identity recorded');
+    let ran = 0;
+    const killed = withFakePowershell("process.stderr.write('boom'); process.exit(1);", (bin) => { const k = P.killRecordedAgent(dir); ran = fakeRanCount(bin, 'powershell'); return k; });
+    t.ok(ran >= 2, `fake powershell must have run (retry): ${ran}`);
+    t.eq(killed, false);
+    await new Promise((r) => setTimeout(r, 300));
+    t.ok(alive(c.pid), 'live process must survive a Get-Process failure');
+    t.ok(!fs.existsSync(P.pidFile(dir)), 'record is dropped');
+  } finally { winKill(c); fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+t.test('R4-L4 win32: one transient Get-Process failure is retried and the matching identity still kills', async () => {
+  if (unix) return;
+  const dir = tmp(); const c = winSleeper(); c.unref();
+  try {
+    P.recordAgentPid(dir, c.pid);
+    const real = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
+    const js = (bin) => `const fs=require('fs');const f=${JSON.stringify(path.join(bin, 'transient.flag'))};`
+      + `if(!fs.existsSync(f)){fs.writeFileSync(f,'');process.stderr.write('oops');process.exit(2);}`
+      + `const r=require('child_process').spawnSync(${JSON.stringify(real)},process.argv.slice(2),{stdio:'inherit'});process.exit(r.status===null?3:r.status);`;
+    const bin = tmp(); const saved = process.env.PATH;
+    makeFakeExecutable(bin, 'powershell', js(bin));
+    process.env.PATH = `${bin}${path.delimiter}${saved}`;
+    let killed;
+    try { killed = P.killRecordedAgent(dir); } finally { process.env.PATH = saved; }
+    const ran = fakeRanCount(bin, 'powershell');
+    fs.rmSync(bin, { recursive: true, force: true });
+    t.eq(ran, 2, 'failed once, then retried');
+    t.eq(killed, true);
+    t.ok(await wait(() => !alive(c.pid)), 'matching identity kills');
+  } finally { winKill(c); fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
 t.test('R4-L4: psReading separates a clean "no such process" from a failure', () => {

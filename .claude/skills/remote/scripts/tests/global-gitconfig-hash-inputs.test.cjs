@@ -30,17 +30,20 @@ t.test('M2: fixed set = ~/.gitconfig, ~/.config/git/config, XDG when set and dif
   t.eq(G.fixedGlobalConfigFiles({ HOME: h, XDG_CONFIG_HOME: j(h, '.config') }), [j(h, '.gitconfig'), j(h, '.config', 'git', 'config')]);
 });
 
-t.test('H6: MSYS-form HOME resolves to the real drive path on win32, is untouched on POSIX', () => {
-  const got = G.fixedGlobalConfigFiles({ HOME: '/c/Users/x' });
-  if (process.platform === 'win32') {
-    t.eq(got, ['C:\\Users\\x\\.gitconfig', 'C:\\Users\\x\\.config\\git\\config']);
-    t.eq(G.fixedGlobalConfigFiles({ HOME: '/d' })[0], 'D:\\.gitconfig');
-    t.eq(G.fixedGlobalConfigFiles({ HOME: 'C:\\Users\\y' })[0], 'C:\\Users\\y\\.gitconfig'); // native form is kept
-    t.eq(G.fixedGlobalConfigFiles({ HOME: '' })[0], path.join(os.homedir(), '.gitconfig')); // empty -> os.homedir()
-    t.eq(G.globalConfigHashParts('/unused', { HOME: '/c/nonexistent-rig-h6' }).length, 2); // same normalized home feeds the hash parts
-  } else {
-    t.eq(got, ['/c/Users/x/.gitconfig', '/c/Users/x/.config/git/config']);
-  }
+t.test('H6: hashed ~/.gitconfig is the file git reads (HOME taken verbatim, no MSYS conversion)', () => {
+  // git for Windows does NOT translate HOME=/c/Users/x: it reads the drive-relative \c\Users\x\.gitconfig
+  const msys = '/c/Users/x';
+  t.eq(G.fixedGlobalConfigFiles({ HOME: msys }), [path.join(msys, '.gitconfig'), path.join(msys, '.config', 'git', 'config')]);
+  t.eq(G.fixedGlobalConfigFiles({ HOME: '' })[0], path.join(os.homedir(), '.gitconfig')); // empty -> os.homedir()
+  t.eq(G.globalConfigHashParts('/unused', { HOME: '/c/nonexistent-rig-h6' }).length, 2);
+  // real git: the origin it reports for a user-level key must equal the first hashed file
+  const hm = home();
+  try {
+    fs.writeFileSync(path.join(hm, '.gitconfig'), '[user]\n\tname = h6\n');
+    const out = cp.execFileSync('git', ['config', '--global', '--show-origin', '--get', 'user.name'], { encoding: 'utf8', cwd: hm, env: { PATH: process.env.PATH, HOME: hm, GIT_CONFIG_NOSYSTEM: '1' } }).trim();
+    const origin = out.split('\t')[0].replace(/^file:/, '');
+    t.eq(rp(origin), rp(G.fixedGlobalConfigFiles({ HOME: hm })[0]), 'git reads exactly the hashed file');
+  } finally { fs.rmSync(hm, { recursive: true, force: true }); }
 });
 
 t.test('M2: XDG_CONFIG_HOME is on the env handoff allowlist', () => {
@@ -227,7 +230,29 @@ t.test('R5-L1: tokenizer follows git grammar - continuation only inside values (
 });
 
 t.test('R5-L2: include target is resolved like the kernel (link/.. is physical, not lexical)', () => {
-  if (process.platform === 'win32') return; // Win32 path normalization collapses `link\..` lexically (also in git); the physical `..` semantic is a POSIX kernel property
+  if (process.platform === 'win32') { // Win32 collapses `link\..` lexically (also in git): invariant = hashed target is the file git loads
+    const hm = home();
+    try {
+      fs.mkdirSync(path.join(hm, 'real', 'deep'), { recursive: true });
+      fs.symlinkSync(path.join(hm, 'real', 'deep'), path.join(hm, 'link'), 'junction'); // no privilege needed
+      fs.writeFileSync(path.join(hm, 'real', 'x'), '[user]\n\tname = viareal\n');
+      fs.writeFileSync(path.join(hm, 'x'), '[user]\n\tname = vialexical\n');
+      fs.writeFileSync(path.join(hm, '.gitconfig'), '[include]\n\tpath = link/../x\n');
+      const genv = { PATH: process.env.PATH, HOME: hm, GIT_CONFIG_NOSYSTEM: '1' };
+      const out = cp.execFileSync('git', ['config', '--show-origin', '--get', 'user.name'], { encoding: 'utf8', cwd: hm, env: genv }).trim();
+      t.eq(out.split('\t')[1], 'vialexical', 'git on win32 collapses link\\.. lexically');
+      const parts = G.globalConfigHashParts('/unused', { HOME: hm });
+      t.eq(parts.map(([l]) => l.split('\0')[1]).filter(Boolean), [path.join(rp(hm), 'x')]); // hash == what git loaded
+      const h1 = JSON.stringify(parts);
+      fs.writeFileSync(path.join(hm, 'x'), '[credential]\n\thelper = !evil\n');
+      t.ok(JSON.stringify(G.globalConfigHashParts('/unused', { HOME: hm })) !== h1, 'edit of the loaded target changes the hash');
+      fs.rmSync(path.join(hm, 'x'));
+      const miss = G.globalConfigHashParts('/unused', { HOME: hm }).filter(([l]) => l.startsWith('include'));
+      t.eq(miss.map(([, m]) => m), ['missing']);
+      t.eq(miss[0][0].split('\0')[1], path.join(rp(hm), 'x'));
+    } finally { fs.rmSync(hm, { recursive: true, force: true }); }
+    return;
+  }
   const hm = home();
   try {
     fs.mkdirSync(path.join(hm, 'real', 'deep'), { recursive: true });

@@ -30,6 +30,8 @@ function createCappedWriter(file, cap = LOG_CAP_BYTES) {
 /** Kill child and descendants. Unix: process group (child is a group leader); win32: taskkill /T. */
 function killTree(child, signal = 'SIGTERM') {
   if (!child.pid) return;
+  // win32: after exit the pid may be recycled; `taskkill /T /F` would kill an unrelated process tree
+  if (process.platform === 'win32' && (child.exitCode !== null || child.signalCode !== null)) return;
   if (!killPidTree(child.pid, signal)) { try { child.kill(signal); } catch { /* gone */ } }
 }
 

@@ -26,15 +26,11 @@ const { includePathsOfText } = require('./git-config-include-path-tokenizer.cjs'
 const MAX_INCLUDED = 64;
 
 /**
- * HOME as a native path. On win32 an MSYS/Git-Bash style `/c/Users/dev` becomes `C:\Users\dev`
- * (otherwise path.join yields the wrong drive-less `\c\Users\dev`). Empty -> os.homedir(). POSIX: untouched.
+ * HOME exactly as git reads it: `env.HOME`, else os.homedir(). NO MSYS conversion: native git for Windows does not
+ * translate `HOME=/c/Users/x`, it reads the drive-relative `\c\Users\x\.gitconfig`, so that is the file to hash.
  */
 function homeDir(env) {
-  const raw = env.HOME;
-  if (!raw) return os.homedir();
-  if (process.platform !== 'win32') return raw;
-  const m = /^\/([a-zA-Z])(\/.*)?$/.exec(raw);
-  return m ? path.win32.normalize(`${m[1].toUpperCase()}:${m[2] || '/'}`) : raw;
+  return env.HOME || os.homedir();
 }
 
 /** Fixed user-level config files (deduped, stable order). Reads HOME first: tests redirect it. */

@@ -11,7 +11,12 @@ const path = require('path');
 const t = require('./minimal-test-harness.cjs');
 // Fixture git (system config isolated) and product git (safeGit honours system config) must agree: otherwise
 // Git for Windows' system core.autocrlf=true makes the fixture's `status` see CRLF files the product wrote.
-process.env.GIT_CONFIG_NOSYSTEM = '1';
+// win32 only (POSIX keeps its real environment); the previous value is restored when the test process exits.
+if (process.platform === 'win32') {
+  const prevNoSystem = process.env.GIT_CONFIG_NOSYSTEM;
+  process.env.GIT_CONFIG_NOSYSTEM = '1';
+  process.on('exit', () => { if (prevNoSystem === undefined) delete process.env.GIT_CONFIG_NOSYSTEM; else process.env.GIT_CONFIG_NOSYSTEM = prevNoSystem; });
+}
 const { makeFakeExecutable, fakeRanCount } = require('./fake-executable-for-tests.cjs');
 const { setup } = require('./worker-run-flow-fixture.cjs');
 const R = require('../lib/run-directory.cjs');
