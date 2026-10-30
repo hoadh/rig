@@ -17,6 +17,17 @@
 ### Fixes
 
 * **rig:remote:** `stripUrlCredentials` no longer leaks the tail of a password that contains a raw `@` (`https://u:p@ss@host`), and keeps the user of `ssh://user:pw@host` (drops only the password).
+* **hooks:** `RIG_REPORTS_PATH` and `RIG_PLANS_PATH` were double-rooted when a session plan or an absolute `paths.plans` was used, on all platforms. `RIG_REPORTS_PATH` no longer has a trailing separator.
+* **hooks:** false "Subdirectory mode" banner on Windows (paths are compared case-insensitively there).
+* **hooks:** `subagent-init` double-rooted absolute `paths.plans` and `paths.docs`.
+* **rig:remote:** on win32 the agent is killed only when its pid identity (process StartTime) matches the recorded one. If the identity cannot be read, the guard refuses to kill.
+* **rig:remote:** the supervisor no longer runs `taskkill` on an exited child's pid, which Windows may already have reused.
+* **installer:** retired hooks and files (`scout-block`, `privacy-block`, `descriptive-name`, ...) are now removed from existing installs.
+* **skills:** markdown-viewer PID files live in `os.tmpdir()` on Windows. `shadcn_add` finds `npx.cmd`, validates component names and accepts `@scope/name`. `create-skill` `run_eval` works on Windows and sends the query via stdin, which closes a cmd.exe injection through `claude.CMD`. UTF-8 output on piped stdout.
+* **install:** `install.sh` on Windows redirects to `install.ps1`. The kit installer's `--install-skills` runs `install.ps1` on win32.
+* **line endings:** `.gitattributes` pins LF for `*.sh` and `ui-design` data. This fixes `validate_data.py` on Windows clones.
+* **docs:** agent and skill instructions give Windows-safe commands.
+* **tests:** hook and remote suites pass on Windows.
 
 ## 1.0.0 (2026-10-17)
 

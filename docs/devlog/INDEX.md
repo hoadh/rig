@@ -5,6 +5,11 @@ Devlog of shipped work, decisions, failures and lessons learned. Newest first.
 
 ## October 2026
 
+- **261030-windows-compatibility-fixes.md**
+  - Shipped on `fix/windows-compat`: hook path double-rooting, win32 kill guard (fail closed), skill scripts on Windows, installer cleanup, `.gitattributes` LF pins
+  - Review caught a cmd.exe injection in `run_eval` (`shutil.which` resolved `claude.CMD`); fixed with stdin
+  - Verified on Windows only; Linux/WSL and macOS still open
+
 - **261028-insights-driven-rig-improvements-plan.md**
   - Planned, not started: 13 phases closing 10 `/insights` gaps (secret-file Bash guard, verify-route, multi-repo ship, remote `dispatch --plan`)
   - Red team: 15 findings, all accepted; 3 Critical fixed in the plan before any code
@@ -50,6 +55,7 @@ Devlog of shipped work, decisions, failures and lessons learned. Newest first.
 - **Hooks and Claude Code integration**: replace-hooks-with-native-features, replace-hooks-native-features-shipped, insights-driven-rig-improvements-plan
 - **Multi-machine orchestration**: rig-remote-multi-machine-plan, rig-remote-implementation-and-acceptance, remote-per-project-clones-machine-id-check, remote-resume-skips-session-less-runs
 - **Skills design**: fix-skill-v2-rewrite
+- **Windows and cross-platform**: windows-compatibility-fixes, rig-remote-implementation-and-acceptance
 
 ### By Lesson Type
 - **Why plans succeed**: rig-remote (red team + user decisions before code)
@@ -70,5 +76,5 @@ Devlog of shipped work, decisions, failures and lessons learned. Newest first.
 
 ---
 
-Last updated: 2026-10-28
-Total entries: 8
+Last updated: 2026-10-30
+Total entries: 9

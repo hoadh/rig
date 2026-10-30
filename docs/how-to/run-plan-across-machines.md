@@ -195,6 +195,12 @@ It lists the old orchestrator's in-flight runs. Wait for them with `status --wai
 - **`taskMode`.** Default `headless`: S4U logon, runs logged off, started immediately with `schtasks /Run`. The 1-minute time trigger is only a fallback. Use `interactive` only for GUI work; it needs a logged-on user and fails with `failed:not-started` otherwise.
 - **Windows as orchestrator.** Supported. OpenSSH for Windows `ssh.exe` hangs when its stdio are pipes, so on Windows Rig runs ssh with stdin and output redirected to private temp files under `%TEMP%\rig-ssh-out-*`. These files are removed after each call. Output is still capped at 10 MB.
 - **https remotes under S4U.** Acceptance confirmed `git ls-remote` over https and ssh works under S4U. Credential Manager access is still unverified in general, so `doctor` warns. Prefer ssh or a token in the service user's environment.
+- **Git Bash and `--repo`.** Git Bash rewrites POSIX-looking arguments before they reach native programs. Pass `--repo` as `C:/...`, or set `MSYS_NO_PATHCONV=1` for the command.
+- **System `core.autocrlf=true`.** The worker's clone reset handles it, and the clone stays clean (verified).
+- **Kill guard needs the process StartTime.** On win32 the orchestrator reads the agent's StartTime through PowerShell `Get-Process`. The read works only for processes of the same user. If the read fails, the guard refuses to kill and the agent process is left running.
+- **Runner kill takes the agent along (H3).** In a probe, `schtasks /End` and `taskkill /F` on the runner also killed a non-detached child. The probe used a dummy node process, not `claude.exe`, so the real agent is unverified. An orphan is cleaned by `remote cancel` or the orphan sweep.
+- **Launch needs `schtasks /Create`.** Windows runs launch only via `schtasks`. Where `schtasks /Create` is denied (for example S4U "Access is denied"), runs cannot launch. Known limitation, follow-up.
+- **MSYS-form `HOME`.** Git for Windows does not translate `HOME=/c/Users/...`; git reads `\c\Users\...` instead. The global-config hash follows what git reads, so set `HOME` in the Windows form (`C:\Users\...`) or leave it unset.
 
 ## Troubleshooting
 
