@@ -25,6 +25,11 @@ Devlog of shipped work, decisions, failures and lessons learned. Newest first.
   - Strict resolution (`no-clone`, exit 2) over silent fallback to `repo`; legacy markers read-only
   - Review 8.5 → 9.3: empty `repos: {}` silently broke every project; fixed with validation
 
+- **261018-remote-worker-setup-register-and-setup-commands.md**
+  - Shipped: `register`, `setup`, worker `prepare` (dedicated clone + baseline), doctor `baseline` check and `fix:` hints
+  - Never auto-baselines an existing clone without `--accept-existing-clone`; origin credentials stripped
+  - Pre-commit review found a data-loss path (adopting a user's repo); fixed before commit. Live worker run still open
+
 - **261016-replace-hooks-native-features-shipped.md**
   - Shipped (breaking): 11 kit hooks removed, privacy/heavy-dir → `permissions.ask`/`deny`, usage → statusline `rate_limits`
   - Installer strips retired hook registrations; tests asserted our JSON, not what CC consumed
@@ -53,7 +58,7 @@ Devlog of shipped work, decisions, failures and lessons learned. Newest first.
 
 ### By Topic
 - **Hooks and Claude Code integration**: replace-hooks-with-native-features, replace-hooks-native-features-shipped, insights-driven-rig-improvements-plan
-- **Multi-machine orchestration**: rig-remote-multi-machine-plan, rig-remote-implementation-and-acceptance, remote-per-project-clones-machine-id-check, remote-resume-skips-session-less-runs
+- **Multi-machine orchestration**: rig-remote-multi-machine-plan, rig-remote-implementation-and-acceptance, remote-per-project-clones-machine-id-check, remote-worker-setup-register-and-setup-commands, remote-resume-skips-session-less-runs
 - **Skills design**: fix-skill-v2-rewrite
 - **Windows and cross-platform**: windows-compatibility-fixes, rig-remote-implementation-and-acceptance
 
@@ -76,5 +81,5 @@ Devlog of shipped work, decisions, failures and lessons learned. Newest first.
 
 ---
 
-Last updated: 2026-10-30
-Total entries: 9
+Last updated: 2026-10-31
+Total entries: 10
