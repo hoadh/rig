@@ -6,7 +6,7 @@ Devlog of shipped work, decisions, failures and lessons learned. Newest first.
 ## October 2026
 
 - **261030-windows-compatibility-fixes.md**
-  - Shipped on `fix/windows-compat`: hook path double-rooting, win32 kill guard (fail closed), skill scripts on Windows, installer cleanup, `.gitattributes` LF pins
+  - Merged to main, verified on Windows and Linux (WSL2): hook path double-rooting, win32 kill guard (fail closed), skill scripts on Windows, installer cleanup, `.gitattributes` LF pins
   - Review caught a cmd.exe injection in `run_eval` (`shutil.which` resolved `claude.CMD`); fixed with stdin
   - Verified on Windows only; Linux/WSL and macOS still open
 

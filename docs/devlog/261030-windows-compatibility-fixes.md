@@ -3,7 +3,7 @@
 **Date**: 2026-10-30
 **Severity**: Medium
 **Component**: hooks, rig:remote (worker kill guard, HOME hashing), skill scripts, installer, `.gitattributes`, instruction docs
-**Status**: Shipped on branch `fix/windows-compat` (9 commits on top of main). Verified on Windows 11 only. Linux/WSL and macOS not verified.
+**Status**: Merged to main (fast-forward from `fix/windows-compat`). Verified on Windows 11 and Linux (Ubuntu on WSL2). macOS not verified.
 
 ## What Happened
 
@@ -43,10 +43,10 @@ Lesson: a resolver that honors PATHEXT can return a shim. Check what the resolve
 | Platform | Status |
 |----------|--------|
 | Windows 11 (this host) | `npm test` 18/18, `run-all-remote-tests.cjs` 60/60 |
-| Linux / WSL | NOT verified. WSL is not installed on this host; the user deferred it. |
+| Linux (Ubuntu on WSL2) | `npm test` 18/18, `run-all-remote-tests.cjs` 60/60 (46.8s), markdown-viewer 29/29, install-kit tests green, pytest create-skill 6 and ui-styling 85 passed. Clone on the WSL filesystem, not `/mnt/c`. |
 | macOS | NOT verified |
 
-The review's targeted suites (pid-reuse, gitconfig-hash, retired cleanup) were run on Windows. Python tests (`test_shadcn_add.py`, `test_run_eval_reader.py`) were not run in the review. Check them before relying on the Python changes.
+Both platforms: the remote suite skips the real-`claude` and real-ssh e2e tests unless `RIG_E2E_CLAUDE=1` / `RIG_E2E_SSH=1`. The Python tests (`test_shadcn_add.py`, `test_run_eval_reader.py`) pass on both.
 
 ## Follow-ups
 
@@ -67,7 +67,7 @@ Review findings C1, I1-I3, M1-M6 and minors m1-m4, m6-m8 were fixed on the branc
 
 ## Next Steps
 
-- Run the Linux/WSL suite when WSL is installed.
+- Run the suites on macOS when a machine is available.
 
 ## Unresolved Questions
 
