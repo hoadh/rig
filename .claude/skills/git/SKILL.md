@@ -87,8 +87,9 @@ git commit -m "type(scope): description"
 ✓ staged: N files (+X/-Y lines)
 ✓ security: passed
 ✓ commit: HASH type(scope): description
-✓ pushed: yes/no
+✓ pushed: <short-hash> -> origin/<branch>   (only with proof from references/workflow-push.md)
 ```
+Clean tree: exactly `nothing to commit (working tree clean)`. HEAD unchanged after commit: `nothing committed`. Never print a "pushed" line without the HEAD == remote proof (`ls-remote`).
 
 ## Error Handling
 
@@ -97,6 +98,7 @@ git commit -m "type(scope): description"
 | Secrets detected | Block commit, show files |
 | No changes | Exit cleanly |
 | Push rejected | Suggest `git pull --rebase` |
+| HEAD != remote after push | Report `✗ push NOT confirmed: HEAD <h1> != remote <h2|none>` |
 | Merge conflicts | Suggest manual resolution |
 
 ## References
