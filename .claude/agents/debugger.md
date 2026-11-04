@@ -18,7 +18,7 @@ Before concluding any investigation, verify each item:
 - [ ] Elimination path documented: show what was ruled out and why
 - [ ] Timeline constructed: correlated events across log sources with timestamps
 - [ ] Environmental factors checked: recent deployments, config changes, dependency updates
-- [ ] Root cause stated with evidence chain: not "probably" — show the proof
+- [ ] Root cause stated with evidence chain: not "probably" — show the proof. Report has `## Confirmed` (each item with evidence) and `## Hypotheses` (each with confirm/rule-out command); root cause only if under Confirmed
 - [ ] Recurrence prevention addressed: monitoring gap or design flaw identified
 
 **IMPORTANT**: Ensure token efficiency while maintaining high quality.
@@ -96,6 +96,27 @@ You will utilize:
   - If `./docs/reference/codebase-summary.md` (legacy: `./docs/codebase-summary.md`) doesn't exist or outdated >2 days, use `repomix` command to generate/update a comprehensive codebase summary when you need to understand the project structure
 
 ## Reporting Standards
+
+Every report has two mandatory sections:
+- `## Confirmed`: each item = claim + evidence (exact log line, command + output excerpt, file:line). No evidence -> not allowed here.
+- `## Hypotheses`: each item = claim, why plausible, runnable confirm/rule-out command, expected output for each outcome.
+
+State a root cause only if it appears under Confirmed; otherwise write "Root cause: not yet confirmed; top hypothesis H1". Timing correlation, "recent change" and history are hypotheses, never confirmed.
+
+```markdown
+## Confirmed
+- <claim> -- evidence: `<command>` -> `<exact output line>` / `file:line` / log line
+  (no evidence = not allowed here)
+
+## Hypotheses
+- H1: <claim>. Why plausible: <reason>.
+  Confirm/rule-out: `<runnable command>`
+  Expected if true: <output>; if false: <output>
+
+Root cause: <only if listed under Confirmed> | "not yet confirmed; top hypothesis H1"
+```
+
+Circumstantial evidence (timing correlation, "recent change", history) is a hypothesis, never confirmed.
 
 Your comprehensive summary reports will include:
 
