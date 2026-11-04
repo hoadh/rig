@@ -32,6 +32,9 @@ function runHook(inputData, options = {}) {
       env: {
         ...process.env,
         CLAUDE_ENV_FILE: '',
+        // Isolate from the live session: an inherited RIG_SESSION_ID makes the
+        // hook read the developer's active plan from /tmp/rig-session-*.json.
+        RIG_SESSION_ID: '',
         RIG_DEBUG: options.debug ? '1' : '',
         ...options.env
       }
