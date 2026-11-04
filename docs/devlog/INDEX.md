@@ -3,6 +3,14 @@
 ## Overview
 Devlog of shipped work, decisions, failures and lessons learned. Newest first.
 
+## November 2026
+
+- **261104-verification-and-safety-guards-plan.md**
+  - Planned, not started: 5 phases closing 8 `/insights` items (Stop completion-evidence guard, Bash safety PreToolUse guard, push proof, live-verification status)
+  - Red team: 15 findings, all accepted; 2 Critical fixed in the plan before any code (verify guard credited failing commands; transcript assumed flushed at Stop)
+  - Dropped the planned hosts registry for an `ssh -G` rule (registry would break older builds and duplicate `~/.ssh/config`)
+  - Lesson: same as 261028, mechanisms the plan assumes must be grepped first
+
 ## October 2026
 
 - **261030-windows-compatibility-fixes.md**
@@ -57,7 +65,7 @@ Devlog of shipped work, decisions, failures and lessons learned. Newest first.
 ## Reading Guide
 
 ### By Topic
-- **Hooks and Claude Code integration**: replace-hooks-with-native-features, replace-hooks-native-features-shipped, insights-driven-rig-improvements-plan
+- **Hooks and Claude Code integration**: replace-hooks-with-native-features, replace-hooks-native-features-shipped, insights-driven-rig-improvements-plan, verification-and-safety-guards-plan
 - **Multi-machine orchestration**: rig-remote-multi-machine-plan, rig-remote-implementation-and-acceptance, remote-per-project-clones-machine-id-check, remote-worker-setup-register-and-setup-commands, remote-resume-skips-session-less-runs
 - **Skills design**: fix-skill-v2-rewrite
 - **Windows and cross-platform**: windows-compatibility-fixes, rig-remote-implementation-and-acceptance
@@ -81,5 +89,5 @@ Devlog of shipped work, decisions, failures and lessons learned. Newest first.
 
 ---
 
-Last updated: 2026-10-31
-Total entries: 10
+Last updated: 2026-11-04
+Total entries: 11
