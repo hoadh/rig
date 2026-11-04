@@ -25,7 +25,7 @@ Set `verifyGuard.mode` in `.rig.json`:
 | `block` | Refuses to stop, at most twice per turn. A line in the final message that starts with `Verification skipped: <reason>` lets the stop through |
 | `off` | Guard disabled |
 
-"Verified" means a recognized command (`npm test`, `pytest`, `cargo test`, `tsc`, lint, build, ...) ran after the last edit **and returned success**. `cmd || true` does not count. Add your own commands with `verifyGuard.extraCommandPatterns` (regex strings, max 20, 200 chars each, nested quantifiers rejected), for example `["^make e2e$"]`.
+"Verified" means a recognized command (`npm test`, `pytest`, `cargo test`, `tsc`, lint, build, ...) ran after the last edit **and returned success**. A check whose exit status is hidden does not count: `cmd || true`, `cmd; echo done`, `cmd && a || b`, `cmd | tail`, and runs started with `run_in_background` (for Bash and `tester`). `cmd && echo ok` still counts. Add your own commands with `verifyGuard.extraCommandPatterns` (regex strings, max 20, 200 chars each, nested or overlapping quantifiers, quantified alternation and backreferences are rejected), for example `["^make e2e$"]`.
 
 ### Trust ladder
 
@@ -72,7 +72,9 @@ If you registered a Stop notification hook (`.claude/hooks/notifications/`, opt-
 
 - **Wrong nudge:** reply once and move on, or in `block` mode use the `Verification skipped:` line. If it repeats for a project command, add it to `extraCommandPatterns`. If it is noisy everywhere, set `verifyGuard.mode` to `off` or `hooks.verify-completion-guard` to `false` globally.
 - **Tester verdict is not parsed.** A `tester` subagent run counts as verification; whether its report says pass or fail is not read.
-- **`cmd | tail` exit status** is the status of `tail`, so a failing test piped through `tail` can look like a pass. Use `set -o pipefail` or avoid the pipe.
+- **Piped or chained checks are not counted.** `cmd | tail` reports the status of `tail`, and `cmd; echo done` the status of `echo`, so the guard treats them as unverified and says the exit status was masked. Run the check on its own, or use `set -o pipefail` and still end the command with the check.
+- **Block mode never loops.** It allows the stop when its counter file cannot be written, and after two consecutive blocks while `stop_hook_active` is true, whatever the turn key.
+- **`pkill -f` / `pgrep -f` pattern checks** run only on simple patterns (no nested or overlapping quantifiers, no backreferences, at most 256 chars, command at most 8 KiB). Anything else gets an `ask`. `pgrep -f <pat> | xargs kill` and `kill $(pgrep -f <pat>)` are denied when the pattern matches the command line; use `pkill -f '[v]ite'` or `pgrep -x <name>`.
 - **Bash-made edits are not detected.** Only edits through editing tools (and editing subagents) mark a turn as edited.
 - **Subagent edits** are invisible to the main Stop hook except through the editing-agent rule above.
 
