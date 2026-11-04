@@ -362,6 +362,7 @@ async function main() {
     const withEffort = runStatuslineSync({ payload: { ...base, effort: { level: 'xhigh' } } });
     assertSuccessfulRun(withEffort, 'Effort scenario');
     assertContains(withEffort.stdout, 'xhigh', 'Should show effort level');
+// eslint-disable-next-line no-control-regex -- ANSI escape / control characters are the match target
     assertContains(withEffort.stdout.replace(/\x1b\[[0-9;]*m/g, ''), '▮▮▮▮▯', 'Should show effort meter for xhigh');
 
     const noEffort = runStatuslineSync({ payload: base });

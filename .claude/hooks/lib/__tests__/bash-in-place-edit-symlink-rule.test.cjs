@@ -70,7 +70,7 @@ describe('in-place-edit-symlink rule', () => {
     assert.ok(result.context);
   });
 
-  it('allows --follow-symlinks, regular files and non in-place sed', (t) => {
+  it('allows --follow-symlinks, regular files and non in-place sed', () => {
     assert.strictEqual(decision(`sed --follow-symlinks -i x link.conf`, 'linux'), null);
     assert.strictEqual(decision(`sed -i x real.conf`, 'linux'), null);
     assert.strictEqual(decision(`sed x link.conf`, 'linux'), null);

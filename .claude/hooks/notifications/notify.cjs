@@ -19,7 +19,7 @@ const PROVIDER_PREFIXES = ['TELEGRAM', 'DISCORD', 'SLACK'];
  * @returns {Promise<Object>} Parsed JSON input
  */
 async function readStdin() {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     let data = '';
 
     // Handle no stdin (empty pipe)

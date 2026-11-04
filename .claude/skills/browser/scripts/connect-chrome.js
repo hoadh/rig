@@ -25,7 +25,7 @@ function getChromeExecutablePath() {
   switch (process.platform) {
     case 'darwin':
       return '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-    case 'win32':
+    case 'win32': {
       // Try common installation paths
       const paths = [
         `${process.env['PROGRAMFILES']}/Google/Chrome/Application/chrome.exe`,
@@ -34,6 +34,7 @@ function getChromeExecutablePath() {
       ];
       // Return first path (user should have Chrome installed in standard location)
       return paths[0];
+    }
     default: // Linux
       return 'google-chrome';
   }

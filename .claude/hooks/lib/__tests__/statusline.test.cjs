@@ -11,7 +11,6 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const crypto = require('crypto');
-const { execSync } = require('child_process');
 
 // Import modules
 const {
@@ -84,12 +83,6 @@ function assertFalse(condition, msg = '') {
 function assertContains(actual, search, msg = '') {
   if (!actual.includes(search)) {
     throw new Error(`${msg}\n  Expected to contain: ${search}\n  Actual: ${actual}`);
-  }
-}
-
-function assertMatch(actual, regex, msg = '') {
-  if (!regex.test(actual)) {
-    throw new Error(`${msg}\n  Pattern: ${regex}\n  Actual: ${actual}`);
   }
 }
 

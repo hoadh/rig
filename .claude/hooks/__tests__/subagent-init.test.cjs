@@ -286,9 +286,6 @@ describe('subagent-init.cjs', () => {
       }
 
       // Check if we're in a worktree (has .git file instead of directory)
-      const gitPath = path.join(gitRoot, '.git');
-      const isWorktree = fs.existsSync(gitPath) && fs.statSync(gitPath).isFile();
-
       const result = await runHook({
         agent_type: 'implementer',
         agent_id: 'submodule-test',

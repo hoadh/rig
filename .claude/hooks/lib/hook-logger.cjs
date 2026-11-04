@@ -24,7 +24,7 @@ function sleep(ms) {
     Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
   } catch (_) {
     const end = Date.now() + ms;
-    while (Date.now() < end) {}
+    while (Date.now() < end) { /* busy-wait fallback when Atomics.wait is unavailable */ }
   }
 }
 

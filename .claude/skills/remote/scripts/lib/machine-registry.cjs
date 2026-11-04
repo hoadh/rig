@@ -120,7 +120,7 @@ function loadRegistry() {
   }
   let data;
   try {
-    data = JSON.parse(text.replace(/^﻿/, ''));
+    data = JSON.parse(text.replace(/^\uFEFF/, ''));
   } catch (e) {
     throw usageError(`registry ${file} is not valid JSON: ${e.message}`);
   }

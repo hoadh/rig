@@ -221,7 +221,7 @@ function collectPgrepSegments(segments, cwd, depth = 0) {
   return found;
 }
 
-function checkKill(segment, ctx) {
+function checkKill(segment, _ctx) {
   const args = segment.argv.slice(1);
   let sigSeen = false;
   let end = false;

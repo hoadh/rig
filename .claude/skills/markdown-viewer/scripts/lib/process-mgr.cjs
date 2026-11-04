@@ -130,7 +130,7 @@ function stopAllServers() {
  * @param {Function} cleanup - Additional cleanup function
  */
 function setupShutdownHandlers(port, cleanup) {
-  const handler = (signal) => {
+  const handler = () => {
     if (cleanup) cleanup();
     removePidFile(port);
     process.exit(0);

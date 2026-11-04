@@ -53,7 +53,7 @@ function parseCustomMoves(rawMaps, docsDir) {
 
     let stat;
     try { stat = fs.statSync(path.join(docsDir, from)); } catch (e) {
-      throw new Error(`--map source not found: ${path.basename(docsDir)}/${from}`);
+      throw new Error(`--map source not found: ${path.basename(docsDir)}/${from}`, { cause: e });
     }
     const type = stat.isDirectory() ? 'dir' : 'file';
     const parts = to.split('/');

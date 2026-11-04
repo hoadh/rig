@@ -1,0 +1,110 @@
+name: CI
+
+# Enforces what Rig asks of every project: lint before commit, tests before push.
+# Jobs: lint, all Node test suites (3 OSes), eval Tier 1 (static, no secrets), Python skill tests.
+# Make the job names below required status checks on `main` (repository settings).
+
+on:
+  push:
+    branches: [main]
+  # No path filter, so every job always reports and can be a required status check.
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
+  test-node:
+    name: node tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: npm
+      - run: npm ci
+      # The hook and git-based suites create commits in temp repos and need an identity.
+      - name: Configure git identity
+        run: |
+          git config --global user.name "rig-ci"
+          git config --global user.email "rig-ci@example.invalid"
+      # Discovers every *.test.cjs / *.test.js under .claude/ and scripts/; prints
+      # passed/failed/skipped (with reasons) and exits 1 on any failure.
+      - run: npm test
+      # Jest suite that the runner lists as skipped (needs jest, not plain node).
+      - name: sequential-thinking jest suite
+        if: matrix.os == 'ubuntu-latest'
+        working-directory: .claude/skills/sequential-thinking
+        run: npx --yes jest@29
+      # Runs the three library-docs test files through their own runner.
+      - name: library-docs tests
+        if: matrix.os == 'ubuntu-latest'
+        working-directory: .claude/skills/library-docs/scripts
+        run: node tests/run-tests.js
+
+  eval-tier-1:
+    name: eval tier 1 (static)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      # Tier 1 is static validation of skills, agents, hooks and config: no API key needed.
+      - run: bun scripts/eval/run.ts 1
+
+  test-python:
+    name: python skill tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r .claude/skills/media/scripts/tests/requirements.txt
+          python -m pip install -r .claude/skills/ui-styling/scripts/tests/requirements.txt
+      # One pytest run per skill: the suites share module/dir names (tests/), so they
+      # must not be collected together. None of them calls a network or needs an API
+      # key (the Gemini/MiniMax clients are mocked), so nothing is excluded.
+      - name: context-engineering
+        working-directory: .claude/skills/context-engineering/scripts
+        run: python -m pytest tests -q
+      - name: create-skill
+        working-directory: .claude/skills/create-skill/scripts
+        run: python -m pytest tests -q
+      - name: media
+        working-directory: .claude/skills/media/scripts
+        run: python -m pytest tests -q
+      - name: ui-styling
+        working-directory: .claude/skills/ui-styling/scripts
+        run: python -m pytest tests -q

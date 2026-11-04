@@ -38,40 +38,6 @@ function initDependencies() {
       breaks: true
     });
 
-    // Custom extension for code blocks (handles mermaid specially)
-    // marked v17+ requires extensions array for custom token handling
-    const mermaidExtension = {
-      name: 'mermaidCodeBlock',
-      level: 'block',
-      renderer(token) {
-        // This is called for code tokens
-        if (token.type === 'code') {
-          const code = token.text || '';
-          const language = token.lang || '';
-
-          // Handle mermaid code blocks - render as div for client-side processing
-          if (language === 'mermaid') {
-            return `<pre class="mermaid">${escapeHtml(code)}</pre>`;
-          }
-
-          // Regular code blocks with syntax highlighting
-          if (language && hljs.getLanguage(language)) {
-            try {
-              const highlighted = hljs.highlight(code, { language }).value;
-              return `<pre><code class="hljs language-${language}">${highlighted}</code></pre>`;
-            } catch {
-              // Fall through to default
-            }
-          }
-
-          // Auto-detect language or plain text
-          const highlighted = hljs.highlightAuto(code).value;
-          return `<pre><code class="hljs">${highlighted}</code></pre>`;
-        }
-        return false; // Use default renderer for other tokens
-      }
-    };
-
     // Use the renderer override approach for marked v17+
     marked.use({
       renderer: {
@@ -267,7 +233,7 @@ function parseFrontmatter(content) {
  * @param {Object} options - Render options
  * @returns {{html: string, toc: Array, frontmatter: Object, title: string}}
  */
-function renderMarkdownFile(filePath, options = {}) {
+function renderMarkdownFile(filePath, _options = {}) {
   initDependencies();
 
   const rawContent = fs.readFileSync(filePath, 'utf8');

@@ -36,7 +36,7 @@ function readRawRegistry(file) {
     if (e instanceof RemoteError && e.class === 'registry-missing' && !fs.existsSync(file)) return { machines: {} };
     throw e;
   }
-  return JSON.parse(fs.readFileSync(file, 'utf8').replace(/^﻿/, ''));
+  return JSON.parse(fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, ''));
 }
 
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);

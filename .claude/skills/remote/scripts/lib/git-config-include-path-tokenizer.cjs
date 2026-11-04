@@ -20,7 +20,7 @@ const VALUE_ESCAPES = { t: '\t', b: '\b', n: '\n', '\\': '\\', '"': '"' };
 
 /** Raw `path` values (unresolved, unexpanded) of include / includeIf sections in config text. */
 function includePathsOfText(text) {
-  const s = `${String(text).replace(/^﻿/, '').replace(/\r\n/g, '\n')}\n`;
+  const s = `${String(text).replace(/^\uFEFF/, '').replace(/\r\n/g, '\n')}\n`;
   let i = 0;
   const next = () => (i < s.length ? s[i++] : (i++, '\n')); // past the end: endless newlines
   const found = [];
@@ -40,7 +40,7 @@ function includePathsOfText(text) {
           c = next();
           if (c === '\n') throw ERR;
           if (c === '"') break;
-          if (c === '\\' && (c = next()) === '\n') throw ERR;
+          if (c === '\\' && next() === '\n') throw ERR;
         }
         if (next() !== ']') throw ERR;
         break;

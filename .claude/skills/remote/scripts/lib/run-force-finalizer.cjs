@@ -53,7 +53,7 @@ function finalizeIfNeverStarted(dir) {
  */
 function sweepOrphanRunDirs(now = Date.now(), minAgeMs = ORPHAN_DIR_MIN_AGE_MS) {
   const swept = [];
-  let names = [];
+  let names;
   try { names = fs.readdirSync(R.runsRoot()); } catch { return swept; }
   for (const name of names.filter((n) => V.isRunId(n))) {
     const dir = path.join(R.runsRoot(), name);

@@ -750,7 +750,7 @@ test('scenario: user cleans up old worktrees', () => {
   // List worktrees first
   const listResult = run('list --json');
   assert(listResult.success, 'List should succeed');
-  const list = assertJSON(listResult.output);
+  assertJSON(listResult.output);
 
   // Try to remove a nonexistent worktree (simulating cleanup)
   const removeResult = run('remove old-feature-xyz --json');

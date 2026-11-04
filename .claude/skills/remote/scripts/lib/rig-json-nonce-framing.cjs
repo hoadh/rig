@@ -23,7 +23,7 @@ function parseEnvelope(text) {
   try {
     env = JSON.parse(text);
   } catch (e) {
-    throw new Error(`stdin envelope is not JSON: ${e.message}`);
+    throw new Error(`stdin envelope is not JSON: ${e.message}`, { cause: e });
   }
   if (!env || typeof env !== 'object' || !NONCE_RE.test(env.nonce || '')) throw new Error('stdin envelope has no valid nonce');
   return { nonce: env.nonce, protocol: env.protocol, payload: env.payload === undefined ? null : env.payload };

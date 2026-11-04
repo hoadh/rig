@@ -144,7 +144,7 @@ export function validateSkillReferences(skillsDir: string): CheckResult {
 
   for (const skill of skillDirs) {
     const content = readFileSafe(join(skillsDir, skill, "SKILL.md")) ?? "";
-    for (const ref of content.matchAll(/references\/([^\s\)"`]+)/g)) {
+    for (const ref of content.matchAll(/references\/([^\s)"`]+)/g)) {
       const refPath = join(skillsDir, skill, "references", ref[1]);
       if (!existsSync(refPath) || !existsSync(join(skillsDir, skill, "references"))) {
         broken.push(`skills/${skill}/references/${ref[1]}`);

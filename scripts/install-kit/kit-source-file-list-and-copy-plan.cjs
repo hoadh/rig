@@ -30,7 +30,7 @@ function listRepoFiles(kitRoot) {
       stdio: ['ignore', 'pipe', 'pipe'],
     });
   } catch (err) {
-    throw new Error(`Cannot list kit files with git in ${kitRoot}; run from a git clone of the kit (${err.message.split('\n')[0]})`);
+    throw new Error(`Cannot list kit files with git in ${kitRoot}; run from a git clone of the kit (${err.message.split('\n')[0]})`, { cause: err });
   }
   return [...new Set(out.split('\0').filter(Boolean))];
 }

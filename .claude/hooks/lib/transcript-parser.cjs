@@ -259,10 +259,11 @@ function extractTarget(toolName, input) {
     case 'Grep':
       return input.pattern ?? null;
 
-    case 'Bash':
+    case 'Bash': {
       const cmd = input.command;
       if (!cmd) return null;
       return cmd.length > 30 ? cmd.slice(0, 30) + '...' : cmd;
+    }
 
     default:
       return null;

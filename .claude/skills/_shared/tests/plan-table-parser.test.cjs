@@ -22,7 +22,6 @@ function assertEqual(actual, expected, msg) {
   if (actual !== expected) throw new Error(`${msg}: expected "${expected}", got "${actual}"`);
 }
 function assertTrue(val, msg) { if (!val) throw new Error(`${msg}: expected truthy`); }
-function assertFalse(val, msg) { if (val) throw new Error(`${msg}: expected falsy`); }
 function assertIncludes(str, sub, msg) {
   if (!String(str).includes(sub)) throw new Error(`${msg}: expected to include "${sub}"`);
 }
@@ -30,12 +29,6 @@ function assertIncludes(str, sub, msg) {
 // --- Temp directory setup ---
 // L1: Use mkdtempSync instead of fixed /tmp/ path to avoid conflicts in parallel runs
 const tmpDir = mkdtempSync(path.join(tmpdir(), 'rig-plan-parser-'));
-function tmpFile(name, content) {
-  const fp = path.join(tmpDir, name);
-  fs.mkdirSync(path.dirname(fp), { recursive: true });
-  fs.writeFileSync(fp, content, 'utf8');
-  return fp;
-}
 
 // ============================================================
 console.log('\n--- normalizeStatus ---');
@@ -130,7 +123,7 @@ test('Format 0: multi-table disambiguation prefers table with links', () => {
 console.log('\n--- Format 1: standard 4-column ---');
 
 test('Format 1: standard table', () => {
-  const content = `| Phase | Name | Status | Link |
+  const _content = `| Phase | Name | Status | Link |
 |-------|------|--------|------|
 | 1 | Setup | Pending | [setup](./phase-01-setup.md) |
 `;

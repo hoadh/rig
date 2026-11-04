@@ -155,7 +155,7 @@ describe('team-context-inject.cjs', () => {
       const tmpDir = path.join(os.tmpdir(), 'team-inject-test-' + Date.now());
       fs.mkdirSync(tmpDir, { recursive: true });
       try {
-        const { teamsDir, taskDir } = createTestTeam(tmpDir, 'team-a');
+        createTestTeam(tmpDir, 'team-a');
 
         const result = await runHook({
           agent_id: 'alice@team-a'
@@ -189,7 +189,7 @@ describe('team-context-inject.cjs', () => {
       const tmpDir = path.join(os.tmpdir(), 'team-inject-member-' + Date.now());
       fs.mkdirSync(tmpDir, { recursive: true });
       try {
-        const { teamsDir } = createTestTeam(tmpDir, 'team-a');
+        createTestTeam(tmpDir, 'team-a');
 
         const result = await runHook({
           agent_id: 'alice@team-a'
@@ -227,7 +227,7 @@ describe('team-context-inject.cjs', () => {
       const tmpDir = path.join(os.tmpdir(), 'team-inject-security-' + Date.now());
       fs.mkdirSync(tmpDir, { recursive: true });
       try {
-        const { teamsDir } = createTestTeam(tmpDir, 'team-a');
+        createTestTeam(tmpDir, 'team-a');
 
         // Try various path traversal attempts
         const malformedIds = [
@@ -372,7 +372,7 @@ describe('team-context-inject.cjs', () => {
       const tmpDir = path.join(os.tmpdir(), 'team-inject-peers-' + Date.now());
       fs.mkdirSync(tmpDir, { recursive: true });
       try {
-        const { config } = createTestTeam(tmpDir, 'team-a');
+        createTestTeam(tmpDir, 'team-a');
 
         const result = await runHook({
           agent_id: 'alice@team-a'

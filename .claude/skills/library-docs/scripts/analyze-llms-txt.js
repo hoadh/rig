@@ -5,11 +5,6 @@
  * Parses llms.txt content and categorizes URLs for optimal agent distribution
  */
 
-const { loadEnv } = require('./utils/env-loader');
-
-// Load environment
-const env = loadEnv();
-const DEBUG = env.DEBUG === 'true';
 
 /**
  * URL priority categories

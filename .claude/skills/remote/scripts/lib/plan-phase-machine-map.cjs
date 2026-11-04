@@ -22,7 +22,7 @@ function entryFor(row, planDir) {
   if (!inside) throw usageError(`phase ${row.phaseId}: file ${JSON.stringify(file)} is outside the plan dir`);
   if (/[a-z]$/i.test(row.phaseId)) throw usageError(`phase ${row.phaseId}: lettered phase ids are not supported for remote plans`);
   const phase = V.assertPhaseId(String(row.phase).padStart(2, '0'), 'phase id');
-  let fm = {};
+  let fm;
   try { fm = parseFrontmatter(fs.readFileSync(file, 'utf8')); } catch (e) {
     throw new RemoteError(`cannot read ${file}: ${e.code || e.message}`, EXIT.ERROR, { class: 'phase-unreadable' });
   }

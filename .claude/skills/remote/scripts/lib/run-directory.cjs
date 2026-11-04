@@ -141,7 +141,7 @@ const busyFile = (name) => path.join(rigHome(), `${name}.busy`);
 /** Holder of marker `name` if it is live ('unknown' for a fresh unparsable marker), else null (absent or stale). */
 function liveBusyHolder(name) {
   const file = busyFile(name);
-  let holder = '';
+  let holder;
   try { holder = fs.readFileSync(file, 'utf8').trim(); } catch { return null; }
   // Unparsable/empty holder (foreign or legacy writer mid-create): live until it ages past the grace period.
   if (!V.isRunId(holder)) return Date.now() - (mtimeMs(file) || 0) < BUSY_HOLDER_GRACE_MS ? 'unknown' : null;
@@ -163,7 +163,7 @@ function acquireBusy(name, runId) {
     } catch (e) {
       if (e.code !== 'EEXIST') throw e;
     } finally { try { fs.unlinkSync(tmp); } catch { /* already gone */ } }
-    let holder = '';
+    let holder;
     try { holder = fs.readFileSync(file, 'utf8').trim(); } catch { continue; }
     if (holder === runId) return { ok: true };
     const live = liveBusyHolder(name);
@@ -192,7 +192,7 @@ const busyNameForRun = (run) => busyNameFor(run.spec.kind, run.target.repo);
 
 /** Release every marker held by `runId` (run.json-less orphans cannot derive their clone). */
 function releaseBusyHeldBy(runId) {
-  let names = [];
+  let names;
   try { names = fs.readdirSync(rigHome()); } catch { return; }
   for (const n of names.filter((f) => f.endsWith('.busy'))) releaseBusy(n.slice(0, -5), runId);
 }

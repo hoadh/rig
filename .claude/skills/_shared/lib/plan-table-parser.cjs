@@ -203,7 +203,7 @@ function parsePlanPhases(content, dir, options = {}) {
 
   // Format 5: numbered "1) **Name**" with checkbox "- [x] Name:"
   const phaseMap = new Map();
-  const f5numRegex = /^(\d+)([a-z]?)[)\.]\s*\*\*([^*]+)\*\*/gmi;
+  const f5numRegex = /^(\d+)([a-z]?)[).]\s*\*\*([^*]+)\*\*/gmi;
   while ((match = f5numRegex.exec(content)) !== null) {
     const p = makePhase(match[1], match[2], match[3], 'pending', null, match[3], dir, options);
     phaseMap.set(match[3].trim().toLowerCase(), p);

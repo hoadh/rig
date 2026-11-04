@@ -13,7 +13,7 @@ const { createFixture } = require('./remote-loopback-e2e-fixture.cjs');
 const { processesMatching } = require('./platform-test-fixtures.cjs');
 
 const fx = createFixture(['alpha']);
-const beta = fx.addWorker('beta');
+fx.addWorker('beta');
 const runIdOf = (out) => /\b(r\d{12}-[a-z0-9]+)\b/.exec(out)[1];
 /** pids of processes whose command line mentions `needle` (this test process excluded). */
 const pidsMatching = (needle) => processesMatching(needle).map((r) => r.pid);

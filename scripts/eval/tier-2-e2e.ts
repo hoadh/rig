@@ -123,7 +123,7 @@ export async function runTier2(opts: {
   const date = new Date().toISOString().slice(0, 10);
   const outFile = join(RESULTS_DIR, `e2e-${date}.ndjson`);
 
-  let skillsToTest: string[] = [];
+  let skillsToTest: string[];
 
   if (opts.skill) {
     skillsToTest = [opts.skill];

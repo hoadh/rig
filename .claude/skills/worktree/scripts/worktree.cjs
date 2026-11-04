@@ -550,7 +550,7 @@ function cmdList() {
     return {
       path: parts[0],
       commit: parts[1],
-      branch: parts[2]?.replace(/[\[\]]/g, '') || 'detached'
+      branch: parts[2]?.replace(/[[\]]/g, '') || 'detached'
     };
   });
 
@@ -616,7 +616,7 @@ function cmdCreate() {
 
   // Determine working directory
   let workDir = gitRoot;
-  let projectPath = '';
+  let projectPath;
   let projectName = '';
 
   if (isMonorepo) {
@@ -795,7 +795,7 @@ function cmdRemove() {
     });
   }
 
-  const gitRoot = checkGitRepo();
+  checkGitRepo();
   checkGitVersion();
 
   // Get list of worktrees

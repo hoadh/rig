@@ -13,9 +13,6 @@ const tests = [
   'test-analyze-llms.js',
 ];
 
-let totalPassed = 0;
-let totalFailed = 0;
-
 function runTest(testFile) {
   return new Promise((resolve, reject) => {
     console.log(`\n${'='.repeat(60)}`);

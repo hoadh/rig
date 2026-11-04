@@ -20,7 +20,6 @@ const {
   escapeShellValue,
   resolvePlanPath,
   writeSessionState,
-  readSessionState,
   getSessionTempPath
 } = require('../rig-config-utils.cjs');
 

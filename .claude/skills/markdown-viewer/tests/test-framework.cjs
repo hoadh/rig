@@ -151,4 +151,5 @@ function printTestResults(results) {
   }
 }
 
-module.exports = { TestSuite, runAllTests };
+// runAllTests is registered on `global` above
+module.exports = { TestSuite, runAllTests: global.runAllTests };

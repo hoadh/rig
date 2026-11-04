@@ -16,9 +16,9 @@ class ThoughtFormatter {
   static format(thoughtData) {
     const { thoughtNumber, totalThoughts, thought, isRevision, revisesThought, branchFromThought, branchId } = thoughtData;
 
-    let prefix = '';
-    let context = '';
-    let emoji = '';
+    let prefix;
+    let context;
+    let emoji;
 
     if (isRevision && revisesThought) {
       emoji = '🔄';

@@ -80,7 +80,7 @@ function readJsonOrNull(file) {
   try {
     return JSON.parse(fs.readFileSync(file, 'utf8'));
   } catch (err) {
-    throw new Error(`Cannot parse existing ${file} (${err.message}); fix it or use --force-overwrite-settings`);
+    throw new Error(`Cannot parse existing ${file} (${err.message}); fix it or use --force-overwrite-settings`, { cause: err });
   }
 }
 

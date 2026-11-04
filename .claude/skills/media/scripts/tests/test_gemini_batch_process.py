@@ -21,12 +21,14 @@ class TestAPIKeyFinder:
         monkeypatch.setenv('GEMINI_API_KEY', 'test_key_123')
         assert gbp.find_api_key() == 'test_key_123'
 
-    @patch('gemini_batch_process.load_dotenv')
-    def test_find_api_key_not_found(self, mock_load_dotenv, monkeypatch):
+    def test_find_api_key_not_found(self, monkeypatch):
         """Test when API key is not found."""
         monkeypatch.delenv('GEMINI_API_KEY', raising=False)
-        # Mock load_dotenv to not actually load any files
-        mock_load_dotenv.return_value = None
+        # find_api_key delegates to the centralized resolver when it is importable
+        # (it is, inside the kit). Stub it so no real .env file is consulted;
+        # raising=False keeps the test valid in the legacy-fallback import path too.
+        monkeypatch.setattr(gbp, 'CENTRALIZED_RESOLVER_AVAILABLE', True, raising=False)
+        monkeypatch.setattr(gbp, 'resolve_env', lambda *args, **kwargs: None, raising=False)
         assert gbp.find_api_key() is None
 
 

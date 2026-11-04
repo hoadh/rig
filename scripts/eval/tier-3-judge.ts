@@ -113,7 +113,7 @@ export async function runTier3(opts: {
 }): Promise<boolean> {
   if (!existsSync(RESULTS_DIR)) mkdirSync(RESULTS_DIR, { recursive: true });
 
-  let skillsToTest: string[] = [];
+  let skillsToTest: string[];
 
   if (opts.skill) {
     skillsToTest = [opts.skill];

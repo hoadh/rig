@@ -4,7 +4,6 @@
  * Usage: node performance.js --url https://example.com [--trace trace.json] [--metrics]
  */
 import { getBrowser, getPage, closeBrowser, disconnectBrowser, parseArgs, outputJSON, outputError } from './lib/browser.js';
-import fs from 'fs/promises';
 
 async function measurePerformance() {
   const args = parseArgs(process.argv.slice(2));

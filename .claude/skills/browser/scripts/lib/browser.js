@@ -161,7 +161,7 @@ export function clearAuthSession() {
  * @param {Object} page - Puppeteer page instance
  * @param {string} url - Target URL for domain context
  */
-export async function applyAuthSession(page, url) {
+export async function applyAuthSession(page, _url) {
   const authData = readAuthSession();
   if (!authData) {
     log('No auth session found');
@@ -254,7 +254,7 @@ export async function getBrowser(options = {}) {
   }
 
   // Destructure known properties — only pass Puppeteer-valid options to launch()
-  const { headless, args: extraArgs, viewport, useDefaultProfile, profile, browserUrl, wsEndpoint: _ws, userDataDir: _udd, ...restOptions } = options;
+  const { headless, args: extraArgs, viewport, useDefaultProfile: _udp, profile: _profile, browserUrl: _bu, wsEndpoint: _ws, userDataDir: _udd, ...restOptions } = options;
 
   // Launch new browser
   const launchOptions = {
@@ -332,7 +332,7 @@ export async function disconnectBrowser() {
 /**
  * Parse command line arguments
  */
-export function parseArgs(argv, options = {}) {
+export function parseArgs(argv, _options = {}) {
   const args = {};
 
   for (let i = 0; i < argv.length; i++) {

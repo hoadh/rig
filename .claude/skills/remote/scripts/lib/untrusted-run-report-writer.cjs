@@ -33,7 +33,7 @@ function renderRunReport(st, machine) {
     '## Run facts (runner-reported)',
     `- machine: ${oneLine(machine)}`, `- state: ${oneLine(st.state)}${st.failure ? ` (${oneLine(st.failure)})` : ''}`,
     `- exit: ${oneLine(st.exit)}`, `- head: ${oneLine(st.head || r.head)}`, `- pushed: ${oneLine(st.pushed ?? r.pushed)}`,
-    `- dirty: ${oneLine(r.dirty)}`, `- turns: ${oneLine(c.num_turns)}`, `- cost: ${Number.isFinite(c.total_cost_usd) ? `\$${c.total_cost_usd.toFixed(4)}` : '(not reported)'}`,
+    `- dirty: ${oneLine(r.dirty)}`, `- turns: ${oneLine(c.num_turns)}`, `- cost: ${Number.isFinite(c.total_cost_usd) ? `$${c.total_cost_usd.toFixed(4)}` : '(not reported)'}`,
     `- claude: subtype=${oneLine(c.subtype)} is_error=${oneLine(c.is_error)}`,
     '', '## Guard violations', violations,
     '', '## Agent result text', untrusted(c.result || r.detail),

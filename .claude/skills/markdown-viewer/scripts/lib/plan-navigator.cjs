@@ -5,7 +5,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { parsePlanPhases, normalizeStatus, filenameToTitle } = require('../../../_shared/lib/plan-table-parser.cjs');
+const { parsePlanPhases } = require('../../../_shared/lib/plan-table-parser.cjs');
 
 /** Escape HTML special characters to prevent XSS */
 function escapeHtml(str) {

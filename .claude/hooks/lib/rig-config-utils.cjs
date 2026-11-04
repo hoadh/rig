@@ -177,6 +177,7 @@ function writeSessionState(sessionId, state) {
  * macOS/Linux: / and null byte
  * Also includes control characters and other problematic chars
  */
+// eslint-disable-next-line no-control-regex -- ANSI escape / control characters are the match target
 const INVALID_FILENAME_CHARS = /[<>:"/\\|?*\x00-\x1f\x7f]/g;
 
 /**
@@ -217,7 +218,7 @@ function sanitizeSlug(slug) {
  */
 function extractSlugFromBranch(branch, pattern) {
   if (!branch) return null;
-  const defaultPattern = /(?:feat|fix|chore|refactor|docs)\/(?:[^\/]+\/)?(.+)/;
+  const defaultPattern = /(?:feat|fix|chore|refactor|docs)\/(?:[^/]+\/)?(.+)/;
   const regex = pattern ? new RegExp(pattern) : defaultPattern;
   const match = branch.match(regex);
   return match ? sanitizeSlug(match[1]) : null;
@@ -396,6 +397,7 @@ function sanitizePath(pathValue, projectRoot) {
   if (!normalized) return null;
 
   // Block null bytes and other dangerous chars
+// eslint-disable-next-line no-control-regex -- ANSI escape / control characters are the match target
   if (/[\x00]/.test(normalized)) return null;
 
   // Allow absolute paths (user explicitly wants consolidated plans elsewhere)

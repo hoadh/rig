@@ -120,7 +120,7 @@ function migrate(docsDir, { apply = false, includeRootFiles = true, customMoves 
       for (const c of changes) fs.writeFileSync(c.newFile, c.content);
     } catch (err) {
       const moved = done.map(m => `${m.from} -> ${m.to}`).join(', ') || 'none';
-      throw new Error(`${err.message} (partial state; moves done: ${moved}; link rewrites may be incomplete)`);
+      throw new Error(`${err.message} (partial state; moves done: ${moved}; link rewrites may be incomplete)`, { cause: err });
     }
   }
 

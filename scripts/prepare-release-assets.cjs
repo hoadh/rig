@@ -37,7 +37,7 @@ const { execSync } = require('child_process');
     try {
       packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
     } catch (parseErr) {
-      throw new Error(`Invalid JSON in package.json: ${parseErr.message}`);
+      throw new Error(`Invalid JSON in package.json: ${parseErr.message}`, { cause: parseErr });
     }
 
     if (packageJson.version !== version) {
@@ -62,7 +62,7 @@ const { execSync } = require('child_process');
     if (fs.existsSync(metadataPath)) {
       try {
         existingMetadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
-      } catch (parseErr) {
+      } catch {
         console.warn('⚠️ Could not parse existing metadata.json, starting fresh');
       }
     }
@@ -98,7 +98,7 @@ const { execSync } = require('child_process');
     try {
       JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
     } catch (parseErr) {
-      throw new Error(`release-manifest.json is not valid JSON: ${parseErr.message}`);
+      throw new Error(`release-manifest.json is not valid JSON: ${parseErr.message}`, { cause: parseErr });
     }
     console.log('✓ Validated release-manifest.json');
 
@@ -111,7 +111,7 @@ const { execSync } = require('child_process');
       try {
         fs.unlinkSync(archivePath);
       } catch (unlinkErr) {
-        throw new Error(`Cannot delete existing archive (file locked?): ${unlinkErr.message}`);
+        throw new Error(`Cannot delete existing archive (file locked?): ${unlinkErr.message}`, { cause: unlinkErr });
       }
     }
 

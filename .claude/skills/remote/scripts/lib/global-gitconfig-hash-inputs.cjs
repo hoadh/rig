@@ -74,7 +74,7 @@ function readConfigFile(full) {
  * @returns {Array<[string,string]>}
  * @throws {RunFailure} 'prepare' when more than MAX_INCLUDED extra files are reached
  */
-function globalConfigHashParts(repo, env = process.env) { // eslint-disable-line no-unused-vars -- repo kept for caller compatibility
+function globalConfigHashParts(repo, env = process.env) { // `repo` is unused but kept for caller compatibility
   const home = homeDir(env);
   const fixed = fixedGlobalConfigFiles(env);
   const seen = new Set(fixed.map(physicalPath)); // dedupe by physical path

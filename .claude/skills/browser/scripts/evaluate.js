@@ -29,7 +29,6 @@ async function evaluate() {
 
     const result = await page.evaluate(async (script) => {
       // Wrap in async IIFE so user scripts can use await
-      // eslint-disable-next-line no-eval
       return await eval(`(async () => { return ${script}; })()`);
     }, args.script);
 

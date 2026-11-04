@@ -132,7 +132,7 @@ function identityAllowsKill(pid, start) {
  */
 function killRecordedAgent(dir, signal = 'SIGKILL') {
   const file = pidFile(dir);
-  let pid = NaN, start = '', mtime = 0;
+  let pid, start, mtime;
   try {
     const [l1, l2] = fs.readFileSync(file, 'utf8').split('\n');
     pid = Number.parseInt(l1, 10); start = (l2 || '').trim(); mtime = fs.statSync(file).mtimeMs;

@@ -54,7 +54,7 @@ t.test('dispatch starts agent run with owns, tools, immutable base; marks phase 
 });
 
 t.test('dispatch refuses unpushed plan branch and own-machine phase', async () => {
-  const { env, repo, plan } = setup();
+  const { env, plan } = setup();
   try {
     env.commitFile('main', 'local.txt', 'x');
     await t.rejectsRemote((() => require('../commands/dispatch-command.cjs').run([plan, 'phase-01-build.md'], ctxOf(fakeClient())))(), { exitCode: 1, cls: 'push-first' });

@@ -7,12 +7,11 @@
  * - Edge cases: deleted CWD, symlinks, worktrees, permissions
  */
 
-const { describe, it, test, beforeEach, afterEach } = require('node:test');
+const { describe, test, beforeEach, afterEach } = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { execSync } = require('child_process');
 
 // Minimal Jest-style expect on node:assert, covering only the matchers this file uses.
 // Run: node --test .claude/hooks/lib/__tests__/project-detector.test.cjs

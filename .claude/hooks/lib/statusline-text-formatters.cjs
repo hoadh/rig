@@ -32,6 +32,7 @@ function expandHome(filePath) {
  */
 function visibleLength(str) {
   if (!str || typeof str !== 'string') return 0;
+  // eslint-disable-next-line no-control-regex -- ANSI escape / control characters are the match target
   const noAnsi = str.replace(/\x1b\[[0-9;]*m/g, '');
   const clusters = GRAPHEME_SEGMENTER
     ? Array.from(GRAPHEME_SEGMENTER.segment(noAnsi), s => s.segment)
@@ -41,6 +42,7 @@ function visibleLength(str) {
   for (const cluster of clusters) {
     if (!cluster) continue;
 
+    // eslint-disable-next-line no-control-regex -- ANSI escape / control characters are the match target
     if (/^[\u0000-\u001f\u007f]+$/.test(cluster)) continue; // control chars
     if (/^\p{Mark}+$/u.test(cluster)) continue; // combining marks
 

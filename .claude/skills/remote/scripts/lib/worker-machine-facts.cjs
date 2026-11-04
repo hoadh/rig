@@ -20,7 +20,7 @@ const tryOr = (fn, dflt = null) => { try { return fn(); } catch { return dflt; }
 function claudeFacts(target) {
   const exe = target.claude || 'claude';
   const version = tryOr(() => sh(exe, ['--version']));
-  let auth = null;
+  let auth;
   try { sh(exe, ['auth', 'status']); auth = { loggedIn: true }; } catch (e) { auth = { loggedIn: false, detail: String(e.stdout || e.stderr || e.message).slice(0, 200) }; }
   const token = Boolean(process.env.CLAUDE_CODE_OAUTH_TOKEN || process.env.ANTHROPIC_API_KEY);
   return { version, auth, tokenInEnv: token };

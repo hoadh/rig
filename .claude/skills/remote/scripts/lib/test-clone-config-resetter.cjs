@@ -36,7 +36,7 @@ function keptLayoutLines(text) {
 const keptCoreLines = (text) => keptLayoutLines(text).core;
 
 function assertNotSymlink(p, what) {
-  let st = null;
+  let st;
   try { st = fs.lstatSync(p); } catch { return null; } // absent is fine
   if (st.isSymbolicLink()) throw new RunFailure('prepare', `${what} of the test clone is a symlink`, { hint: 'delete the test clone (<repo>-rig-test) so it is re-cloned' });
   return st;

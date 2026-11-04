@@ -5,7 +5,7 @@
  * so repo-local hooks/config cannot run code in the privileged runner. Failures throw RunFailure(prepare|lock).
  */
 const { RunFailure } = require('./run-directory.cjs');
-const { safeGit, tryGit, gitTimeoutMs } = require('./safe-git-runner.cjs');
+const { safeGit, tryGit } = require('./safe-git-runner.cjs');
 const { assertKnownGoodBaseline } = require('./git-baseline-gate.cjs');
 const { parseFrontmatter } = require('./plan-frontmatter.cjs');
 const { coordBranch } = require('./rig-branch-and-path-names.cjs');
