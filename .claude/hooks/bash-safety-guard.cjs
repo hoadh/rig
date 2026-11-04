@@ -92,7 +92,9 @@ try {
 } catch (error) {
   // Entry crash: fail open.
   try {
-    require('./lib/hook-logger.cjs').logHookCrash('bash-safety-guard', error, { event: 'PreToolUse', tool: 'Bash' });
+    // Only error name + code: messages from fs errors contain paths.
+    const tag = `${(error && error.name) || 'Error'}:${(error && error.code) || ''}`;
+    require('./lib/hook-logger.cjs').logHookCrash('bash-safety-guard', tag, { event: 'PreToolUse', tool: 'Bash' });
   } catch {
     // logging must never block the tool call
   }

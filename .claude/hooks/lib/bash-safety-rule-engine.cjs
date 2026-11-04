@@ -12,7 +12,7 @@
  *   - The strongest decision wins (deny over ask; first of equal strength).
  *   - A tokenizer failure propagates: the entry hook treats that as a crash and fails open.
  *
- * ctx passed to rules: { cwd, cwdUnknown, fullCommand, platform }
+ * ctx passed to rules: { cwd, cwdUnknown, fullCommand, platform, segments (all segments of the command) }
  */
 const { tokenize } = require('./bash-command-segment-tokenizer.cjs');
 
@@ -36,8 +36,9 @@ function evaluateCommand(command, opts) {
   let best = null;
   if (active.length === 0) return { result: null, crashes };
 
-  for (const segment of tokenize(command, { cwd })) {
-    const ctx = { cwd: segment.cwd, cwdUnknown: segment.cwdUnknown, fullCommand: segment.fullCommand, platform };
+  const segments = tokenize(command, { cwd });
+  for (const segment of segments) {
+    const ctx = { cwd: segment.cwd, cwdUnknown: segment.cwdUnknown, fullCommand: segment.fullCommand, platform, segments };
     for (const rule of active) {
       if (segment.opaque && rule.opaquePolicy !== 'inspect') continue;
       let found;

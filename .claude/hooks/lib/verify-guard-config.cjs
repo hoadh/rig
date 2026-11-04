@@ -5,7 +5,7 @@
  * <CLAUDE_PROJECT_DIR>/.claude/.rig.json (anchored to the project dir, never the shell cwd, which
  * moves with `cd`). A repository may RAISE the mode (off < remind < block) but never lower it
  * below the global value, and cannot switch the guard off: only the global `hooks` toggle can.
- * `extraCommandPatterns` is global only, capped, and vetted against ReDoS-prone shapes.
+ * `extraCommandPatterns` is global only, capped, and vetted by the shared ReDoS shape checker (unsafe-regex-shape-checker.cjs).
  *
  *   { "hooks": { "verify-completion-guard": false },            // global: guard off, final
  *     "verifyGuard": { "mode": "remind" | "block" | "off",
@@ -17,14 +17,13 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { checkRegexShape } = require('./unsafe-regex-shape-checker.cjs');
 
 const DEFAULT_MODE = 'remind';
 const RANK = { off: 0, remind: 1, block: 2 };
 const MAX_PATTERNS = 20;
 const MAX_PATTERN_CHARS = 200;
 const MAX_CONFIG_BYTES = 256 * 1024;
-// Quantified group followed by another quantifier, e.g. (a+)+ or (a*){2,}: catastrophic backtracking.
-const NESTED_QUANTIFIER = /\([^)]*[+*][^)]*\)[+*{]/;
 
 /** Parsed JSON object from file, or {} when absent/unreadable/oversized/not an object. */
 function readConfigFile(file) {
@@ -53,8 +52,8 @@ function vetPatterns(list) {
       rejected.push(`#${i}: over ${MAX_PATTERNS} entries`);
     } else if (typeof src !== 'string' || src.length === 0 || src.length > MAX_PATTERN_CHARS) {
       rejected.push(`#${i}: not a string of 1-${MAX_PATTERN_CHARS} chars`);
-    } else if (NESTED_QUANTIFIER.test(src)) {
-      rejected.push(`#${i}: nested quantifier`);
+    } else if (!checkRegexShape(src, { maxLength: MAX_PATTERN_CHARS }).safe) {
+      rejected.push(`#${i}: nested quantifier`); // shared ReDoS shape check (unsafe-regex-shape-checker.cjs)
     } else {
       try {
         patterns.push(new RegExp(src));

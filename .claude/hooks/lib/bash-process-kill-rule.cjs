@@ -5,19 +5,27 @@
  * kills the shell running it whenever the pattern matches that string, not only for "plain"
  * patterns (`pkill -f '[s]erver.js'; node server.js &` still self-matches). Decisions:
  *   deny  pkill -f/--full whose pattern (as JS RegExp, approximating ERE) matches the full command
- *   deny  broad scope: pkill -u/-U/-g/-G/-P, killall -u, `kill -1` / `kill 0` / `kill -- -1`
+ *   deny  broad scope: pkill -u/-U/-g/-G/-P, killall -u, `kill 0`, `kill -- -1`, `kill -9 -1`
+ *         (a lone `kill -1` is just the HUP signal with no pid, so it is not matched)
+ *   deny  `pgrep -f <pat> | xargs [-r] kill [-9]` and `kill $(pgrep -f <pat>)` (also backticks) when
+ *         the pattern self-matches the full command: pgrep lists this shell too, and the kill takes it down
  *   ask   pkill -f with an uncompilable or non-literal pattern
  *   ask   kill by common name (node, python, bash, ssh, git, claude, ...) and `killall -r`:
  *         may take down Claude Code or the user's sessions
  *   allow everything else (killall Finder, pkill myworker)
- * Remedy text points at the bracket form and pgrep-by-PID.
+ * Unsafe-shaped or over-long patterns, or a command longer than MAX_MATCHED_COMMAND_CHARS, are not
+ * run through the regex engine (ReDoS: a hook timeout means allow): they return ask.
+ * Remedy text points at the bracket form and `pgrep -x <name>` (never a full-command pgrep, which self-matches).
  *
- * Contract: opaquePolicy 'skip', crashPolicy 'allow'.
+ * Contract: opaquePolicy 'inspect', crashPolicy 'allow'.
  */
-const { commandName } = require('./bash-command-segment-tokenizer.cjs');
+const { commandName, tokenize } = require('./bash-command-segment-tokenizer.cjs');
+const { checkRegexShape } = require('./unsafe-regex-shape-checker.cjs');
 
 const COMMON_NAMES = new Set(['node', 'python', 'python3', 'bash', 'sh', 'zsh', 'ssh', 'git', 'claude']);
-const REMEDY = "Use the bracket form `pkill -f '[v]ite'`, or kill the specific PID from `pgrep -x <name>` / `pgrep -af '<pattern>'`.";
+const MAX_PATTERN_CHARS = 256;
+const MAX_MATCHED_COMMAND_CHARS = 8192;
+const REMEDY = "Use the bracket form `pkill -f '[v]ite'`, or find the PID with `pgrep -x <name>` (a full-command pgrep matches this shell too).";
 
 // pkill options that take a value (letter, attached or next word) and long forms.
 const PKILL_VALUE_SHORT = new Set(['u', 'U', 'g', 'G', 'P', 's', 't', 'F']);
@@ -68,25 +76,49 @@ function parsePkill(args, dynamic) {
   return o;
 }
 
+/**
+ * Decides whether a `-f` pattern (pkill or pgrep) would match this command line. Returns null when
+ * it provably does not, a deny when it does, an ask when that cannot be decided safely.
+ * @param {string} tool 'pkill' | 'pgrep' (wording only)
+ */
+function fullPatternVerdict(o, pattern, ctx, tool) {
+  if (pattern.dynamic) return ask(`${tool} -f pattern is not a literal, so a self-match with this shell cannot be ruled out. ${REMEDY}`);
+  const shape = checkRegexShape(pattern.text, { maxLength: MAX_PATTERN_CHARS });
+  if (!shape.safe || ctx.fullCommand.length > MAX_MATCHED_COMMAND_CHARS) {
+    return ask(`${tool} -f pattern or command is too complex to check for a self-match with this shell. ${REMEDY}`);
+  }
+  let re;
+  try {
+    re = new RegExp(pattern.text, o.ignoreCase ? 'i' : '');
+  } catch {
+    return ask(`${tool} -f pattern could not be checked for self-match with this shell. ${REMEDY}`);
+  }
+  if (re.test(ctx.fullCommand)) {
+    return deny(`${tool} -f pattern matches this command line and would kill the shell running it. ${REMEDY}`);
+  }
+  return null;
+}
+
+/** Strongest verdict over the `pgrep -f` segments in `segments` (deny > ask > null). */
+function pgrepFullVerdict(segments, ctx) {
+  let found = null;
+  for (const seg of segments) {
+    if (commandName(seg) !== 'pgrep') continue;
+    const o = parsePkill(seg.argv.slice(1), (seg.dynamic || []).slice(1));
+    if (!o.full || !o.positional[0]) continue;
+    const v = fullPatternVerdict(o, o.positional[0], ctx, 'pgrep');
+    if (v && (!found || v.decision === 'deny')) found = v;
+  }
+  return found;
+}
+
 function checkPkill(segment, ctx) {
   const o = parsePkill(segment.argv.slice(1), (segment.dynamic || []).slice(1));
   if (o.broad) return deny(`pkill with a user/group/parent filter can kill Claude Code and unrelated sessions. ${REMEDY}`);
   const pattern = o.positional[0];
   if (!pattern) return null;
 
-  if (o.full) {
-    if (pattern.dynamic) return ask(`pkill -f pattern is not a literal, so a self-match with this shell cannot be ruled out. ${REMEDY}`);
-    let re;
-    try {
-      re = new RegExp(pattern.text, o.ignoreCase ? 'i' : '');
-    } catch {
-      return ask(`pkill -f pattern could not be checked for self-match with this shell. ${REMEDY}`);
-    }
-    if (re.test(ctx.fullCommand)) {
-      return deny(`pkill -f pattern matches this command line and would kill the shell running it. ${REMEDY}`);
-    }
-    return null;
-  }
+  if (o.full) return fullPatternVerdict(o, pattern, ctx, 'pkill');
 
   if (pattern.dynamic) return null;
   // Name match: -x is exact, otherwise substring (pkill semantics); only common names are risky.
@@ -133,8 +165,18 @@ function checkKillall(segment) {
   return hit ? ask(`killall ${hit} may kill Claude Code or your sessions. ${REMEDY}`) : null;
 }
 
-function checkKill(segment) {
+/** Inner command texts of `$(...)` and backtick groups inside a word. */
+function substitutionTexts(word) {
+  const out = [];
+  const re = /\$\(([^()]*)\)|`([^`]*)`/g;
+  let m;
+  while ((m = re.exec(word)) !== null) out.push(m[1] !== undefined ? m[1] : m[2]);
+  return out;
+}
+
+function checkKill(segment, ctx) {
   const args = segment.argv.slice(1);
+  let pids = 0;
   let sigSeen = false;
   let end = false;
   for (let i = 0; i < args.length; i += 1) {
@@ -156,10 +198,27 @@ function checkKill(segment) {
       }
       isPid = sigSeen; // `kill -9 -1`: the second dash-number is the pid
     }
+    if (isPid) pids += 1;
     if (isPid && (t === '0' || t === '-1')) {
       return deny(`kill ${t} signals every process you own (or the whole process group), including Claude Code. ${REMEDY}`);
     }
+    if (isPid && /[$`]/.test(t)) {
+      // kill $(pgrep -f pat): the substitution runs before kill and lists this shell too
+      for (const inner of substitutionTexts(t)) {
+        let segs = [];
+        try {
+          segs = tokenize(inner, { cwd: ctx.cwd });
+        } catch {
+          // untokenizable substitution: nothing to check
+        }
+        const v = pgrepFullVerdict(segs, ctx);
+        if (v) return v;
+      }
+    }
   }
+  // `... | xargs kill [-9]`: xargs is stripped by the tokenizer, so the pids come from another
+  // segment; when one of those is `pgrep -f <self-matching pattern>` the kill hits this shell.
+  if (pids === 0 && Array.isArray(ctx.segments)) return pgrepFullVerdict(ctx.segments, ctx);
   return null;
 }
 
@@ -167,7 +226,7 @@ function check(segment, ctx) {
   switch (commandName(segment)) {
     case 'pkill': return checkPkill(segment, ctx);
     case 'killall': return checkKillall(segment);
-    case 'kill': return checkKill(segment);
+    case 'kill': return checkKill(segment, ctx);
     default: return null;
   }
 }
@@ -175,7 +234,7 @@ function check(segment, ctx) {
 module.exports = {
   id: 'process-kill',
   configKey: 'processKill',
-  opaquePolicy: 'skip',
+  opaquePolicy: 'inspect', // `kill $(pgrep -f x)` is an opaque segment
   crashPolicy: 'allow',
   check,
 };

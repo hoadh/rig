@@ -12,11 +12,12 @@
  *     marks the segment `opaque: true`; `raw` still carries the original text so strict
  *     rules can inspect it
  *   - strips execution prefixes (sudo, env, nice, timeout, xargs, watch, ...) so argv[0] is the
- *     real command word, and re-tokenizes `sh|bash|zsh -c '<literal>'`
+ *     real command word, and re-tokenizes `sh|bash|zsh [-o opt] -c '<literal>'` and `eval <words>`
  *   - tracks `cd <literal>` so each segment knows its working directory
  *
  * Segment: { argv: string[], dynamic: boolean[] (parallel to argv: word holds a variable, glob or
- *            brace expansion), raw, opaque, cwd, cwdUnknown, fullCommand }
+ *            brace expansion), raw, opaque, cwd, cwdUnknown, fullCommand,
+ *            op: operator that ended the segment: ';' '&&' '||' '|' '&' '\\n' '(' ')' or '' at the end }
  *
  * Exports: tokenize(command, {cwd, cwdUnknown}), commandName(segment), expandHome(p)
  */
@@ -116,14 +117,22 @@ function stripPrefixes(words) {
   return a;
 }
 
-/** `bash -c '<script>'` -> the script text, else null. */
+/**
+ * `bash -c '<script>'` (options such as `-o pipefail` / `+o x` / `-O opt` may come before `-c`) or
+ * `eval <words>` -> the script text to re-scan, else null.
+ */
 function shellDashCScript(words) {
-  if (words.length < 3) return null;
+  if (words.length < 2) return null;
   const name = path.posix.basename(words[0].text.replace(/\\/g, '/'));
-  if (!SHELLS.has(name)) return null;
+  if (name === 'eval') return words.slice(1).map((w) => w.text).join(' ');
+  if (words.length < 3 || !SHELLS.has(name)) return null;
   for (let i = 1; i < words.length; i += 1) {
     const t = words[i].text;
     if (/^-[a-zA-Z]*c[a-zA-Z]*$/.test(t)) return i + 1 < words.length ? words[i + 1].text : null;
+    if (/^[-+][a-zA-Z]*[oO]$/.test(t)) {
+      i += 1; // the option's value (`pipefail`, `extglob`) is not the script
+      continue;
+    }
     if (t === '--' || t[0] !== '-') return null;
   }
   return null;
@@ -280,8 +289,11 @@ function scan(text, start, fullCommand, depth) {
           cwd,
           cwdUnknown: unknown,
           fullCommand,
+          op,
         });
       }
+      // The operator after the whole `bash -c '...'` also follows its last inner command.
+      if (subs.length > 0 && subs[subs.length - 1].op === '') subs[subs.length - 1].op = op;
       segments.push(...subs);
       if (!opaque && stripped.length > 0 && CD_COMMANDS.has(stripped[0].text) && CD_PERSISTS.has(op)) {
         ({ cwd, unknown } = applyCd(stripped, cwd, unknown));
