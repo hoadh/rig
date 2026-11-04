@@ -158,6 +158,10 @@ describe('subagent-init.cjs', () => {
           context.includes('Edit plan.md directly') && context.includes('In Progress'),
           `Agent type '${agentType}' should be told to edit plan.md status directly`
         );
+        assert.ok(
+          context.includes('open `LIVE:` items') && context.includes('keep In Progress'),
+          `Agent type '${agentType}' should be told not to complete phases with open LIVE items`
+        );
         assert.ok(!context.includes(' plan check'), `Agent type '${agentType}' should not reference a plan CLI`);
       }
     });

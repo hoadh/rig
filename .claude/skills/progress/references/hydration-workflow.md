@@ -46,7 +46,7 @@ Task tools (`TaskCreate`/`TaskUpdate`/`TaskGet`/`TaskList`) are **CLI-only** —
 
 1. Collect completed tasks (`TaskUpdate(status: "completed")`) with metadata (`phase`, `phaseFile`, `planDir`).
 2. Sweep all `phase-XX-*.md` files in the target plan directory.
-3. Reconcile and backfill: update `[ ]` → `[x]` for all completed items across every phase file (including earlier phases).
+3. Reconcile and backfill: update `[ ]` → `[x]` for all completed items across every phase file (including earlier phases). Never backfill or hydrate `LIVE:` / `LIVE(blocking):` items; they need evidence pointers and keep the phase `In Progress` while open.
 4. Update `plan.md` frontmatter: status field (pending → in-progress → completed).
 5. Update progress percentages in `plan.md` overview from real checkbox counts.
 6. Report unresolved mappings when completed tasks cannot be matched to a phase file.

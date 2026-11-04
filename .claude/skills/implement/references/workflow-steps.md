@@ -141,6 +141,7 @@ All modes share core steps with mode-specific variations.
 
 Edit plan.md directly — set the Status column cell to `Completed` / `In Progress` / `Pending`,
 preserve table structure.
+Exception: never set `Completed` for a phase with open `- [ ] LIVE:` / `LIVE(blocking):` items (Pending Live Verification); keep `In Progress`.
    - Sweep all `phase-XX-*.md` files in the plan directory.
    - Mark every completed item `[ ] → [x]` based on completed tasks (including earlier phases finished before current phase).
    - Update `plan.md` status/progress (`pending`/`in-progress`/`completed`) from actual checkbox state.
