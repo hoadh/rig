@@ -5,15 +5,15 @@
  * many times it has nudged/blocked, in a small temp file `<tmpdir>/rig-verify-guard-<session_id>.json`
  * = {turnKey, count, chain, chainKey}.
  *   count  nudges in the current turn; a new turnKey resets it.
- *   chain  consecutive nudges issued while stop_hook_active was true, valid only for `chainKey`
- *          (= the turn it was counted in) and reset by any Stop where stop_hook_active is false, so
- *          a finished turn's chain never suppresses a block in the next turn.
+ *   chain  consecutive nudges issued while stop_hook_active was true, independent of the turn key
+ *          (hard cap even if the key shifts per continuation); reset by any Stop where
+ *          stop_hook_active is false, so a finished turn's chain never suppresses the next turn.
  * Writes are atomic: a fresh O_EXCL (`wx`, 0600) temp file with a random name, then rename, so a
  * symlink planted at a predictable name is never followed. incrementCount reports whether the write persisted: block mode
  * must allow the stop when it did not, or an unwritable tmpdir would block forever.
  * On the first write of a session, state files older than 24h are removed (bounded scan).
  *
- * Exports: readCount, readChain(sessionId, turnKey), resetChain(sessionId), incrementCount(sessionId, turnKey, {active})
+ * Exports: readCount, readChain(sessionId), resetChain(sessionId), incrementCount(sessionId, turnKey, {active})
  *          -> {count, chain, persisted}, stateFile(sessionId), pruneStaleStateFiles(now)
  */
 const crypto = require('crypto');
@@ -48,10 +48,13 @@ function readCount(sessionId, turnKey) {
   return s.turnKey === turnKey ? positiveInt(s.count) : 0;
 }
 
-/** Consecutive nudges issued while stop_hook_active was true, in this turn (0 for any other turn). */
-function readChain(sessionId, turnKey) {
-  const s = readState(sessionId);
-  return s.chainKey === turnKey ? positiveInt(s.chain) : 0;
+/**
+ * Consecutive nudges issued while stop_hook_active was true. Deliberately NOT keyed to the turn key:
+ * the key can shift on every continuation (window-exhausted turns), and a finished chain is ended by
+ * resetChain() on the next non-active Stop instead.
+ */
+function readChain(sessionId) {
+  return positiveInt(readState(sessionId).chain);
 }
 
 /** Atomic best-effort write of the state object; returns whether it persisted. */
@@ -106,7 +109,7 @@ function pruneStaleStateFiles(now = Date.now()) {
  */
 function incrementCount(sessionId, turnKey, opts = {}) {
   const count = readCount(sessionId, turnKey) + 1;
-  const chain = opts.active === true ? readChain(sessionId, turnKey) + 1 : 1;
+  const chain = opts.active === true ? readChain(sessionId) + 1 : 1;
   const persisted = writeState(sessionId, { turnKey, count, chain, chainKey: turnKey });
   return { count, chain, persisted };
 }

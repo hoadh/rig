@@ -10,7 +10,7 @@
  *   block:  {"decision":"block"} at most twice per turn (own counter); a line starting
  *           `Verification skipped: <reason>` in the final message lets it through. Loop guards: the
  *           stop is allowed when the counter cannot be persisted, and when stop_hook_active is true
- *           after MAX_BLOCKS_PER_TURN consecutive blocks (chain counted per turn, reset by any non-active stop).
+ *           after MAX_BLOCKS_PER_TURN consecutive blocks (chain independent of the turn key, reset by any non-active stop).
  * Always off: RIG_VERIFY_GUARD_MODE=off (set by rig:remote for agent children), headless runs
  * (CLAUDE_CODE_ENTRYPOINT=sdk-*, CLAUDE_CODE_SESSION_ATTENDED=0), and stop_hook_active in remind mode.
  *
@@ -104,7 +104,7 @@ try {
   const issued = readCount(sessionId, turnKey);
   const cap = remind ? MAX_REMINDS_PER_TURN : MAX_BLOCKS_PER_TURN;
   // Hard cap that survives a changing turn key: Claude is already continuing from our own blocks.
-  if (issued >= cap || (!remind && active && readChain(sessionId, turnKey) >= MAX_BLOCKS_PER_TURN)) {
+  if (issued >= cap || (!remind && active && readChain(sessionId) >= MAX_BLOCKS_PER_TURN)) {
     log(`${remind ? 'remind-cap' : 'block-cap'} allow${suffix}`, 'skip');
     process.exit(0);
   }

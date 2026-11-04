@@ -165,13 +165,28 @@ function isFailureKeepingExit(seg) {
   return code === undefined || code === '$?' || (/^\d+$/.test(code) && Number(code) !== 0);
 }
 
-/** `|| exit 1`, `|| exit $?`, `|| { echo x; exit 1; }`: the segments from `from` (to the group's `}`) exit non-zero. */
+/** `|| exit 1`, `|| exit $?`, `|| { echo x; exit 1; }`: what follows `||` ends in a failing exit. */
 function failureTailFollows(segments, from) {
+  if (!segments[from]) return false;
+  if (/^\{/.test(segments[from].raw || '')) {
+    // `{ ...; exit N; }`: scan the group (up to its `}`)
+    for (let j = from; j < segments.length; j += 1) {
+      if (isFailureKeepingExit(segments[j])) return true;
+      if (segments[j].argv && segments[j].argv[0] === '}') return false;
+    }
+    return false;
+  }
+  // bare tail: only `exit` directly after `||` (through `&&`), never past a `;` / newline
   for (let j = from; j < segments.length; j += 1) {
     if (isFailureKeepingExit(segments[j])) return true;
-    if (segments[j].argv && segments[j].argv[0] === '}') return false;
+    if (segments[j].op !== '&&') return false;
   }
   return false;
+}
+
+/** `echo "exit=$?"`, `echo $?`, `printf '%s' $?`: prints the status of the command just run. */
+function isStatusEcho(seg) {
+  return Boolean(seg && seg.argv && (seg.argv[0] === 'echo' || seg.argv[0] === 'printf') && seg.argv.slice(1).some((a) => a.includes('$?')));
 }
 
 /**
@@ -188,6 +203,7 @@ function isMasked(segments, idx) {
     if (MASKING_OPS_IF_MORE.has(op) && k < segments.length - 1) {
       const next = segments[k + 1];
       if (next.argv && next.argv[0] === 'exit' && (next.argv[1] === undefined || next.argv[1] === '$?')) return false;
+      if (isStatusEcho(next)) continue; // `cmd >log 2>&1; echo "exit=$?"` surfaces the real status
       return true;
     }
   }
