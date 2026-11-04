@@ -1,60 +1,31 @@
 # Project Instructions
 
-Project instructions for Antigravity, generated from `CLAUDE.md` by `scripts/sync-antigravity-agent-dir.cjs`. Claude Code concepts are mapped in `.agent/rules/claude-code-concepts-in-antigravity.md`.
+Guidance for Claude Code (claude.ai/code) in this repository.
 
-## Role & Responsibilities
+## Role
+You do the work. Use subagents when they buy isolation, parallelism or an unanchored review, not by default. Size the process to the task using the tiers in `.agent/rules/primary-workflow.md`.
 
-Your role is to analyze user requirements, delegate tasks to appropriate sub-agents, and ensure cohesive delivery of features that meet specifications and architectural standards.
-
-## Workflows
-
-- Primary workflow: `./.agent/rules/primary-workflow.md`
-- Development rules: `./.agent/rules/development-rules.md`
-- Orchestration protocols: `./.agent/rules/orchestration-protocol.md`
-- Documentation management: `./.agent/rules/documentation-management.md`
-- And other workflows: `./.agent/rules/*`
-
-**IMPORTANT:** Analyze the skills catalog and activate the skills that are needed for the task during the process.
-**IMPORTANT:** You must follow strictly the development rules in `./.agent/rules/development-rules.md` file.
-**IMPORTANT:** Before you plan or proceed any implementation, always read the `./README.md` file first to get context.
-**IMPORTANT:** Sacrifice grammar for the sake of concision when writing reports.
-**IMPORTANT:** In reports, list any unresolved questions at the end, if any.
+## Rules
+- Workflow and tiers: `.agent/rules/primary-workflow.md`; development rules: `.agent/rules/development-rules.md`; orchestration: `.agent/rules/orchestration-protocol.md`; docs and plans: `.agent/rules/documentation-management.md`; other rules in `.agent/rules/`.
+- Read `./README.md` before planning or implementing, for context.
+- Activate the skills from the catalog that fit the task.
+- Edit skills in this repo's `.agent/skills/`, not in `~/.claude/skills`, unless asked.
+- Reports: concise, grammar optional, unresolved questions last.
 
 ## Git
-
-**DO NOT** use `chore` and `docs` in commit messages of file changes in `.claude` directory.
+Commits touching `.agent/` do not use the `chore` or `docs` commit types (project convention).
 
 ## Python Scripts (Skills)
+Run skill scripts with the skills venv so installed packages (google-genai, pypdf) are found:
+- Linux/macOS: `.agent/skills/.venv/bin/python3 scripts/xxx.py`
+- Windows: `.claude\skills\.venv\Scripts\python.exe scripts\xxx.py`
 
-When running Python scripts from `.agent/skills/`, use the venv Python interpreter:
-- **Linux/macOS:** `.agent/skills/.venv/bin/python3 scripts/xxx.py`
-- **Windows:** `.claude\skills\.venv\Scripts\python.exe scripts\xxx.py`
+If a skill script fails, try to fix it instead of stopping.
 
-This ensures packages installed by `install.sh` (google-genai, pypdf, etc.) are available.
+## Modularization
+- Split a file when it mixes concerns or passes ~500 lines (data, generated and test files exempt; see `docs/reference/code-standards.md`). Check existing modules first.
+- Long kebab-case file names that describe purpose help Grep/Glob. Comment non-obvious code.
+- Markdown, plain text, bash scripts and config files need no splitting.
 
-**IMPORTANT:** When scripts of skills failed, don't stop, try to fix them directly.
-
-## [IMPORTANT] Consider Modularization
-- If a code file exceeds 500 lines of code, modularize it (see `docs/reference/code-standards.md`)
-- Check existing modules before creating new
-- Analyze logical separation boundaries (functions, classes, concerns)
-- Use kebab-case naming with long descriptive names, it's fine if the file name is long because this ensures file names are self-documenting for LLM tools (Grep, Glob, Search)
-- Write descriptive code comments
-- After modularization, continue with main task
-- When not to modularize: Markdown files, plain text files, bash scripts, configuration files, environment variables files, etc.
-
-## Documentation Management
-
-We keep all important docs in `./docs` folder and keep updating them, structure like below:
-
-```
-./docs
-├── README.md          # Diataxis index
-├── tutorials/         # learning paths (only if needed)
-├── how-to/            # task guides (deploy.md)
-├── reference/         # code-standards.md, codebase-summary.md, design-guidelines.md
-├── explanation/       # architecture.md, decisions/ (ADRs)
-└── project/           # overview-pdr.md, roadmap.md, changelog.md
-```
-
-**IMPORTANT:** *MUST READ* and *MUST COMPLY* all *INSTRUCTIONS* in project `./GEMINI.md`, especially *WORKFLOWS* section is *CRITICALLY IMPORTANT*, this rule is *MANDATORY. NON-NEGOTIABLE. NO EXCEPTIONS. MUST REMEMBER AT ALL TIMES!!!*
+## Documentation
+Docs live in `./docs` (Diataxis): `README.md` index, `tutorials/`, `how-to/`, `reference/` (code-standards, codebase-summary, design-guidelines), `explanation/` (architecture, `decisions/`), `project/` (overview-pdr, roadmap, changelog).

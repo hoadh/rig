@@ -7,6 +7,7 @@ Detect user intent from natural language and route to appropriate workflow.
 ```
 FUNCTION detectMode(input):
   # Priority 1: Explicit flags (override all)
+  IF input contains "--full": RETURN "interactive"  # forces Large tier
   IF input contains "--fast": RETURN "fast"
   IF input contains "--parallel": RETURN "parallel"
   IF input contains "--auto": RETURN "auto"
@@ -33,8 +34,11 @@ FUNCTION detectMode(input):
   IF count(features) >= 3 OR keywords contains "parallel":
     RETURN "parallel"
 
-  # Default: interactive workflow
-  RETURN "interactive"
+  # Default: tier-driven (tiers defined in .agent/rules/primary-workflow.md)
+  tier = classifyTier(input)  # risk signals (auth, data, infra, public API) force Large
+  IF tier == "Trivial": RETURN "none"  # do it directly, no workflow
+  IF tier == "Standard": RETURN "fast"
+  RETURN "interactive"  # Large
 ```
 
 ## Feature Extraction
@@ -53,7 +57,7 @@ Detect multiple features from natural language:
 
 | Mode | Skip Research | Skip Test | Review Gates | Auto-Approve | Parallel Exec |
 |------|---------------|-----------|--------------|--------------|---------------|
-| interactive | ✗ | ✗ | **Yes (stops)** | ✗ | ✗ |
+| interactive (also `--full`) | ✗ | ✗ | **Yes (stops)** | ✗ | ✗ |
 | auto | ✗ | ✗ | **No (skips)** | ✓ (score≥9.5) | ✓ (all phases) |
 | fast | ✓ | ✗ | Yes (stops) | ✗ | ✗ |
 | parallel | Optional | ✗ | Yes (stops) | ✗ | ✓ |
@@ -68,7 +72,7 @@ Detect multiple features from natural language:
 
 ```
 "/implement implement user auth"
-→ Mode: interactive (default, stops at review gates)
+→ Mode: tier-driven default (Standard -> fast, Large/risky -> interactive; stops at review gates)
 
 "/implement plans/260120-auth/phase-02-api.md"
 → Mode: code (path detected, stops at review gates)
@@ -98,4 +102,4 @@ When multiple signals detected, priority order:
 2. Path detection (plan files)
 3. Keywords in text
 4. Feature count analysis
-5. Default (interactive)
+5. Default (tier-driven: Trivial none, Standard fast, Large interactive)

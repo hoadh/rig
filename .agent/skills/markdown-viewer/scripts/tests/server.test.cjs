@@ -8,7 +8,6 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const http = require('http');
 
 const { isPortAvailable, findAvailablePort, DEFAULT_PORT } = require('../lib/port-finder.cjs');
 const { writePidFile, readPidFile, removePidFile, findRunningInstances } = require('../lib/process-mgr.cjs');

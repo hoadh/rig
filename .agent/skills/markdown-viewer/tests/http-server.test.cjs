@@ -7,9 +7,6 @@ const assert = require('assert');
 const {
   createHttpServer,
   getMimeType,
-  sendResponse,
-  sendError,
-  serveFile,
   isPathSafe,
   setAllowedDirs,
   sanitizeErrorMessage,
@@ -148,7 +145,7 @@ describe('createHttpServer', () => {
   it('should create an HTTP server', () => {
     const server = createHttpServer({
       assetsDir: __dirname,
-      renderMarkdown: (fp) => '<html></html>',
+      renderMarkdown: () => '<html></html>',
       allowedDirs: [__dirname]
     });
     assert(server);
@@ -159,7 +156,7 @@ describe('createHttpServer', () => {
   it('should require assetsDir', () => {
     const server = createHttpServer({
       assetsDir: __dirname,
-      renderMarkdown: (fp) => '<html></html>'
+      renderMarkdown: () => '<html></html>'
     });
     assert(server);
     server.close();
@@ -168,7 +165,7 @@ describe('createHttpServer', () => {
   it('should accept plansDir option', () => {
     const server = createHttpServer({
       assetsDir: __dirname,
-      renderMarkdown: (fp) => '<html></html>',
+      renderMarkdown: () => '<html></html>',
       plansDir: '/plans'
     });
     assert(server);
@@ -178,7 +175,7 @@ describe('createHttpServer', () => {
   it('should accept allowedDirs option', () => {
     const server = createHttpServer({
       assetsDir: __dirname,
-      renderMarkdown: (fp) => '<html></html>',
+      renderMarkdown: () => '<html></html>',
       allowedDirs: [__dirname, '/tmp']
     });
     assert(server);
@@ -190,7 +187,7 @@ describe('Route: /assets/*', () => {
   it('should prevent directory traversal in assets path', () => {
     const server = createHttpServer({
       assetsDir: __dirname,
-      renderMarkdown: (fp) => '<html></html>'
+      renderMarkdown: () => '<html></html>'
     });
     // Route validation happens internally - can't test HTTP response without full setup
     server.close();
@@ -199,7 +196,7 @@ describe('Route: /assets/*', () => {
   it('should validate asset paths for ../', () => {
     const server = createHttpServer({
       assetsDir: __dirname,
-      renderMarkdown: (fp) => '<html></html>'
+      renderMarkdown: () => '<html></html>'
     });
     // Security check happens in route handler
     server.close();
@@ -210,7 +207,7 @@ describe('Route: /dashboard', () => {
   it('should accept plansDir parameter', () => {
     const server = createHttpServer({
       assetsDir: __dirname,
-      renderMarkdown: (fp) => '<html></html>',
+      renderMarkdown: () => '<html></html>',
       plansDir: __dirname
     });
     server.close();
@@ -219,7 +216,7 @@ describe('Route: /dashboard', () => {
   it('should validate custom directory parameter', () => {
     const server = createHttpServer({
       assetsDir: __dirname,
-      renderMarkdown: (fp) => '<html></html>',
+      renderMarkdown: () => '<html></html>',
       allowedDirs: [__dirname]
     });
     server.close();
@@ -230,7 +227,7 @@ describe('Route: /api/dashboard', () => {
   it('should return JSON response', () => {
     const server = createHttpServer({
       assetsDir: __dirname,
-      renderMarkdown: (fp) => '<html></html>',
+      renderMarkdown: () => '<html></html>',
       plansDir: __dirname
     });
     server.close();
@@ -239,7 +236,7 @@ describe('Route: /api/dashboard', () => {
   it('should handle missing plansDir gracefully', () => {
     const server = createHttpServer({
       assetsDir: __dirname,
-      renderMarkdown: (fp) => '<html></html>'
+      renderMarkdown: () => '<html></html>'
     });
     server.close();
   });
@@ -249,7 +246,7 @@ describe('Route: /file/*', () => {
   it('should validate file path safety', () => {
     const server = createHttpServer({
       assetsDir: __dirname,
-      renderMarkdown: (fp) => '<html></html>',
+      renderMarkdown: () => '<html></html>',
       allowedDirs: [__dirname]
     });
     server.close();
@@ -260,7 +257,7 @@ describe('Route: /api/files', () => {
   it('should be disabled for security', () => {
     const server = createHttpServer({
       assetsDir: __dirname,
-      renderMarkdown: (fp) => '<html></html>'
+      renderMarkdown: () => '<html></html>'
     });
     server.close();
   });

@@ -26,6 +26,7 @@ Rig docs follow [Diataxis](https://diataxis.fr/): each page has one job. Layout 
 - [Antigravity vs Claude Code](./explanation/antigravity-vs-claude-code.md) - concept differences between the two tools
 - [ADR 0001: Agent state lives in files](./explanation/decisions/0001-agent-state-lives-in-files.md) - why agents keep no state outside `plans/`, `docs/` and the session temp file
 - [ADR 0002: Multi-machine remote orchestration](./explanation/decisions/0002-multi-machine-remote-orchestration.md) - git as transport, single-writer coordination branch, detached worker runs; extends ADR 0001
+- [ADR 0003: Workflow size tiers](./explanation/decisions/0003-workflow-size-tiers.md) - trivial, standard and large tiers; why small work runs without subagents
 
 ## Project
 - [Overview & PDR](./project/overview-pdr.md) · [Roadmap](./project/roadmap.md)

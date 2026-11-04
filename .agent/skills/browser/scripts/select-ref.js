@@ -84,7 +84,7 @@ async function selectRef() {
         result.value = args.value;
         break;
 
-      case 'screenshot':
+      case 'screenshot': {
         if (!args.output) {
           throw new Error('--output is required for screenshot action');
         }
@@ -94,11 +94,13 @@ async function selectRef() {
         result.output = path.resolve(args.output);
         result.message = 'Screenshot saved';
         break;
+      }
 
-      case 'text':
+      case 'text': {
         const text = await page.evaluate(el => el.textContent?.trim(), elementHandle);
         result.text = text;
         break;
+      }
 
       case 'focus':
         await elementHandle.focus();

@@ -25,12 +25,13 @@ rig/
 │   └── statusline.cjs    # Statusline script
 ├── .agent/              # Antigravity copy (generated, see GEMINI.md)
 ├── .github/             # GitHub Actions workflows
-│   └── workflows/       # CI/CD automation
+│   └── workflows/       # ci.yml (lint, tests, eval tier 1, pytest); antigravity-sync-check.yml
 ├── docs/                # Project documentation (Diataxis layout, index: docs/README.md)
 │   ├── tutorials/ how-to/ reference/ explanation/   # One Diataxis type per dir
 │   ├── project/         # PDR, roadmap, changelog
 │   └── research/ devlog/ assets/   # Not reader docs, left untouched
 ├── guide/               # User guides and references
+├── scripts/             # Installer, release, Antigravity sync, eval (scripts/eval/), benchmark (scripts/benchmark/)
 ├── plans/               # Implementation plans and reports
 │   ├── reports/         # Agent-to-agent communication
 │   └── templates/       # Plan templates
@@ -47,10 +48,11 @@ rig/
 - **License**: MIT (see `LICENSE`)
 
 ### Development Tools
+- **ESLint 10**: `npm run lint`, flat config in `eslint.config.mjs`
 - **Repomix**: Codebase compaction for AI consumption
 
 ### CI/CD
-- **GitHub Actions**: Automated release workflow
+- **GitHub Actions**: `ci.yml` (lint, Node tests on three OSes, eval tier 1, pytest) and `antigravity-sync-check.yml`; releases are manual
 - **Semantic Versioning**: Automated version management
 - **Conventional Commits**: Structured commit messages
 
@@ -260,7 +262,8 @@ Types:
 None (template project)
 
 ### Development Dependencies
-None (tests run with plain Node)
+- `eslint`, `@eslint/js`, `globals`, `typescript-eslint` (lint only)
+- Tests run with plain Node (`npm test`)
 
 ## Integration Capabilities
 

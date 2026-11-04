@@ -1,5 +1,5 @@
 ---
-description: "Implement a feature or plan end-to-end: plan, code, test, review. ALWAYS activate this skill before implementing EVERY feature, plan, or fix."
+description: "Implement a feature or plan end-to-end: plan, code, test, review. Use for Standard and Large tasks (multi-file, planned or risky work). Trivial one-file fixes are done directly without this skill (tiers in .agent/rules/primary-workflow.md)."
 ---
 
 Read `.agent/skills/implement/SKILL.md` and follow it.

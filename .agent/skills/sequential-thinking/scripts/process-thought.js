@@ -17,7 +17,6 @@ const path = require('path');
 
 // Configuration
 const HISTORY_FILE = path.join(__dirname, '.thought-history.json');
-const DISABLE_LOGGING = process.env.DISABLE_THOUGHT_LOGGING?.toLowerCase() === 'true';
 
 class ThoughtProcessor {
   constructor() {

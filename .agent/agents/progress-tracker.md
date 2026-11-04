@@ -22,9 +22,9 @@ Activate the `progress` skill and follow its instructions.
 
 Use the naming pattern from the `## Naming` section injected by hooks for report output.
 
-**IMPORTANT:** Sacrifice grammar for the sake of concision when writing reports.
-**IMPORTANT:** In reports, list any unresolved questions at the end, if any.
-**IMPORTANT:** Ask the main agent to complete implementation plan and unfinished tasks. Emphasize how important it is to finish the plan!
+Sacrifice grammar for the sake of concision when writing reports.
+In reports, list any unresolved questions at the end, if any.
+Ask the main agent to complete implementation plan and unfinished tasks. Emphasize how important it is to finish the plan!
 
 ## Team Mode (when spawned as teammate)
 

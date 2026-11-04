@@ -41,7 +41,9 @@ Full catalog (responsibilities, files, technology stack): [System Components](..
 
 ## Component Interactions
 
-### Typical Interaction Flow: Feature Implementation
+### Typical Interaction Flow: Large Feature
+
+Large-tier work (multi-phase, cross-cutting or risky) takes this path. Trivial and standard tasks skip the planner and researchers; see [ADR 0003](decisions/0003-workflow-size-tiers.md).
 
 ```
 ┌─────────────┐
@@ -325,6 +327,15 @@ Developer Machine
 ```
 
 ### CI/CD Pipeline
+
+`.github/workflows/ci.yml` runs on every push and pull request to `main`:
+
+| Job | Runs |
+|---|---|
+| `lint` | `npm ci`, then `npm run lint` (ESLint 10, `eslint.config.mjs`) |
+| `test-node` | `npm test` on Ubuntu, Windows and macOS; the sequential-thinking Jest suite and the library-docs runner on Ubuntu |
+| `eval-tier-1` | `bun scripts/eval/run.ts 1` (static checks, no secrets) |
+| `test-python` | pytest for context-engineering, create-skill, media and ui-styling |
 
 Releases are manual:
 

@@ -1,6 +1,6 @@
 # Rig - Project Roadmap
 
-**Last Updated:** 2026-10-18
+**Last Updated:** 2026-11-04
 **Current Version:** 1.0.0
 **Repository:** https://github.com/hoadh/rig
 
@@ -15,7 +15,7 @@ Rig is an orchestration framework for Claude Code: agents, skills, hooks and wor
 | Milestone | Status | Notes |
 |-------|--------|-------|
 | 1.0.0 | Released (2026-10-17) | Agents, skills, hooks, docs workflow, rig:remote v1, Antigravity copy |
-| Next | Not started | Bash secret guard, real lint step, rig:remote follow-ups |
+| Next | In progress | Secret-file read guard, real lint and CI, workflow size tiers, benchmark harness (Unreleased). Follow-ups below |
 
 ---
 
@@ -50,8 +50,14 @@ Runs plan phases and test commands on macOS, Windows and Linux workers over ssh.
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Bash guard for secret files | Not started | The `permissions.ask` rules cover the `Read`/`Edit` tools only, so a Bash command like `cat .env` is not caught. Add a check for Bash commands that read `.env`, keys and credentials |
-| Real lint step in CI | Not started | `npm run lint` is a placeholder that always passes |
+| Bash guard for secret files | Done (Unreleased) | `bash-safety-guard` asks before Bash readers and copiers (`cat`, `grep`, `source`, `cp`, `curl @file`) touch secret files. Switch: `bashSafetyGuard.rules.secretFileRead`. A seatbelt, not a sandbox. See [how-to](../how-to/configure-verification-and-safety-guards.md) |
+| Real lint step in CI | Done (Unreleased) | `npm run lint` runs ESLint 10 (`eslint.config.mjs`). `.github/workflows/ci.yml` runs lint, all Node suites on Ubuntu, Windows and macOS, eval tier 1 and the Python skill tests. Make the jobs required checks in GitHub settings |
+| Workflow size tiers and rule tone | Done (Unreleased) | Trivial, standard and large tiers replace "plan first for everything"; always-loaded text down 48%. See [ADR 0003](../explanation/decisions/0003-workflow-size-tiers.md) |
+| Rig vs vanilla benchmark harness | Done (Unreleased) | `npm run bench`, `bench:verify`, `bench:report`. Full run (36 runs) not yet done; no results published. See [scripts/benchmark/README.md](../../scripts/benchmark/README.md) |
+| Skill tone pass | Not started | Remove emphasis markers and absolutes from the skill bodies outside `implement` (the always-loaded rules are done) |
+| Benchmark per release | Not started | Run the full benchmark (6 tasks x 3 runs x 2 arms) before each release; commit `results/<date>/summary.md`; re-score against the 2026-11-04 self-assessment |
+| CI hardening | Not started | From the 2026-11-04 review: pin third-party actions by commit SHA; set `bun-version` on `oven-sh/setup-bun`; `persist-credentials: false` on checkout; `cancel-in-progress` only for pull requests (today it also cancels runs of earlier `main` pushes) |
+| Node floor for lint | Not started | ESLint 10 needs Node 20.19+, but `package.json` `engines` says `>=18`. Align one with the other |
 | rig:remote: worker auth after a Windows reboot | Not started | Only logoff was verified |
 | rig:remote: `doctor` between two workers | Not started | No worker-to-worker keys by design |
 | rig:remote: per-argument PreToolUse guard | Deferred | Low priority; see ADR 0002 threat model. The generic `bash-safety-guard` does not replace it |
@@ -79,7 +85,7 @@ No work is tracked for these. Confirm before starting.
 
 - **Runtime:** Node.js >= 18.0.0 (`package.json` engines), Bash, Python 3 for some skill scripts
 - **Host:** Claude Code CLI. Antigravity reads `.agent/` and `GEMINI.md`, generated from `.claude/` by `scripts/sync-antigravity-agent-dir.cjs`
-- **Dev tooling:** no npm dependencies; tests run with plain Node (`npm test`)
+- **Dev tooling:** ESLint 10 (devDependencies) for `npm run lint`; tests run with plain Node (`npm test`); CI in `.github/workflows/ci.yml`
 - **External services:** GitHub (Actions, releases, PRs via `gh`), no npm publishing (releases are GitHub Releases with `rig.zip`), ssh (rig:remote only), Telegram, Discord or Slack webhook (notifications hook, optional)
 - **Constraints:** state lives in files ([ADR 0001](../explanation/decisions/0001-agent-state-lives-in-files.md)); agent definitions are Markdown with frontmatter; conventional commits required
 

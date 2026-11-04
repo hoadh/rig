@@ -13,9 +13,7 @@ require('./test-framework.cjs');
 
 const testsDir = __dirname;
 const testFiles = [
-  'dashboard-renderer.test.cjs',
-  'http-server.test.cjs',
-  'dashboard-assets.test.cjs'
+  'http-server.test.cjs'
 ];
 
 console.log('\n' + '='.repeat(70));

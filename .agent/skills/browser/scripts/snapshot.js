@@ -45,7 +45,7 @@ async function snapshot() {
         const rect = el.getBoundingClientRect();
 
         // Generate unique selector
-        let uniqueSelector = '';
+        let uniqueSelector;
         if (el.id) {
           uniqueSelector = `#${el.id}`;
         } else if (el.className) {

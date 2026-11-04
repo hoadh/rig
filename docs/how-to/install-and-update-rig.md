@@ -2,7 +2,7 @@
 
 Install the kit from a local clone of this repo, globally or into one project. First time? Follow [Getting started](../tutorials/getting-started.md) instead.
 
-Requirements: [Claude Code](https://code.claude.com/docs/en/setup), Git, Node.js 18+. macOS 10.15+, Ubuntu 20.04+/Debian 10+, or Windows 10+ (WSL 1/2 or Git for Windows). 4GB+ RAM.
+Requirements: [Claude Code](https://code.claude.com/docs/en/setup), Git, Node.js 18+. macOS 10.15+, Ubuntu 20.04+/Debian 10+, or Windows 10+ (WSL 1/2 or Git for Windows). 4GB+ RAM. Contributors running `npm run lint` need Node 20.19+, 22.13+ or 24+, because ESLint 10 requires it.
 
 ## Install
 
@@ -27,9 +27,16 @@ Requirements: [Claude Code](https://code.claude.com/docs/en/setup), Git, Node.js
 - Hooks the kit no longer ships are removed from `settings.json` (only the kit's own command form; your hooks are kept). Retired kit files listed in `scripts/install-kit/retired-kit-hooks-and-files-cleanup.cjs` are deleted.
 - `CLAUDE.md`, `AGENTS.md`, `.gitignore`, `.mcp.json`, `.rig.json` are only created when missing.
 
-## Global and project install together
+## Install globally or per project, not both
 
-Both installs can coexist. A hook that both register runs once, from the project copy: the global copy exits when the project's `.claude/settings.json` or `settings.local.json` registers its own copy of the same hook for the same event and matcher. Hooks registered on only one side still run, and so does the global copy when the project copy is a symlink to it, the handler has an `if` condition, or the project sets `disableAllHooks`. A hook disabled in the project's `.rig.json` does not fall back to the global copy.
+Choose one:
+
+- **Global** (`--global`): every project on this machine uses `~/.claude`.
+- **Per project** (`--dir <project>`): only that project gets a copy in its `.claude/`.
+
+Do not install both for the same project. Rules load twice otherwise. If you installed both, remove the copy you do not want by hand; the installer does not remove the other one.
+
+Hooks that both copies register are not run twice: the global copy steps aside for a project hook with the same event and matcher. It runs anyway when the project copy is a symlink to it, the handler has an `if` condition, or the project sets `disableAllHooks`. Rules and `CLAUDE.md` have no such check.
 
 ## Update
 

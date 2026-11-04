@@ -1,111 +1,35 @@
 # Orchestration Protocol
 
-## Delegation Context (MANDATORY)
+Subagents are for isolation, parallelism or an independent review (see tiers in `primary-workflow.md`). Spawn them only when that benefit exists.
 
-When spawning subagents via Task tool, **ALWAYS** include in prompt:
+## Delegation Context
+Every subagent prompt includes the work context path (git root of the primary files), reports path (`{work_context}/plans/reports/`) and plans path (`{work_context}/plans/`). If CWD differs from the work context, use the work context paths. Without them, subagents write reports to the wrong project.
 
-1. **Work Context Path**: The git root of the PRIMARY files being worked on
-2. **Reports Path**: `{work_context}/plans/reports/` for that project
-3. **Plans Path**: `{work_context}/plans/` for that project
-
-**Example:**
-```
-Task prompt: "Fix parser bug.
-Work context: /path/to/project-b
-Reports: /path/to/project-b/plans/reports/
-Plans: /path/to/project-b/plans/"
-```
-
-**Rule:** If CWD differs from work context (editing files in different project), use the **work context paths**, not CWD paths.
-
----
-
-#### Sequential Chaining
-Chain subagents when tasks have dependencies or require outputs from previous steps:
-- **Planning → Implementation → Simplification → Testing → Review**: Use for feature development (tests verify simplified code)
-- **Research → Design → Code → Documentation**: Use for new system components
-- Each agent completes fully before the next begins
-- Pass context and outputs between agents in the chain
-
-#### Parallel Execution
-Spawn multiple subagents simultaneously for independent tasks:
-- **Code + Tests + Docs**: When implementing separate, non-conflicting components
-- **Multiple Feature Branches**: Different agents working on isolated features
-- **Cross-platform Development**: iOS and Android specific implementations
-- **Careful Coordination**: Ensure no file conflicts or shared resource contention
-- **Merge Strategy**: Plan integration points before parallel execution begins
-
----
+## Chaining and Parallelism
+- Chain when output feeds the next step: Plan, Implement, Test, Review; or Research, Design, Code, Docs.
+- Run in parallel only independent work with non-overlapping files; plan integration points first.
 
 ## Subagent Status Protocol
+Subagents end with one status:
 
-Subagents MUST report one of these statuses when completing work:
+| Status | Meaning | Controller action |
+|---|---|---|
+| DONE | Completed | Proceed |
+| DONE_WITH_CONCERNS | Completed with doubts | Fix correctness/scope concerns first; note observational ones and proceed |
+| BLOCKED | Cannot complete | Change something before retrying: more context, simpler task, stronger model, or escalate. Never retry the same approach |
+| NEEDS_CONTEXT | Missing information | Supply it and re-dispatch |
 
-| Status | Meaning | Controller Action |
-|--------|---------|-------------------|
-| **DONE** | Task completed successfully | Proceed to next step (review, next task) |
-| **DONE_WITH_CONCERNS** | Completed but flagged doubts | Read concerns → address if correctness/scope issue → proceed if observational |
-| **BLOCKED** | Cannot complete task | Assess blocker → provide context / break task / escalate to user |
-| **NEEDS_CONTEXT** | Missing information to proceed | Provide missing context → re-dispatch |
+After 3 failures on the same task, escalate to the user.
 
-### Handling Rules
-
-- **Never** ignore BLOCKED or NEEDS_CONTEXT — something must change before retry
-- **Never** force same approach after BLOCKED — try: more context → simpler task → more capable model → escalate
-- **DONE_WITH_CONCERNS** about file growth or tech debt → note for future, proceed now
-- **DONE_WITH_CONCERNS** about correctness → address before review
-- If subagent fails 3+ times on same task → escalate to user, don't retry blindly
-
-### Reporting Format
-
-Subagents should end their response with:
-
+Report format:
 ```
 **Status:** DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT
-**Summary:** [1-2 sentence summary]
+**Summary:** [1-2 sentences]
 **Concerns/Blockers:** [if applicable]
 ```
 
----
+## Context Isolation
+Subagents get only what they need, never session history: task, files to read/modify, acceptance criteria, constraints, plan phase text (not the whole plan), work context and reports paths. Write "Implement X per phase-02.md" or "Fix null check in auth.ts:45, cause: missing validation", not "continue where we left off". Coordination stays in the main agent.
 
-## Context Isolation Principle
-
-**Subagents receive only the context they need.** Never pass full session history.
-
-### Rules
-
-1. **Craft prompts explicitly** — Provide task description, relevant file paths, acceptance criteria. Not "here's what we discussed."
-2. **No session history** — Subagent gets fresh context. Summarize relevant decisions, don't replay conversation.
-3. **Scope file references** — List specific files to read/modify. Not "look at the codebase."
-4. **Include plan context** — If working from a plan, provide the specific phase text, not the entire plan.
-5. **Preserve controller context** — Coordination work stays in main agent. Don't dump coordination details into subagent prompts.
-
-### Prompt Template
-
-```
-Task: [specific task description]
-Files to modify: [list]
-Files to read for context: [list]
-Acceptance criteria: [list]
-Constraints: [any relevant constraints]
-Plan reference: [phase file path if applicable]
-
-Work context: [project path]
-Reports: [reports path]
-```
-
-### Anti-Patterns
-
-| Bad | Good |
-|-----|------|
-| "Continue from where we left off" | "Implement X feature per spec in phase-02.md" |
-| "Fix the issues we discussed" | "Fix null check in auth.ts:45, root cause: missing validation" |
-| "Look at the codebase and figure out" | "Read src/api/routes.ts and add POST /users endpoint" |
-| Passing 50+ lines of conversation | 5-line task summary with file paths |
-
----
-
-## Agent Teams (Optional)
-
-For multi-session parallel collaboration, activate the `/rig:team` skill.
-Not part of the default orchestration workflow. See `.agent/skills/team/SKILL.md` for templates, decision criteria, and spawn instructions.
+## Agent Teams
+For multi-session collaboration use `/rig:team` (`.agent/skills/team/SKILL.md`); it is not part of the default flow.

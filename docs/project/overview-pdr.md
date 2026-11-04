@@ -17,15 +17,15 @@ Let developers build software faster and with higher quality by delegating plann
 
 ### Mission
 Provide a toolkit that:
-- Turns every feature into a phased plan before code changes
-- Gates each phase with tests and code review
+- Sizes the process to each task: trivial edits go straight in, large or risky work gets a phased plan before code changes
+- Runs tests on the final code and gates large work with review
 - Keeps docs, plans and devlog in sync as part of the loop
 - Keeps git history clean with conventional commits
 - Runs the same workflow on one machine or across several
 
 ### Value Proposition
-- **Plan-first delivery**: `/rig:plan` writes phased plans with research from parallel agents
-- **Consistent quality**: tester and code-reviewer agents gate every phase
+- **Right-sized delivery**: `/rig:plan` writes phased plans with research from parallel agents for large work; small changes skip the ceremony ([ADR 0003](../explanation/decisions/0003-workflow-size-tiers.md))
+- **Consistent quality**: failing tests are never skipped; tester and code-reviewer agents gate large work
 - **Living documentation**: docs-maintainer keeps `docs/` (Diataxis layout) current
 - **Clean git history**: conventional commits, no AI attribution
 - **Fresh context per agent**: agents hand off through files, not chat history
@@ -126,6 +126,7 @@ Full catalog: [guide/SKILLS.md](../../guide/SKILLS.md).
 ### 5. Development Workflow Automation
 
 **CI/CD** (GitHub Actions):
+- `ci.yml`: lint, Node tests on Ubuntu, Windows and macOS, eval tier 1 and Python skill tests on every push and PR to `main`
 - `antigravity-sync-check.yml`: fails when `.agent/` or `GEMINI.md` differ from a fresh sync
 
 ### 6. Multi-Machine Orchestration (`rig:remote`)
@@ -298,10 +299,10 @@ Architecture details: [system architecture](../explanation/architecture.md).
 
 ### UC1: Implement New Feature
 **Actor**: Developer
-**Goal**: Add a feature with the full workflow
+**Goal**: Add a large (or risky) feature with the full workflow
 **Flow**:
 1. Run `/rig:plan "add user authentication"`
-2. Researcher agents explore solutions, planner writes the phased plan
+2. Researcher agents explore solutions, planner writes the phased plan (smaller changes use a short plan or none)
 3. Developer reviews and approves the plan
 4. Run `/rig:implement <plan path>`
 5. Agents implement each phase
@@ -457,7 +458,7 @@ Status, next work and backlog: [roadmap](./roadmap.md). Release notes: [CHANGELO
 - Clear examples
 
 ### Testing Standards
-- Hook tests run before every release
+- `npm run lint`, `npm test` and eval tier 1 run in CI on every push and PR to `main`; hook tests also run before every release
 - Integration tests for workflows
 - Error scenario coverage
 - Failing tests are fixed, never skipped

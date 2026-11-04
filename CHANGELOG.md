@@ -4,6 +4,11 @@
 
 ### Features
 
+* **CI:** `.github/workflows/ci.yml` runs on push and pull request to `main`: `npm run lint`, `npm test` on Ubuntu, Windows and macOS, eval tier 1 (`bun scripts/eval/run.ts 1`), and pytest for the four Python skill suites. `npm test` discovers every `*.test.cjs` and `*.test.js` under `.claude/` and `scripts/`, prints passed, failed and skipped counts, and lists each skipped file with its reason.
+* **lint:** `npm run lint` runs ESLint 10 with a flat config (`eslint.config.mjs`). It was a placeholder that always passed. Lint fixes in hooks, scripts and skills change no behavior.
+* **hooks:** `bash-safety-guard` asks before a Bash command reads or copies a secret file (the `Read(...)` ask list in `settings.json`: `.env*`, keys, credentials). Templates such as `.env.example` pass. Ask only, never deny. Switch: `bashSafetyGuard.rules.secretFileRead` in the global `.rig.json`. Limits: [how-to](docs/how-to/configure-verification-and-safety-guards.md).
+* **rules:** workflow size tiers (trivial, standard, large) in `primary-workflow.md`, decided in [ADR 0003](docs/explanation/decisions/0003-workflow-size-tiers.md). Trivial work runs without subagents.
+* **benchmark:** `scripts/benchmark/` harness (`npm run bench`, `bench:verify`, `bench:report`) compares Claude Code with and without Rig on six fixed tasks, judged by hidden tests. No results published yet.
 * **rig:remote worker setup:** `remote.cjs register <id> --ssh --os --repo ...` adds one validated registry entry (atomic write, secret keys rejected). `remote.cjs setup <id...>` prepares stage 1 on each worker: ssh/node/claude probe, Rig protocol check, creation of the dedicated clone from the orchestrator's origin (credentials stripped), baseline recording (`--accept-existing-clone` for clones made by hand) and git identity (`--git-name/--git-email`), then `doctor`. New worker command `prepare`. Guided flow in `references/worker-setup-guide.md`.
 * **rig:remote doctor:** new `baseline` check (missing, mismatched or quarantined clone), and a `fix:` line with a concrete next step under every failed or warned check.
 * **rig:remote machine-id check:** `info` reports the worker's `machine`. `setup` and `doctor` check `machine-id`: a mismatch with the registry id fails and stops setup before the clone is created; an older worker without the field warns. The `fix:` line shows how to set `RIG_MACHINE` (`~/.zshenv`, `~/.bashrc`, `setx`) or rename the registry key.
@@ -17,6 +22,10 @@
 
 ### Changed
 
+* **rules tone:** always-loaded text (`CLAUDE.md`, `AGENTS.md`, `.claude/rules/*.md`) fell from 25.6 KB to 13.2 KB. Emphasis markers (`MANDATORY`, `NON-NEGOTIABLE`, `NO EXCEPTIONS`) are gone; each hard rule states its reason. Tier 1 eval fails if they return. The 500-line limit is a guideline with exemptions for data, generated and test files.
+* **primary workflow:** "plan first for everything" is replaced by the size tiers. The main agent does the work; subagents are used for isolation, parallelism or independent review.
+* **docs:** install Rig once, globally or per project. Both installs load the rules twice.
+* **Antigravity:** `.agent/` and `GEMINI.md` regenerated from the tier and tone rules.
 * **git push proof:** `git-operator`, `git` and `pr` report `✓ pushed` only when `HEAD` equals the remote ref after the push, `nothing to commit` on a clean tree, and `✗ push NOT confirmed` otherwise.
 * **debug reports:** `debugger` reports separate `## Confirmed` (with evidence) from `## Hypotheses` (with a confirm or rule-out command).
 * **rules:** privileged steps are handed over as one runnable block; SSH users resolve through `ssh -G` and production hosts are read-only; only chat replies follow the user's language (`language` setting).

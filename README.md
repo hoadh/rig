@@ -10,9 +10,9 @@ Rig turns Claude Code into a software development crew. Specialized agents plan,
 
 Agentic-Driven Development (ADD) is the workflow Rig is built around:
 
-1. **Plan first** — `/rig:plan` writes a phased plan in `plans/` before any code changes.
-2. **Agents execute** — `/rig:implement` drives implementation phase by phase, delegating to focused subagents.
-3. **Verify continuously** — tester and code-reviewer agents gate every phase; failing tests are fixed, never skipped.
+1. **Size the process** — the task sets the ceremony. A trivial fix is edited directly; a standard change gets a short plan; a large or risky change (auth, data, infra, public API) gets the full `/rig:plan` pipeline in `plans/`. See [ADR 0003](./docs/explanation/decisions/0003-workflow-size-tiers.md).
+2. **Agents execute** — `/rig:implement` drives the work phase by phase. Subagents join when they add isolation, parallelism or an independent review.
+3. **Verify continuously** — tests run on the final code; failing tests are fixed, never skipped. Large work adds tester and code-reviewer gates.
 4. **Docs stay in sync** — docs, plans and devlog are updated as part of the loop, not afterwards.
 5. **Humans steer** — you choose scope, approve plans and decide when to commit and ship.
 
@@ -40,7 +40,7 @@ Full index: [docs/README.md](./docs/README.md), organized by [Diataxis](https://
 | [Run a plan across machines](./docs/how-to/run-plan-across-machines.md) | `rig:remote`: plan phases and tests on macOS, Windows and Linux workers over ssh, with a threat model |
 | [Extend Rig with agents and skills](./docs/how-to/extend-rig-with-agents-and-skills.md) | Add your own agents, skills and hooks |
 | [System architecture](./docs/explanation/architecture.md) | How agents, workflows and handoffs fit together |
-| [Decisions (ADRs)](./docs/explanation/decisions/) | Why agent state lives in files; multi-machine orchestration |
+| [Decisions (ADRs)](./docs/explanation/decisions/) | Why agent state lives in files; multi-machine orchestration; workflow size tiers |
 | [Codebase summary](./docs/reference/codebase-summary.md) | Project structure and components |
 | [Code standards](./docs/reference/code-standards.md) | Naming, file size, conventions |
 | [Skills catalog](./guide/SKILLS.md) | All 32 skills, grouped by task |
@@ -102,7 +102,7 @@ The commands you will use most. The [skills catalog](./guide/SKILLS.md) lists al
 ### Feature
 
 ```bash
-/rig:plan "add real-time notifications"   # researchers run in parallel, planner writes phases
+/rig:plan "add real-time notifications"   # large tier: researchers run in parallel, planner writes phases
 /rig:implement plans/<dir>/plan.md        # code, test and review gates per phase
 /rig:docs update                          # sync docs with the change
 /rig:git                                  # conventional commit
@@ -172,11 +172,15 @@ Install with `npm install -g @google/gemini-cli` and sign in once by running `ge
 
 A `Stop` hook can post to Telegram, Discord or Slack when a session finishes. Setup guides: `.claude/hooks/notifications/docs/`.
 
+## Benchmark
+
+`npm run bench` runs Claude Code with Rig and without it on six fixed tasks, judged by hidden tests. Method, isolation and options: [scripts/benchmark/README.md](./scripts/benchmark/README.md). No results are published yet.
+
 ## Contributing
 
 1. Create a feature branch.
-2. Follow the ADD loop: plan, implement, test, review.
-3. Run the tests for what you changed and update `docs/`.
+2. Follow the ADD loop, sized by the tier in [ADR 0003](./docs/explanation/decisions/0003-workflow-size-tiers.md): plan, implement, test, review.
+3. Run `npm run lint` and `npm test`, plus the tests for what you changed, and update `docs/`. CI runs lint, all Node suites on Ubuntu, Windows and macOS, eval tier 1 and the Python skill tests.
 4. Open a pull request.
 
 Authoring rules: [Agent, skill and hook authoring standards](./docs/reference/agent-skill-hook-authoring-standards.md).
