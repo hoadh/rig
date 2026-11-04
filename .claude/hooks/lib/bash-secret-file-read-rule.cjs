@@ -12,16 +12,19 @@
  *        the pattern word of grep/rg/sed/awk (`grep .env README.md`), commands that merely mention a name
  *        (`ls .env`, `echo .env`, `git add .env.example`)
  *
- * Secret path set: the `Read(...)` entries of `permissions.ask` in the settings.json that sits next to the
- * hooks directory (single source of truth); a small fallback list is used when it is unreadable or has none.
- * Known limits (not chased): `python -c open('.env')`, `find -exec cat`, `grep -r KEY .` over a directory,
- * paths built from variables, brace expansion.
+ * Secret path set: the union of a built-in fallback list and the `Read(...)` entries of `permissions.ask` in the
+ * settings.json that sits next to the hooks directory (entries are normalised: `~/`, `//abs`, `/x`, `./x`, bare
+ * names and `{a,b}` braces). Heredoc bodies are text, not commands, and are skipped.
+ * Known limits (not chased): interpreters (`python -c open('.env')`, perl), `find -exec cat`, `xargs`, editors,
+ * `grep -r KEY .` over a directory, `git diff`/`git log -p` of a secret, `curl -K`, variables other than a
+ * leading $HOME, brace expansion, `[..]` glob classes. `.pub` keys ask (parity with the Read rule); `sed -i` asks.
  *
  * Contract: opaquePolicy 'inspect', crashPolicy 'allow'. Reasons name the file, never file contents.
  */
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
-const { commandName, expandHome } = require('./bash-command-segment-tokenizer.cjs');
+const { commandName, expandHome, skipHeredocBodies, readHeredocDelimiter } = require('./bash-command-segment-tokenizer.cjs');
 
 const FALLBACK_GLOBS = [
   '**/.env', '**/.env.local', '**/.env.*.local', '**/*.pem', '**/*.key', '**/id_rsa*', '**/id_ed25519*',
@@ -49,6 +52,12 @@ const CMDS = {
   scp: { copy: true, valueShort: 'PiosFcl' },
   rsync: { copy: true, valueShort: 'ef', valueLong: ['exclude', 'include', 'filter', 'rsh'] },
   curl: { curl: true },
+  jq: { pattern: true, fileShort: 'f', fileLong: ['from-file'] },
+  yq: { pattern: true, fileShort: 'f', fileLong: ['from-file'] },
+  paste: {}, column: {},
+  dd: { dd: true },
+  openssl: { openssl: true },
+  git: { git: true },
 };
 
 let cachedMatchers = null;
@@ -73,20 +82,66 @@ function globToRegex(glob) {
   return new RegExp(`^${out}$`, 'i');
 }
 
-/** `Read(...)` globs of settings.json `permissions.ask` next to the hooks dir, or the fallback list. */
-function loadSecretGlobs() {
-  try {
-    const settings = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'settings.json'), 'utf8'));
-    const ask = settings && settings.permissions && settings.permissions.ask;
-    const globs = (Array.isArray(ask) ? ask : [])
-      .map((entry) => /^Read\((.+)\)$/.exec(String(entry)))
-      .filter(Boolean)
-      .map((m) => m[1]);
-    if (globs.length > 0) return globs;
-  } catch {
-    // unreadable settings: use the fallback
+/** Expands `{a,b}` alternatives (nested, left to right) into separate globs. */
+function expandBraces(glob) {
+  const open = glob.indexOf('{');
+  if (open === -1) return [glob];
+  let depth = 0;
+  let close = -1;
+  const parts = [];
+  let last = open + 1;
+  for (let i = open; i < glob.length; i += 1) {
+    if (glob[i] === '{') depth += 1;
+    else if (glob[i] === '}') {
+      depth -= 1;
+      if (depth === 0) { close = i; break; }
+    } else if (glob[i] === ',' && depth === 1) {
+      parts.push(glob.slice(last, i));
+      last = i + 1;
+    }
   }
-  return FALLBACK_GLOBS;
+  if (close === -1) return [glob];
+  parts.push(glob.slice(last, close));
+  const head = glob.slice(0, open);
+  const tail = glob.slice(close + 1);
+  return parts.flatMap((p) => expandBraces(`${head}${p}${tail}`));
+}
+
+/**
+ * Claude Code path forms -> a glob over absolute, forward-slash paths:
+ * `~/x` home, `//x` absolute, `/x` relative to the settings root, `./x` and bare `x` anywhere in the tree.
+ */
+function normalizeGlob(entry, settingsRoot) {
+  const home = os.homedir().replace(/\\/g, '/');
+  const root = String(settingsRoot || '').replace(/\\/g, '/');
+  let g = String(entry).trim().replace(/\\/g, '/');
+  if (g.startsWith('~/')) g = `${home}/${g.slice(2)}`;
+  else if (g.startsWith('//')) g = g.slice(1);
+  else if (g.startsWith('/')) g = root ? `${root}${g}` : `**${g}`;
+  else if (g.startsWith('./')) g = `**/${g.slice(2)}`;
+  else if (!g.startsWith('**') && !/^[A-Za-z]:\//.test(g)) g = `**/${g}`;
+  return g;
+}
+
+/**
+ * Secret globs: fallback list plus the `Read(...)` ask entries of `settingsPath` (default: the settings.json next
+ * to the hooks dir). Always a union, so a user file with only unrelated entries never switches protection off.
+ */
+function loadSecretGlobs(settingsPath) {
+  const file = settingsPath || path.join(__dirname, '..', '..', 'settings.json');
+  const globs = [...FALLBACK_GLOBS];
+  try {
+    const settings = JSON.parse(fs.readFileSync(file, 'utf8'));
+    const ask = settings && settings.permissions && settings.permissions.ask;
+    const root = path.dirname(path.dirname(path.resolve(file))); // settings.json lives in <root>/.claude/
+    for (const entry of Array.isArray(ask) ? ask : []) {
+      const m = /^Read\((.+)\)$/.exec(String(entry));
+      if (m) globs.push(...expandBraces(normalizeGlob(m[1], root)));
+    }
+  } catch {
+    // unreadable settings: the fallback list stands alone
+  }
+  return [...new Set(globs)];
 }
 
 function matchers() {
@@ -94,10 +149,21 @@ function matchers() {
   return cachedMatchers;
 }
 
+/** Absolute forward-slash path; keeps drive-letter / rooted paths intact (no process.cwd() prefixing on Windows). */
+function absolutize(cwd, p) {
+  const isAbs = (x) => x.startsWith('/') || /^[A-Za-z]:\//.test(x);
+  if (isAbs(p)) return path.posix.normalize(p);
+  const base = isAbs(cwd) ? cwd : '/';
+  return path.posix.normalize(`${base}/${p}`);
+}
+
 /** True when `text` (a path word) names a secret file. Dynamic words with glob chars are tested against sample names. */
 function isSecretPath(text, dynamic, cwd) {
-  if (!text || /[$`{}]/.test(text) || text.length > 1024) return false;
-  const unified = text.replace(/\\/g, '/');
+  if (!text || text.length > 1024) return false;
+  // A leading $HOME / ${HOME} is the one variable we can resolve.
+  const home = text.replace(/^(?:\$HOME|\$\{HOME\})(?=[/\\]|$)/, () => os.homedir());
+  if (/[$`{}]/.test(home)) return false;
+  const unified = home.replace(/\\/g, '/');
   const base = path.posix.basename(unified);
   if (TEMPLATE_SUFFIX.test(base)) return false;
   if (dynamic && GLOB_CHARS.test(base)) {
@@ -105,7 +171,7 @@ function isSecretPath(text, dynamic, cwd) {
     const re = globToRegex(base);
     return SAMPLE_NAMES.some((name) => re.test(name));
   }
-  const resolved = path.posix.resolve(String(cwd || '/').replace(/\\/g, '/'), expandHome(unified).replace(/\\/g, '/'));
+  const resolved = absolutize(String(cwd || '/').replace(/\\/g, '/'), expandHome(unified).replace(/\\/g, '/'));
   return matchers().some((re) => re.test(resolved));
 }
 
@@ -120,6 +186,9 @@ function rawWords(raw, inputOnly) {
   let quote = '';
   let afterOutput = false;
   let afterInput = false;
+  const heredocs = []; // pending heredoc delimiters, bodies start after the next newline
+  const parens = []; // true for `$(` openers
+  let inTick = false;
   const flush = () => {
     if (cur !== null) {
       if (inputOnly ? afterInput : !afterOutput) words.push(cur);
@@ -144,8 +213,14 @@ function rawWords(raw, inputOnly) {
       cur = (cur || '') + raw[i];
     } else if (c === '<' || c === '>') {
       flush();
-      if (raw[i + 1] === '<' || raw[i + 1] === '(' || raw[i + 1] === '&') {
-        while (raw[i + 1] === '<') i += 1; // heredoc / here-string / process substitution: not a file read
+      if (c === '<' && raw[i + 1] === '<' && raw[i + 2] !== '<') {
+        const dash = raw[i + 2] === '-';
+        const { delim, end } = readHeredocDelimiter(raw, i + (dash ? 3 : 2));
+        heredocs.push({ delim, dash });
+        i = end - 1;
+        afterInput = false;
+      } else if (raw[i + 1] === '<' || raw[i + 1] === '(' || raw[i + 1] === '&') {
+        while (raw[i + 1] === '<') i += 1; // here-string / process substitution: not a file read
         afterInput = false;
       } else if (c === '<') {
         afterInput = true;
@@ -153,7 +228,22 @@ function rawWords(raw, inputOnly) {
         afterOutput = true;
         afterInput = false;
       }
-    } else if (/[\s;&|()`]/.test(c)) {
+    } else if (c === '\n' && heredocs.length > 0) {
+      flush();
+      i = skipHeredocBodies(raw, i + 1, heredocs.splice(0)) - 1; // heredoc bodies are text, not words
+    } else if (c === '(') {
+      const subst = cur === '$';
+      parens.push(subst);
+      flush();
+    } else if (c === ')') {
+      flush();
+      // Text glued to a command substitution (`$(pwd)/.env`) is not a literal path: poison the word.
+      if (parens.pop()) cur = '$';
+    } else if (c === '`') {
+      flush();
+      inTick = !inTick;
+      if (!inTick) cur = '$';
+    } else if (/[\s;&|]/.test(c)) {
       flush();
     } else {
       cur = (cur || '') + c;
@@ -247,12 +337,39 @@ function curlCandidates(args, dynamic) {
   return out;
 }
 
+/** `dd if=FILE`, `openssl ... -in FILE`. */
+function keyValueCandidates(cfg, args, dynamic) {
+  const out = [];
+  for (let i = 0; i < args.length; i += 1) {
+    const d = Boolean(dynamic[i]);
+    if (cfg.dd && args[i].startsWith('if=')) out.push({ text: args[i].slice(3), dynamic: d });
+    if (cfg.openssl && args[i] === '-in' && i + 1 < args.length) out.push({ text: args[i + 1], dynamic: Boolean(dynamic[i + 1]) });
+  }
+  return out;
+}
+
+/** `git show|cat-file` operands of the form `<rev>:<path>` or `:<path>`. */
+function gitCandidates(args, dynamic) {
+  let i = 0;
+  while (i < args.length && args[i].startsWith('-')) i += /^-[Cc]$/.test(args[i]) ? 2 : 1; // global options
+  if (args[i] !== 'show' && args[i] !== 'cat-file') return [];
+  const out = [];
+  for (let k = i + 1; k < args.length; k += 1) {
+    if (args[k].startsWith('-')) continue;
+    const m = /^[^:\s]*:(.+)$/.exec(args[k]);
+    if (m) out.push({ text: m[1], dynamic: Boolean(dynamic[k]) });
+  }
+  return out;
+}
+
 /** Path words a reader command would open, from its argv (argv[0] excluded). */
 function readCandidates(name, argv, dynamicFlags) {
   const cfg = CMDS[name];
   const args = argv.slice(1);
   const dyn = (dynamicFlags || []).slice(1);
   if (cfg.curl) return curlCandidates(args, dyn);
+  if (cfg.dd || cfg.openssl) return keyValueCandidates(cfg, args, dyn);
+  if (cfg.git) return gitCandidates(args, dyn);
   const { positionals, files, targetDir } = scanArgs(args, dyn, cfg);
   let sources = positionals;
   if (cfg.copy && !targetDir && positionals.length > 1) sources = positionals.slice(0, -1); // the last word is the destination
@@ -301,4 +418,9 @@ module.exports = {
   opaquePolicy: 'inspect',
   crashPolicy: 'allow',
   check,
+  // exported for tests
+  loadSecretGlobs,
+  normalizeGlob,
+  expandBraces,
+  globToRegexForTests: globToRegex,
 };

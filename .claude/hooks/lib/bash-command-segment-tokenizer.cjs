@@ -454,4 +454,4 @@ function tokenize(command, opts = {}) {
   return scan(text, start, text, 0);
 }
 
-module.exports = { tokenize, commandName, expandHome };
+module.exports = { tokenize, commandName, expandHome, skipHeredocBodies, readHeredocDelimiter };

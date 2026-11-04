@@ -5,6 +5,9 @@
  */
 const { describe, it } = require('node:test');
 const assert = require('node:assert');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const rule = require('../bash-secret-file-read-rule.cjs');
 const { evaluateCommand } = require('../bash-safety-rule-engine.cjs');
 
@@ -87,7 +90,7 @@ describe('wrappers and opaque commands', () => {
     asks(['echo $(cat .env)', 'x=`cat .env`', 'diff <(cat .env) other', 'eval "$(cat id_rsa)"', 'cat .env $(date)']);
   });
   it('allows opaque segments without a literal secret path', () => {
-    allows(['bash -c "$X"', 'eval "$CMD"', 'cat $(ls)', 'echo $(date)', 'cat "$FILE"', 'cat $HOME/.env']);
+    allows(['bash -c "$X"', 'eval "$CMD"', 'cat $(ls)', 'echo $(date)', 'cat "$FILE"']);
   });
 });
 
@@ -116,5 +119,97 @@ describe('false positives stay quiet', () => {
   });
   it('allows unrelated and empty commands', () => {
     allows(['ls', 'npm test', 'git log --oneline', 'echo hi', 'cd /tmp && ls']);
+  });
+});
+
+describe('heredoc bodies are text, not commands', () => {
+  it('allows prose that mentions secret names', () => {
+    allows([
+      "git commit -F - <<'EOF'\nfix: do not log .env\nEOF",
+      "cat > README.md <<'EOF'\nCopy .env.example to .env\nEOF",
+      'cat > notes.md <<EOF\nsee .env\nEOF',
+      'cat > n.md <<-EOF\n\tsee .env\n\tEOF',
+    ]);
+  });
+  it('still asks for a secret read after the heredoc', () => {
+    asks(["cat <<'EOF'\nx\nEOF\ncat .env", "cat <<'EOF' && cat .env\nx\nEOF"]);
+  });
+});
+
+describe('$HOME paths', () => {
+  it('asks for leading $HOME / ${HOME}, quoted or not', () => {
+    asks(['cat $HOME/.env', 'cat $HOME/.ssh/id_ed25519', 'cat "$HOME/.ssh/id_ed25519"', 'cat ${HOME}/.ssh/id_rsa', 'cat "${HOME}/.ssh/id_rsa"']);
+  });
+  it('allows non-secret $HOME paths and other variables', () => {
+    allows(['cat $HOME/.ssh/config', 'cat $OTHER/.env', 'cat $HOMEDIR/.env']);
+  });
+});
+
+describe('command substitution words', () => {
+  it('does not report a bogus path for $(pwd)/.env', () => {
+    allows(['ls $(pwd)/.env', 'cat $(pwd)/.env']);
+    assert.match(run('echo $(cat .env)').reason, /'\.env'/);
+  });
+});
+
+describe('extra readers', () => {
+  it('asks for jq / yq / paste / dd / openssl', () => {
+    asks(['jq . credentials.json', 'yq . secrets.yaml', 'jq -r .a k8s/secrets.yml', 'paste .env', 'dd if=.env', 'dd if=.env of=/tmp/x',
+      'openssl rsa -in server.key', 'openssl pkcs12 -in cert.p12 -nodes']);
+  });
+  it('does not treat the jq filter as a file', () => {
+    allows(['jq .env package.json', 'openssl x509 -in cert.crt', 'dd if=/dev/zero of=.env']);
+  });
+  it('asks for git show / cat-file of a secret path', () => {
+    asks(['git show HEAD:.env', 'git show :.env', 'git cat-file -p HEAD:certs/a.key', 'git -C sub show main:config/.env.production']);
+  });
+  it('allows git show of ordinary paths and unrelated git commands', () => {
+    allows(['git show HEAD:README.md', 'git show HEAD~1', 'git log --format=%h:%s', 'git add .env.example', 'git show HEAD:.env.example']);
+  });
+});
+
+describe('secret glob loading', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'secret-globs-'));
+  const write = (name, ask) => {
+    const dir = path.join(tmp, name, '.claude');
+    fs.mkdirSync(dir, { recursive: true });
+    const file = path.join(dir, 'settings.json');
+    fs.writeFileSync(file, JSON.stringify({ permissions: { ask } }));
+    return file;
+  };
+  const matches = (globs, p) => globs.map(rule.globToRegexForTests).some((re) => re.test(p));
+  const home = os.homedir().replace(/\\/g, '/');
+
+  it('falls back when settings are missing or unreadable', () => {
+    const g = rule.loadSecretGlobs(path.join(tmp, 'nope', 'settings.json'));
+    assert.ok(matches(g, '/p/.env'));
+    fs.mkdirSync(path.join(tmp, 'bad'), { recursive: true });
+    fs.writeFileSync(path.join(tmp, 'bad', 'settings.json'), '{not json');
+    assert.ok(matches(rule.loadSecretGlobs(path.join(tmp, 'bad', 'settings.json')), '/p/server.pem'));
+  });
+  it('keeps fallback when only unrelated or user entries exist', () => {
+    const g = rule.loadSecretGlobs(write('user', ['Read(~/.aws/**)', 'Bash(rm -rf:*)']));
+    assert.ok(matches(g, '/p/.env'), 'fallback kept');
+    assert.ok(matches(g, `${home}/.aws/credentials`), '~/ expanded');
+    assert.ok(!matches(g, '/other/.aws/credentials'));
+  });
+  it('normalises // /x ./x bare and brace forms', () => {
+    const file = write('kit', ['Read(//etc/secrets/**)', 'Read(/private/**)', 'Read(./vault.txt)', 'Read(token.json)', 'Read(**/*.{crt,cer})']);
+    const g = rule.loadSecretGlobs(file);
+    const root = path.join(tmp, 'kit').replace(/\\/g, '/');
+    assert.ok(matches(g, '/etc/secrets/a'));
+    assert.ok(matches(g, `${root}/private/a`));
+    assert.ok(!matches(g, '/elsewhere/private/a'));
+    assert.ok(matches(g, '/w/sub/vault.txt'));
+    assert.ok(matches(g, '/w/token.json'));
+    assert.ok(matches(g, '/w/a.crt') && matches(g, '/w/a.cer') && !matches(g, '/w/a.crx'));
+  });
+  it('matches drive-letter absolute paths without prefixing cwd', () => {
+    const g = rule.loadSecretGlobs(write('win', ['Read(C:/Users/p/.ssh/**)']));
+    assert.ok(matches(g, 'C:/Users/p/.ssh/id_x'));
+  });
+  it('expandBraces handles nesting and unbalanced braces', () => {
+    assert.deepStrictEqual(rule.expandBraces('a.{b,c{d,e}}'), ['a.b', 'a.cd', 'a.ce']);
+    assert.deepStrictEqual(rule.expandBraces('a{b'), ['a{b']);
   });
 });
