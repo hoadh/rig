@@ -1,0 +1,9 @@
+{
+  "id": 1,
+  "name": "Trivial: off-by-one in pagination",
+  "kind": "trivial",
+  "prompt": "Listing tickets shows one ticket too few on every full page: with pageSize 10 a full page returns only 9 tickets, and the missing ticket never appears on any other page. Find and fix the bug.",
+  "expectedScope": ["src/util/paginate.ts", "test/"],
+  "hiddenTestsDir": "hidden-tests/task-1",
+  "setupDir": "hidden-tests/task-1/setup"
+}

@@ -1,0 +1,163 @@
+diff --git c/README.md i/README.md
+index 50b966e..3480d71 100644
+--- c/README.md
++++ i/README.md
+@@ -28,6 +28,8 @@ Configuration is read from environment variables by `loadConfig` in `src/config.
+ | `PORT` | `3000` | listening port |
+ | `STATIC_DIR` | `public` | directory served under `/static` |
+ | `PAGE_SIZE` | `10` | default page size for list endpoints |
++| `RATE_LIMIT_MAX` | `100` | requests allowed per client IP per window |
++| `RATE_LIMIT_WINDOW_MS` | `60000` | rate limit window in milliseconds |
+ 
+ ## HTTP API
+ 
+diff --git c/src/config.ts i/src/config.ts
+index b8fc7e8..033122d 100644
+--- c/src/config.ts
++++ i/src/config.ts
+@@ -2,6 +2,7 @@ export interface AppConfig {
+   port: number;
+   staticDir: string;
+   pageSize: number;
++  rateLimit: { limit: number; windowMs: number };
+ }
+ 
+ function readPositiveInt(raw: string | undefined, fallback: number, name: string): number {
+@@ -18,5 +19,9 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
+     port: readPositiveInt(env.PORT, 3000, 'PORT'),
+     staticDir: env.STATIC_DIR || 'public',
+     pageSize: readPositiveInt(env.PAGE_SIZE, 10, 'PAGE_SIZE'),
++    rateLimit: {
++      limit: readPositiveInt(env.RATE_LIMIT_MAX, 100, 'RATE_LIMIT_MAX'),
++      windowMs: readPositiveInt(env.RATE_LIMIT_WINDOW_MS, 60000, 'RATE_LIMIT_WINDOW_MS'),
++    },
+   };
+ }
+diff --git c/src/server/app.ts i/src/server/app.ts
+index 91d1185..6a1d300 100644
+--- c/src/server/app.ts
++++ i/src/server/app.ts
+@@ -1,6 +1,7 @@
+ import type { AppConfig } from '../config.ts';
+ import type { TicketService } from '../services/ticket-service.ts';
+ import { NotFoundError, ValidationError } from '../util/errors.ts';
++import { createRateLimiter } from './rate-limiter.ts';
+ import { serveStatic } from './static-handler.ts';
+ 
+ export interface AppRequest {
+@@ -19,6 +20,7 @@ export interface AppResponse {
+ export interface AppOptions {
+   config: AppConfig;
+   tickets: TicketService;
++  now?: () => number;
+ }
+ 
+ function json(status: number, data: unknown): AppResponse {
+@@ -31,6 +33,7 @@ function json(status: number, data: unknown): AppResponse {
+ 
+ export function createApp(options: AppOptions) {
+   const { config, tickets } = options;
++  const limiter = createRateLimiter({ ...config.rateLimit, now: options.now });
+ 
+   async function route(req: AppRequest): Promise<AppResponse> {
+     const url = new URL(req.path, 'http://localhost');
+@@ -49,6 +52,12 @@ export function createApp(options: AppOptions) {
+ 
+   return {
+     async handle(req: AppRequest): Promise<AppResponse> {
++      const verdict = limiter.check(req.ip);
++      if (!verdict.allowed) {
++        const res = json(429, { error: 'rate limit exceeded' });
++        res.headers['Retry-After'] = String(Math.max(1, Math.ceil(verdict.retryAfterMs / 1000)));
++        return res;
++      }
+       try {
+         return await route(req);
+       } catch (err) {
+diff --git c/src/server/rate-limiter.ts i/src/server/rate-limiter.ts
+new file mode 100644
+index 0000000..7730e3e
+--- /dev/null
++++ i/src/server/rate-limiter.ts
+@@ -0,0 +1,41 @@
++export interface RateLimiterOptions {
++  limit: number;
++  windowMs: number;
++  now?: () => number;
++}
++
++export interface RateLimitResult {
++  allowed: boolean;
++  remaining: number;
++  retryAfterMs: number;
++}
++
++interface Window {
++  start: number;
++  count: number;
++}
++
++/** Fixed-window limiter: at most `limit` requests per key per `windowMs`. */
++export function createRateLimiter(options: RateLimiterOptions) {
++  const { limit, windowMs } = options;
++  const now = options.now ?? Date.now;
++  if (!Number.isInteger(limit) || limit < 1) throw new Error('limit must be a positive integer');
++  if (!Number.isInteger(windowMs) || windowMs < 1) throw new Error('windowMs must be a positive integer');
++  const windows = new Map<string, Window>();
++
++  return {
++    check(key: string): RateLimitResult {
++      const t = now();
++      let w = windows.get(key);
++      if (!w || t - w.start >= windowMs) {
++        w = { start: t, count: 0 };
++        windows.set(key, w);
++      }
++      if (w.count >= limit) {
++        return { allowed: false, remaining: 0, retryAfterMs: w.start + windowMs - t };
++      }
++      w.count++;
++      return { allowed: true, remaining: limit - w.count, retryAfterMs: 0 };
++    },
++  };
++}
+diff --git c/test/rate-limiter.test.ts i/test/rate-limiter.test.ts
+new file mode 100644
+index 0000000..2ba41b3
+--- /dev/null
++++ i/test/rate-limiter.test.ts
+@@ -0,0 +1,12 @@
++import assert from 'node:assert/strict';
++import { test } from 'node:test';
++import { createRateLimiter } from '../src/server/rate-limiter.ts';
++
++test('limiter denies after the limit and recovers after the window', () => {
++  let now = 0;
++  const limiter = createRateLimiter({ limit: 1, windowMs: 100, now: () => now });
++  assert.equal(limiter.check('a').allowed, true);
++  assert.equal(limiter.check('a').allowed, false);
++  now = 100;
++  assert.equal(limiter.check('a').allowed, true);
++});
+diff --git c/test/server.test.ts i/test/server.test.ts
+index 227ab1b..8e0a1c3 100644
+--- c/test/server.test.ts
++++ i/test/server.test.ts
+@@ -32,7 +32,7 @@ test('serveStatic serves index.html for directories and 404s on misses', async (
+ });
+ 
+ test('loadConfig applies defaults and rejects bad numbers', () => {
+-  assert.deepEqual(loadConfig({}), { port: 3000, staticDir: 'public', pageSize: 10 });
++  assert.deepEqual(loadConfig({}), { port: 3000, staticDir: 'public', pageSize: 10, rateLimit: { limit: 100, windowMs: 60000 } });
+   assert.equal(loadConfig({ PORT: '8080' }).port, 8080);
+   assert.throws(() => loadConfig({ PAGE_SIZE: '0' }), /PAGE_SIZE/);
+ });
+@@ -40,7 +40,7 @@ test('loadConfig applies defaults and rejects bad numbers', () => {
+ test('app routes the API and static paths', async () => {
+   const root = makeSite();
+   const { tickets } = buildBoard(3);
+-  const app = createApp({ config: { port: 1, staticDir: root, pageSize: 10 }, tickets });
++  const app = createApp({ config: { ...loadConfig({}), staticDir: root }, tickets });
+   const api = await app.handle({ method: 'GET', path: '/api/tickets?page=1', ip: '1.1.1.1' });
+   assert.equal(api.status, 200);
+   assert.equal(JSON.parse(String(api.body)).total, 3);

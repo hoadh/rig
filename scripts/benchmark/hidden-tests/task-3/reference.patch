@@ -1,0 +1,26 @@
+diff --git c/src/store/aggregate.ts i/src/store/aggregate.ts
+index 1200147..dab9747 100644
+--- c/src/store/aggregate.ts
++++ i/src/store/aggregate.ts
+@@ -8,11 +8,6 @@ export interface TicketSummary {
+   byPriority: Partial<Record<Priority, number>>;
+ }
+ 
+-// Keys are normalised so grouping is case-insensitive and tolerant of separators.
+-function normalizeKey(key: string): string {
+-  return key.toLowerCase().replace('_', '');
+-}
+-
+ export function countBy<T>(items: T[], key: (item: T) => string): Record<string, number> {
+   const counts: Record<string, number> = {};
+   for (const item of items) {
+@@ -26,7 +21,7 @@ export function summarizeTickets(tickets: Ticket[], now: Date): TicketSummary {
+   return {
+     total: tickets.length,
+     overdue: tickets.filter((t) => t.status !== 'done' && isOverdue(t.dueDate, now)).length,
+-    byStatus: countBy(tickets, (t) => normalizeKey(t.status)),
+-    byPriority: countBy(tickets, (t) => normalizeKey(t.priority)),
++    byStatus: countBy(tickets, (t) => t.status),
++    byPriority: countBy(tickets, (t) => t.priority),
+   };
+ }

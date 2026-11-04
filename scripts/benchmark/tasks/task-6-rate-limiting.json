@@ -1,0 +1,8 @@
+{
+  "id": 6,
+  "name": "Large: rate limiting with config, tests and docs",
+  "kind": "large",
+  "prompt": "Add per-client rate limiting to the request handler.\n\n1. New module `src/server/rate-limiter.ts` exporting `createRateLimiter({ limit, windowMs, now? })` where `now` is an optional `() => number` clock (default Date.now). It returns an object with `check(key: string)` that returns `{ allowed: boolean, remaining: number, retryAfterMs: number }`. Allow at most `limit` requests per key within a window of `windowMs`; keys are tracked independently; when denied, `remaining` is 0 and `retryAfterMs` is the time until the client may retry (greater than 0 and at most windowMs). Throw if limit or windowMs is not a positive integer.\n2. Config: `loadConfig` in src/config.ts gets a `rateLimit: { limit, windowMs }` field read from the env variables `RATE_LIMIT_MAX` (default 100) and `RATE_LIMIT_WINDOW_MS` (default 60000), validated like the existing numeric settings (the error message must name the variable).\n3. `createApp` in src/server/app.ts takes an optional `now?: () => number` option, applies the limiter per `req.ip` to every request, and for a denied request returns status 429 with header `Retry-After` set to the whole seconds to wait (rounded up, at least 1) and JSON body `{\"error\":\"rate limit exceeded\"}`.\n4. Add tests for all of the above, and document the two new variables in README.md.",
+  "expectedScope": ["src/server/", "src/config.ts", "test/", "README.md"],
+  "hiddenTestsDir": "hidden-tests/task-6"
+}

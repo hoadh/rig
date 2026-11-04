@@ -1,0 +1,105 @@
+diff --git c/src/services/project-service.ts i/src/services/project-service.ts
+index c66a048..4b64fd3 100644
+--- c/src/services/project-service.ts
++++ i/src/services/project-service.ts
+@@ -1,21 +1,9 @@
+ import type { Project } from '../models/types.ts';
+ import { MemoryStore } from '../store/memory-store.ts';
+ import { ValidationError } from '../util/errors.ts';
++import { checkLength, requireString } from '../util/validation.ts';
+ import type { UserService } from './user-service.ts';
+ 
+-function requireString(value: unknown, field: string): string {
+-  if (typeof value !== 'string' || value.trim() === '') {
+-    throw new ValidationError(field, `${field} is required`);
+-  }
+-  return value.trim();
+-}
+-
+-function checkLength(value: string, field: string, min: number, max: number): void {
+-  if (value.length < min || value.length > max) {
+-    throw new ValidationError(field, `${field} must be between ${min} and ${max} characters`);
+-  }
+-}
+-
+ export interface ProjectInput {
+   name: unknown;
+   description?: unknown;
+diff --git c/src/services/ticket-service.ts i/src/services/ticket-service.ts
+index ba3d607..d6f4f32 100644
+--- c/src/services/ticket-service.ts
++++ i/src/services/ticket-service.ts
+@@ -2,24 +2,12 @@ import { PRIORITIES, STATUSES } from '../models/types.ts';
+ import type { Priority, Status, Ticket } from '../models/types.ts';
+ import { MemoryStore } from '../store/memory-store.ts';
+ import { ValidationError } from '../util/errors.ts';
++import { checkLength, requireString } from '../util/validation.ts';
+ import { paginate } from '../util/paginate.ts';
+ import type { Page } from '../util/paginate.ts';
+ import type { ProjectService } from './project-service.ts';
+ import type { UserService } from './user-service.ts';
+ 
+-function requireString(value: unknown, field: string): string {
+-  if (typeof value !== 'string' || value.trim() === '') {
+-    throw new ValidationError(field, `${field} is required`);
+-  }
+-  return value.trim();
+-}
+-
+-function checkLength(value: string, field: string, min: number, max: number): void {
+-  if (value.length < min || value.length > max) {
+-    throw new ValidationError(field, `${field} must be between ${min} and ${max} characters`);
+-  }
+-}
+-
+ export interface TicketInput {
+   title: unknown;
+   description?: unknown;
+diff --git c/src/services/user-service.ts i/src/services/user-service.ts
+index 5f08174..b39821d 100644
+--- c/src/services/user-service.ts
++++ i/src/services/user-service.ts
+@@ -1,22 +1,10 @@
+ import type { User } from '../models/types.ts';
+ import { MemoryStore } from '../store/memory-store.ts';
+ import { ValidationError } from '../util/errors.ts';
++import { checkLength, requireString } from '../util/validation.ts';
+ 
+ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+ 
+-function requireString(value: unknown, field: string): string {
+-  if (typeof value !== 'string' || value.trim() === '') {
+-    throw new ValidationError(field, `${field} is required`);
+-  }
+-  return value.trim();
+-}
+-
+-function checkLength(value: string, field: string, min: number, max: number): void {
+-  if (value.length < min || value.length > max) {
+-    throw new ValidationError(field, `${field} must be between ${min} and ${max} characters`);
+-  }
+-}
+-
+ export interface UserInput {
+   name: unknown;
+   email: unknown;
+diff --git c/src/util/validation.ts i/src/util/validation.ts
+new file mode 100644
+index 0000000..2121c54
+--- /dev/null
++++ i/src/util/validation.ts
+@@ -0,0 +1,14 @@
++import { ValidationError } from './errors.ts';
++
++export function requireString(value: unknown, field: string): string {
++  if (typeof value !== 'string' || value.trim() === '') {
++    throw new ValidationError(field, `${field} is required`);
++  }
++  return value.trim();
++}
++
++export function checkLength(value: string, field: string, min: number, max: number): void {
++  if (value.length < min || value.length > max) {
++    throw new ValidationError(field, `${field} must be between ${min} and ${max} characters`);
++  }
++}

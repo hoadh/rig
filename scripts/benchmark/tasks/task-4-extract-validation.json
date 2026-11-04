@@ -1,0 +1,8 @@
+{
+  "id": 4,
+  "name": "Refactor: extract duplicated validation",
+  "kind": "refactor",
+  "prompt": "The three services (src/services/user-service.ts, project-service.ts, ticket-service.ts) each contain identical copies of the helpers `requireString(value, field)` and `checkLength(value, field, min, max)`. Extract them into a single shared module `src/util/validation.ts` that exports both functions with the same signatures and error messages, and make the three services import from it. Behaviour must not change; all existing tests must keep passing.",
+  "expectedScope": ["src/util/validation.ts", "src/services/", "test/"],
+  "hiddenTestsDir": "hidden-tests/task-4"
+}

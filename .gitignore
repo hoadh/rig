@@ -94,5 +94,9 @@ worktrees/
 .claude/skills/.venv/
 .agent/skills/.venv/
 
+# Benchmark results: only the summary is committed, not raw logs or per-run records
+scripts/benchmark/results/*/*
+!scripts/benchmark/results/*/summary.md
+
 # Default output dir of media skill scripts (generated files)
 docs/assets/

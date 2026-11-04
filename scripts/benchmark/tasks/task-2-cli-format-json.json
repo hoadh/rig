@@ -1,0 +1,8 @@
+{
+  "id": 2,
+  "name": "Standard feature: --format json flag",
+  "kind": "feature",
+  "prompt": "Add a `--format` option to the CLI `list` command. `--format text` (the default) keeps today's table output. `--format json` prints the page object returned by the ticket service ({ items, page, pageSize, total, totalPages }) as JSON indented with two spaces, with no table and no footer. Both `--format json` and `--format=json` must work, and any other value must throw an Error with the message `format must be text or json`. Add tests for the new behaviour and update the usage text and README if relevant.",
+  "expectedScope": ["src/cli/", "test/", "README.md"],
+  "hiddenTestsDir": "hidden-tests/task-2"
+}

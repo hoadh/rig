@@ -1,0 +1,8 @@
+{
+  "id": 5,
+  "name": "Security: path traversal in static file handler",
+  "kind": "security",
+  "prompt": "A security review reports that the static file handler in src/server/static-handler.ts can be tricked into serving files outside the configured root directory using crafted URL paths. Fix the vulnerability so that requests can never read anything outside the root, while normal requests keep working. Add regression tests.",
+  "expectedScope": ["src/server/", "test/"],
+  "hiddenTestsDir": "hidden-tests/task-5"
+}

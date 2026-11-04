@@ -1,0 +1,9 @@
+{
+  "id": 3,
+  "name": "Debug: failing test with misleading stack trace",
+  "kind": "debug",
+  "prompt": "`npm test` has a failing test, `summary report lists in-progress tickets` in test/report-summary.test.ts. The assertion fails with the report showing `in_progress: 0` although two tickets are in progress. Find the root cause and fix it properly. Do not change the expectations of the failing test.",
+  "expectedScope": ["src/store/aggregate.ts", "test/"],
+  "hiddenTestsDir": "hidden-tests/task-3",
+  "setupDir": "hidden-tests/task-3/setup"
+}

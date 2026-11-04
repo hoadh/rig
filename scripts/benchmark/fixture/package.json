@@ -1,0 +1,10 @@
+{
+  "name": "taskboard",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Small ticket tracker: services, CLI and static/API request handler. Runs on plain Node (type stripping), no dependencies.",
+  "scripts": {
+    "test": "node --test \"test/**/*.test.ts\""
+  }
+}

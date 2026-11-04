@@ -1,0 +1,31 @@
+diff --git c/src/server/static-handler.ts i/src/server/static-handler.ts
+index 8f05af1..f023465 100644
+--- c/src/server/static-handler.ts
++++ i/src/server/static-handler.ts
+@@ -31,7 +31,10 @@ export async function serveStatic(rootDir: string, urlPath: string): Promise<Sta
+   }
+   if (relative.includes('\0')) return plain(400, 'Bad request');
+ 
+-  let target = path.join(rootDir, relative);
++  const root = path.resolve(rootDir);
++  let target = path.resolve(root, `.${path.sep}${relative.replace(/\\/g, '/')}`);
++  const fromRoot = path.relative(root, target);
++  if (fromRoot.startsWith('..') || path.isAbsolute(fromRoot)) return plain(403, 'Forbidden');
+   try {
+     if ((await stat(target)).isDirectory()) target = path.join(target, 'index.html');
+     const body = await readFile(target);
+diff --git c/test/server.test.ts i/test/server.test.ts
+index 227ab1b..6f9e1ad 100644
+--- c/test/server.test.ts
++++ i/test/server.test.ts
+@@ -49,3 +49,10 @@ test('app routes the API and static paths', async () => {
+   assert.equal((await app.handle({ method: 'POST', path: '/api/tickets', ip: 'x' })).status, 405);
+   assert.equal((await app.handle({ method: 'GET', path: '/api/tickets?page=0', ip: 'x' })).status, 400);
+ });
++
++test('serveStatic refuses paths that escape the root', async () => {
++  const root = makeSite();
++  for (const attack of ['/../x.txt', '/..%2fx.txt', '/%2e%2e/x.txt']) {
++    assert.equal((await serveStatic(root, attack)).status, 403, attack);
++  }
++});

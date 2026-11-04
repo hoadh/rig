@@ -1,0 +1,38 @@
+diff --git c/src/cli/main.ts i/src/cli/main.ts
+index 8b0aab6..03da231 100644
+--- c/src/cli/main.ts
++++ i/src/cli/main.ts
+@@ -11,7 +11,7 @@ export interface CliContext {
+ }
+ 
+ const USAGE = `Usage: taskboard <command> [options]
+-  list [--project N] [--status S] [--page N] [--page-size N]
++  list [--project N] [--status S] [--page N] [--page-size N] [--format text|json]
+   add --title T --project N
+   status <ticketId> <status>
+   summary [--project N]`;
+@@ -27,6 +27,9 @@ function listCommand(ctx: CliContext, flags: ReturnType<typeof parseArgs>['flags
+     page: intFlag(flags, 'page'),
+     pageSize: intFlag(flags, 'page-size'),
+   });
++  const format = flags.format ?? 'text';
++  if (format !== 'text' && format !== 'json') throw new Error('format must be text or json');
++  if (format === 'json') return JSON.stringify(page, null, 2);
+   const rows = page.items.map((t) => [String(t.id), truncate(t.title, 40), t.status, t.priority, t.dueDate ?? '-']);
+   const table = formatTable(['ID', 'TITLE', 'STATUS', 'PRIORITY', 'DUE'], rows);
+   return `${table}\n\nPage ${page.page}/${page.totalPages} (${pluralize(page.total, 'ticket')})`;
+diff --git c/test/cli.test.ts i/test/cli.test.ts
+index 1dcb5ab..20f226b 100644
+--- c/test/cli.test.ts
++++ i/test/cli.test.ts
+@@ -31,3 +31,10 @@ test('unknown commands and bad flags throw', () => {
+   assert.throws(() => runCli(['list', '--status', 'nope'], { tickets, reports }), /--status must be one of/);
+   assert.throws(() => runCli(['list', '--page', 'x'], { tickets, reports }), /--page must be an integer/);
+ });
++
++test('list --format json prints the page as JSON', () => {
++  const { tickets, reports } = buildBoard(2);
++  const page = JSON.parse(runCli(['list', '--format', 'json'], { tickets, reports }));
++  assert.equal(page.total, 2);
++  assert.throws(() => runCli(['list', '--format', 'xml'], { tickets, reports }), /format must be text or json/);
++});
