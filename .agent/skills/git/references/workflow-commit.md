@@ -3,6 +3,10 @@
 Execute via `git-operator` subagent.
 
 ## Tool 1: Stage + Analyze
+Record HEAD first (`PRE=$(git rev-parse HEAD)`, keep the value for the commit proof below).
+
+If the tree is clean and nothing is ahead of remote, output exactly `nothing to commit (working tree clean)` (for `cp` also `nothing to push` when ahead = 0) and stop. No "pushed" line.
+
 ```bash
 git add -A && \
 echo "=== STAGED ===" && git diff --cached --stat && \
@@ -50,9 +54,22 @@ git reset && git add file1 file2 && git commit -m "type(scope): desc"
 ```
 Repeat for each group.
 
-## Tool 4: Push (if requested)
+### Commit proof
+After committing, require HEAD to have moved (a rejecting pre-commit hook leaves it unchanged):
+<!-- commit-proof -->
 ```bash
-git push && echo "✓ pushed: yes" || echo "✓ pushed: no"
+[ "$(git rev-parse HEAD)" != "$PRE" ] && echo "committed $(git rev-parse --short HEAD)" || echo "nothing committed"
 ```
+<!-- /commit-proof -->
+If `nothing committed`: report it, do NOT push.
+
+## Tool 4: Push + Proof (if requested)
+Same block as `workflow-push.md` (use `git push -u origin HEAD` on first push):
+<!-- push-proof -->
+```bash
+B=$(git branch --show-current); git push origin HEAD; echo "HEAD $(git rev-parse HEAD)"; echo "REMOTE $(git ls-remote origin "refs/heads/$B" | cut -f1)"
+```
+<!-- /push-proof -->
+Report `✓ pushed: <short-hash> -> origin/<branch>` ONLY when `HEAD` == `REMOTE` and the commit proof passed; else `✗ push NOT confirmed: HEAD <h1> != remote <h2|none>` + push stderr tail.
 
 **Only push if user explicitly requested** ("push", "commit and push").

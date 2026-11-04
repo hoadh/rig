@@ -9,6 +9,25 @@ Structured format for diagnostic and investigation reports. Sacrifice grammar fo
 - Producing incident post-mortems
 - Reporting performance analysis results
 
+## Evidence Sections (mandatory)
+
+Every report has `## Confirmed` (claim + evidence: exact log line, command + output excerpt, file:line; no evidence = not allowed) and `## Hypotheses` (claim, why plausible, runnable confirm/rule-out command, expected output per outcome). "Root cause" may be stated only if listed under Confirmed; else write "Root cause: not yet confirmed; top hypothesis H1".
+
+```markdown
+## Confirmed
+- <claim> -- evidence: `<command>` -> `<exact output line>` / `file:line` / log line
+  (no evidence = not allowed here)
+
+## Hypotheses
+- H1: <claim>. Why plausible: <reason>.
+  Confirm/rule-out: `<runnable command>`
+  Expected if true: <output>; if false: <output>
+
+Root cause: <only if listed under Confirmed> | "not yet confirmed; top hypothesis H1"
+```
+
+Circumstantial evidence (timing correlation, "recent change", history) is a hypothesis, never confirmed.
+
 ## Report Structure
 
 ### 1. Executive Summary (3-5 lines)

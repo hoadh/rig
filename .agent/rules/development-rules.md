@@ -52,3 +52,19 @@
 - If no active plan, fallback to `plans/visuals/` directory
 - For Mermaid diagrams, use `/mermaidjs-v11` skill for v11 syntax rules
 - See `primary-workflow.md` → Step 6 for workflow integration
+
+## Privileged Steps (sudo, docker, system services)
+- Do all non-privileged prep first (downloads, config files, checks). Never ask the user to edit files you can prepare.
+- Give the user ONE fenced block with every privileged command in order, copy-paste runnable, including the exact launch/start command (e.g. `sudo systemctl restart x`, `docker compose up -d`) and how you will verify it.
+- Wait for the user to say done, then verify yourself (status, logs, version) and report the evidence.
+- Never interleave privileged requests one at a time.
+
+## Remote Hosts and SSH
+- Resolve user/host with `ssh -G <host>` (reads `~/.ssh/config`; check the `user` and `hostname` lines). A `user` equal to the local login with no matching `Host` block means not configured.
+- No User configured: ask the user ONCE, then offer to add a `Host <alias>` entry (`HostName`, `User`) to `~/.ssh/config` so it is not asked again. Write it only if the user agrees; never put keys or passwords there.
+- Never infer users or hosts from shell history, known_hosts or other projects.
+- Production hosts are read-only: inspection only (`tail`, `cat`, `grep`, `journalctl`, `ls`, `df`, `ps`, `systemctl status`). No state-changing command (writes, restarts, deploys, installs) without explicit user approval.
+
+## Language
+- Only chat replies follow the user's language (Claude Code's `language` setting in settings.json sets it persistently).
+- Everything that lands in the repo is English: code, comments, docs, plans, commit messages, branch names, paths.

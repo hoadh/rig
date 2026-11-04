@@ -16,12 +16,21 @@ git log origin/$(git rev-parse --abbrev-ref HEAD)..HEAD --oneline 2>/dev/null ||
 **If uncommitted changes:** Warn user, suggest commit first.
 **If NO_UPSTREAM:** Use `git push -u origin HEAD`.
 
-## Tool 2: Push
+## Tool 2: Push + Proof (one call)
+<!-- push-proof -->
 ```bash
-git push origin HEAD
+B=$(git branch --show-current); git push origin HEAD; echo "HEAD $(git rev-parse HEAD)"; echo "REMOTE $(git ls-remote origin "refs/heads/$B" | cut -f1)"
 ```
+<!-- /push-proof -->
 
-**On success:** Report commit hashes pushed.
+First push of a branch: use `git push -u origin HEAD` instead. The `;` separators are deliberate: the `HEAD`/`REMOTE` lines must print even when the push fails.
+
+### Proof
+Compare against the real remote ref (`ls-remote`), not `@{u}` (which may track `origin/main` for a branch created from it).
+- `HEAD` == `REMOTE` (non-empty) -> report `✓ pushed: <short-hash> -> origin/<branch>`
+- Otherwise -> report `✗ push NOT confirmed: HEAD <h1> != remote <h2|none>` plus the tail of push stderr
+- Never report pushed without this proof line. Never push if the commit proof (see `workflow-commit.md`) failed.
+- Nothing ahead of remote: output exactly `nothing to push`, no "pushed" line.
 
 ## Error Handling
 
@@ -46,7 +55,9 @@ git push -f origin HEAD
 
 ## Output Format
 ```
-✓ pushed: N commits to origin/{branch}
-  - abc123 feat(auth): add login
-  - def456 fix(api): resolve timeout
+✓ pushed: abc123 -> origin/{branch}
+```
+or
+```
+✗ push NOT confirmed: HEAD abc123 != remote def456
 ```

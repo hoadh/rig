@@ -161,6 +161,17 @@ Each phase file should contain:
 - Definition of done
 - Validation methods
 
+**Pending Live Verification** (optional, only for behavior unprovable before deploy)
+```markdown
+## Pending Live Verification
+- [ ] LIVE: <behavior> — trigger: <condition, e.g. first customer-image order> — evidence: <pointer, e.g. fixed log literal + host:log path>
+- [ ] LIVE(blocking): <behavior dependents need> — trigger: ... — evidence: ...
+```
+- Planner adds it only when a phase ships a code path tests cannot exercise against real traffic; never on every phase.
+- `LIVE:` items are excluded from checkbox backfill and progress %. No new status value: a phase with open `LIVE:` items stays `In Progress` and cannot be marked `Completed` (table or frontmatter), nor can the plan.
+- Ticking requires an evidence POINTER under the item (host, log path, UTC timestamp, match count or line hash). Raw log excerpt only with explicit user approval (PII; plan files may be pushed). A cancelled item is annotated `cancelled: <reason>`.
+- Unblock rule: open `LIVE:` items do NOT block dependent plans/phases (`blockedBy`) once all other todos are done; only open `LIVE(blocking):` items do.
+
 **Risk Assessment**
 - Potential issues
 - Mitigation strategies

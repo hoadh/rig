@@ -109,6 +109,10 @@ Each phase file should contain:
 - Definition of done
 - Validation methods
 
+**Pending Live Verification** (optional)
+- `- [ ] LIVE: <behavior> — trigger: <condition> — evidence: <pointer>` for behavior provable only in production; `LIVE(blocking):` for items dependents need
+- Open items keep the phase `In Progress` (never `Completed`); excluded from progress %; evidence recorded as pointer, not raw logs
+
 **Risk Assessment**
 - Potential issues
 - Mitigation strategies

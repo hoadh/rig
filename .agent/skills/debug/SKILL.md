@@ -119,5 +119,6 @@ Stop and follow process if thinking:
 - "It's probably X, let me fix that"
 - "Should work now" / "Seems fixed"
 - "Tests pass, we're done"
+- Stating a root cause without a `## Confirmed` evidence entry (log line, command output, file:line); see `references/reporting-standards.md`
 
 **All mean:** Return to systematic process.

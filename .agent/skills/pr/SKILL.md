@@ -68,9 +68,17 @@ Step 7:  Changelog        → Auto-generate from commits + diff
 Step 8:  Devlog          → Write devlog entry via /devlog
 Step 9:  Docs update      → Update project docs via /docs update (official only)
 Step 10: Commit           → Conventional commit with version/changelog
-Step 11: Push             → git push -u origin <branch>
+Step 11: Push + proof     → push, then compare HEAD with `ls-remote` (see below)
 Step 12: Create PR        → gh pr create with structured body + linked issues
 ```
+
+**Step 11 push proof** (same block as `git` skill `references/workflow-push.md`; use `git push -u origin HEAD` on first push):
+<!-- push-proof -->
+```bash
+B=$(git branch --show-current); git push origin HEAD; echo "HEAD $(git rev-parse HEAD)"; echo "REMOTE $(git ls-remote origin "refs/heads/$B" | cut -f1)"
+```
+<!-- /push-proof -->
+Report `✓ Pushed:` only when `HEAD` == `REMOTE`; otherwise `✗ push NOT confirmed: HEAD <h1> != remote <h2|none>` and stop before creating the PR.
 
 **Detailed steps:** Load `references/pr-workflow.md`
 **Auto-detection:** Load `references/auto-detect.md`
@@ -104,7 +112,7 @@ User says `/pr official` → ship to main with full docs + devlog.
 ✓ Devlog: written (background)
 ✓ Docs: updated (background)
 ✓ Committed: feat(auth): add OAuth2 login flow
-✓ Pushed: origin/feature/foo
+✓ Pushed: origin/feature/foo @ <short-hash>   (only when HEAD == ls-remote hash)
 ✓ PR: https://github.com/org/repo/pull/123 (linked: #42, #43)
 ```
 
