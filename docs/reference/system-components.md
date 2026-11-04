@@ -318,8 +318,8 @@ All hooks located in `.claude/hooks/` with consistent patterns - fail-safe exit 
 **6. Bash-Safety-Guard Hook** (`bash-safety-guard.cjs`)
 - **Trigger**: PreToolUse, matcher `Bash`
 - **Purpose**: Deny or ask on `sed -i`/`perl -i` of a symlink and risky `pkill` (self-matching `-f`, broad, common names). Logs only rule id and command hash
-- **Config** (global `~/.claude/.rig.json` only): `hooks.bash-safety-guard`, `bashSafetyGuard.rules.{inPlaceEditSymlink,processKill}`
-- **Modules** (`.claude/hooks/lib/`): `bash-safety-rule-engine.cjs`, `bash-command-segment-tokenizer.cjs`, `bash-in-place-edit-symlink-rule.cjs`, `bash-process-kill-rule.cjs`, `bash-safety-guard-config.cjs`, `unsafe-regex-shape-checker.cjs`, `regex-test-with-timeout.cjs`
+- **Config** (global `~/.claude/.rig.json` only): `hooks.bash-safety-guard`, `bashSafetyGuard.rules.{inPlaceEditSymlink,processKill,secretFileRead}`
+- **Modules** (`.claude/hooks/lib/`): `bash-safety-rule-engine.cjs`, `bash-command-segment-tokenizer.cjs`, `bash-in-place-edit-symlink-rule.cjs`, `bash-process-kill-rule.cjs`, `bash-secret-file-read-rule.cjs`, `bash-safety-guard-config.cjs`, `unsafe-regex-shape-checker.cjs`, `regex-test-with-timeout.cjs`
 - **Fail-open**: internal errors exit 0
 
 See [how-to](../how-to/configure-verification-and-safety-guards.md).

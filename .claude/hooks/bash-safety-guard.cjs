@@ -6,6 +6,8 @@
  *   - in-place-edit-symlink: `sed -i` / `perl -i` on a symlink replaces it with a regular file
  *   - process-kill: `pkill -f` patterns that match Claude's own shell, broad kills, kills by
  *     common names (node, python, claude, ...)
+ *   - secret-file-read: readers/copiers (cat, grep, source, cp, curl @file, `< .env`, ...) of the
+ *     secret paths in settings.json permissions.ask Read entries (ask only)
  * Rules live in lib/bash-*-rule.cjs; the shared command tokenizer is
  * lib/bash-command-segment-tokenizer.cjs and the rule runner is lib/bash-safety-rule-engine.cjs.
  *
@@ -30,6 +32,7 @@ try {
   const RULES = [
     require('./lib/bash-in-place-edit-symlink-rule.cjs'),
     require('./lib/bash-process-kill-rule.cjs'),
+    require('./lib/bash-secret-file-read-rule.cjs'),
   ];
 
   const cmdHash = (command) => crypto.createHash('sha256').update(command).digest('hex').slice(0, 12);

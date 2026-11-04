@@ -514,7 +514,8 @@
           "type": "object",
           "properties": {
             "inPlaceEditSymlink": { "type": "boolean", "default": true, "description": "Guard sed -i / perl -i on a symlink" },
-            "processKill": { "type": "boolean", "default": true, "description": "Guard pkill patterns that match Claude's own shell, broad kills and kills by common names" }
+            "processKill": { "type": "boolean", "default": true, "description": "Guard pkill patterns that match Claude's own shell, broad kills and kills by common names" },
+            "secretFileRead": { "type": "boolean", "default": true, "description": "Ask before Bash readers/copiers (cat, grep, source, cp, curl @file, < file) touch secret files from settings.json permissions.ask Read entries" }
           },
           "additionalProperties": false
         }

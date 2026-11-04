@@ -11,7 +11,7 @@ The guards catch **accidents** by a well-meaning agent. They are not a sandbox: 
 | Guard | Event | Catches |
 |---|---|---|
 | `verify-completion-guard.cjs` | `Stop` | Code edited this turn, but no passing test, build, typecheck or lint command ran after the last edit |
-| `bash-safety-guard.cjs` | `PreToolUse` (`Bash`) | `sed -i` / `perl -i` on a symlink (replaces the link with a regular file); `pkill -f` patterns that match Claude's own shell, broad kills, kills by common names (`node`, `python`, `claude`, ...) |
+| `bash-safety-guard.cjs` | `PreToolUse` (`Bash`) | `sed -i` / `perl -i` on a symlink (replaces the link with a regular file); `pkill -f` patterns that match Claude's own shell, broad kills, kills by common names (`node`, `python`, `claude`, ...); Bash readers/copiers (`cat`, `grep`, `source`, `cp`, `curl @file`, `< file`) of secret files (the `Read(...)` entries of `permissions.ask`), ask only; templates such as `.env.example` pass |
 
 Both are registered in `.claude/settings.json` and installed by the Rig installer (project and `--global`). A global copy yields to a project copy, so nothing runs twice.
 
@@ -46,7 +46,7 @@ Global-only switches in `~/.claude/.rig.json`; everything defaults to on:
 ```json
 {
   "hooks": { "bash-safety-guard": false },
-  "bashSafetyGuard": { "rules": { "inPlaceEditSymlink": false, "processKill": false } }
+  "bashSafetyGuard": { "rules": { "inPlaceEditSymlink": false, "processKill": false, "secretFileRead": false } }
 }
 ```
 
@@ -79,6 +79,7 @@ If you registered a Stop notification hook (`.claude/hooks/notifications/`, opt-
 - **`pgrep -f` that self-matches, next to any kill, is denied** (N4): `pgrep -f vite; kill 1234` is refused, because where the pids flow is not modelled. The bracket form `pgrep -f '[v]ite'; kill 1234` is allowed.
 - **After the first regex timeout in a process, every later check reports a timeout** (N5): `pkill -f` and `pgrep -f` checks answer `ask`; a name-only `pkill <name>` treats the timeout as no match (allowed); the verify guard treats user patterns as non-matching (nudge only). One hook run is one process, so this lasts a single command or Stop.
 - **Status echoes are fine:** `cmd >log 2>&1; echo "exit=$?"` (also `echo $?`, `printf ... $?`) right after the check counts as verified; `cmd || true; x || exit 1` does not.
+- **Secret-file reads are a seatbelt, not a sandbox:** `python -c "open('.env')"`, `find -exec cat`, `grep -r KEY .` over a directory, paths built from variables and brace expansion are not detected. Only `cp`/`scp`/`rsync` sources count, so `cp .env.example .env` passes. Opaque commands (`$(...)`, backticks) ask only when a secret path appears literally.
 - **Not covered:** `| parallel kill` (N6) and `ps aux | grep X | xargs kill` also self-kills the shell and is not detected (follow-up). A concatenated final message whose last text entry is under 20 chars, or a user message queued after the final text, makes the guard see a transcript lag and allow (missed nudge). `pruneStaleStateFiles` reads the whole tmpdir listing once per new session.
 - **Bash-made edits are not detected.** Only edits through editing tools (and editing subagents) mark a turn as edited.
 - **Subagent edits** are invisible to the main Stop hook except through the editing-agent rule above.
@@ -89,7 +90,7 @@ Inspect decisions in the log:
 grep -E '"hook":"(verify-completion-guard|bash-safety-guard)"' .claude/hooks/.logs/hook-log.jsonl | tail
 ```
 
-The `note` field of the verify guard holds `unverified` (nudge or block issued; `last-check-failed` when the last check failed), `verified`, `no-edits`, `remind-cap allow`, `block-cap allow`, `transcript-lag allow`, `counter-unwritable allow`, or `skip stop-hook-active` / `skip escape-phrase` / `skip transcript-missing`. Each ends with `mode=<m> src=<default|global|project>`, plus `window-exhausted`, `boundary-unclear` or `pattern-timeout` when set. Rejected patterns log `extraCommandPatterns rejected: ...`. The bash guard writes `decision:<deny|ask> rule:<in-place-edit-symlink|process-kill> cmd:<12-char hash>`.
+The `note` field of the verify guard holds `unverified` (nudge or block issued; `last-check-failed` when the last check failed), `verified`, `no-edits`, `remind-cap allow`, `block-cap allow`, `transcript-lag allow`, `counter-unwritable allow`, or `skip stop-hook-active` / `skip escape-phrase` / `skip transcript-missing`. Each ends with `mode=<m> src=<default|global|project>`, plus `window-exhausted`, `boundary-unclear` or `pattern-timeout` when set. Rejected patterns log `extraCommandPatterns rejected: ...`. The bash guard writes `decision:<deny|ask> rule:<in-place-edit-symlink|process-kill|secret-file-read> cmd:<12-char hash>`.
 
 ## Proof lines for git push
 
