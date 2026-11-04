@@ -120,7 +120,7 @@ Rig uses six hooks. Permission checks, naming rules and usage display use native
 | `verify-completion-guard.cjs` | Stop | Nudges or blocks a stop when code was edited and no passing verify command ran (`verifyGuard.mode`) |
 | `bash-safety-guard.cjs` | PreToolUse (Bash) | Denies or asks on `sed -i` of a symlink and risky `pkill`; toggles in global config only |
 
-Supporting modules in `.claude/hooks/lib/`: `bash-command-segment-tokenizer.cjs`, `bash-safety-rule-engine.cjs`, `bash-in-place-edit-symlink-rule.cjs`, `bash-process-kill-rule.cjs`, `bash-safety-guard-config.cjs`, `verify-guard-config.cjs`, `verify-command-detector.cjs`, `turn-edit-and-verify-scanner.cjs`, `verify-guard-turn-counter.cjs`. Guide: [how-to](../how-to/configure-verification-and-safety-guards.md).
+Supporting modules in `.claude/hooks/lib/`: `bash-command-segment-tokenizer.cjs`, `bash-safety-rule-engine.cjs`, `bash-in-place-edit-symlink-rule.cjs`, `bash-process-kill-rule.cjs`, `bash-safety-guard-config.cjs`, `verify-guard-config.cjs`, `verify-command-detector.cjs`, `turn-edit-and-verify-scanner.cjs`, `verify-guard-turn-counter.cjs`, `unsafe-regex-shape-checker.cjs` (ReDoS pre-filter), `regex-test-with-timeout.cjs` (vm-bounded regex runs). Guide: [how-to](../how-to/configure-verification-and-safety-guards.md).
 
 **Hook Features:**
 - Fail-Safe: hooks exit 0 (non-blocking) - graceful degradation

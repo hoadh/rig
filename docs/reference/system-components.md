@@ -312,12 +312,14 @@ All hooks located in `.claude/hooks/` with consistent patterns - fail-safe exit 
 - **Trigger**: Stop
 - **Purpose**: When code was edited this turn and no passing test/build/typecheck/lint command ran after the last edit, nudge (`remind`, default) or block (`block`, max 2 per turn) the stop
 - **Config**: `verifyGuard.mode` (`remind|block|off`), `verifyGuard.extraCommandPatterns` (global only), `hooks.verify-completion-guard`. A project may only raise the mode. Off for headless runs (`CLAUDE_CODE_ENTRYPOINT=sdk*`, `CLAUDE_CODE_SESSION_ATTENDED=0`) and `RIG_VERIFY_GUARD_MODE=off`
-- **Fail-open**: any error, unreadable or lagging transcript exits 0 silently
+- **Modules** (`.claude/hooks/lib/`): `verify-guard-config.cjs`, `verify-command-detector.cjs`, `turn-edit-and-verify-scanner.cjs`, `verify-guard-turn-counter.cjs`, `unsafe-regex-shape-checker.cjs`, `regex-test-with-timeout.cjs`
+- **Fail-open**: any error, missing transcript or lagging transcript exits 0 with no output (logged)
 
 **6. Bash-Safety-Guard Hook** (`bash-safety-guard.cjs`)
 - **Trigger**: PreToolUse, matcher `Bash`
 - **Purpose**: Deny or ask on `sed -i`/`perl -i` of a symlink and risky `pkill` (self-matching `-f`, broad, common names). Logs only rule id and command hash
 - **Config** (global `~/.claude/.rig.json` only): `hooks.bash-safety-guard`, `bashSafetyGuard.rules.{inPlaceEditSymlink,processKill}`
+- **Modules** (`.claude/hooks/lib/`): `bash-safety-rule-engine.cjs`, `bash-command-segment-tokenizer.cjs`, `bash-in-place-edit-symlink-rule.cjs`, `bash-process-kill-rule.cjs`, `bash-safety-guard-config.cjs`, `unsafe-regex-shape-checker.cjs`, `regex-test-with-timeout.cjs`
 - **Fail-open**: internal errors exit 0
 
 See [how-to](../how-to/configure-verification-and-safety-guards.md).

@@ -25,7 +25,7 @@ Set `verifyGuard.mode` in `.rig.json`:
 | `block` | Refuses to stop, at most twice per turn. A line in the final message that starts with `Verification skipped: <reason>` lets the stop through |
 | `off` | Guard disabled |
 
-"Verified" means a recognized command (`npm test`, `pytest`, `cargo test`, `tsc`, lint, build, ...) ran after the last edit **and returned success**. A check whose exit status is hidden does not count: `cmd || true`, `cmd; echo done`, `cmd && a || b`, `cmd | tail`, and runs started with `run_in_background` (for Bash and `tester`). `cmd && echo ok` and failure-keeping tails (`|| exit 1`, `|| exit $?`, `; exit $?`) still count. If any verify command in the line is masked (`npm test; npm run lint`, `(npm test) | tail`, `! npm test`), the whole line is unverified. Add your own commands with `verifyGuard.extraCommandPatterns` (regex strings, max 20, 200 chars each, nested or overlapping quantifiers, quantified alternation and backreferences are rejected), for example `["^make e2e$"]`.
+"Verified" means a recognized command (`npm test`, `pytest`, `cargo test`, `tsc`, lint, build, ...) ran after the last edit **and returned success**. A check whose exit status is hidden does not count: `cmd || true`, `cmd; echo done`, `cmd && a || b`, `cmd | tail`, and runs started with `run_in_background` (for Bash and `tester`). `cmd && echo ok` and failure-keeping tails (`|| exit 1`, `|| exit $?`, `; exit $?`) still count. If any verify command in the line is masked (`npm test; npm run lint`, `(npm test) | tail`, `! npm test`), the whole line is unverified. Add your own commands with `verifyGuard.extraCommandPatterns` (regex strings, max 20, 200 chars each). Rejected: backreferences, a repeated group that holds a quantifier or alternation (`(a+)+`, `(a|aa)+`), more than two unbounded quantifiers (`a*a*a*`), unbalanced groups and invalid regexes. Example: `["^make e2e$"]`.
 
 ### Trust ladder
 
@@ -50,7 +50,7 @@ Global-only switches in `~/.claude/.rig.json`; everything defaults to on:
 }
 ```
 
-The first line turns every rule off; the `rules` keys switch single rules. The guard prints a remedy with each denial (for example "edit the link target instead"). It logs only denials, asks and crashes, with a hash of the command, never the command text.
+The first line turns every rule off; the `rules` keys switch single rules. The guard prints a remedy with each denial (for example "Edit the target ... directly"). It logs only denials, asks and crashes, with a hash of the command, never the command text.
 
 In headless runs an `ask` is a denial, so `pkill node` or `sed -i` on a symlink fails there. This is intended: workers should not kill by name or edit symlinks.
 
@@ -72,11 +72,11 @@ If you registered a Stop notification hook (`.claude/hooks/notifications/`, opt-
 
 - **Wrong nudge:** reply once and move on, or in `block` mode use the `Verification skipped:` line. If it repeats for a project command, add it to `extraCommandPatterns`. If it is noisy everywhere, set `verifyGuard.mode` to `off` or `hooks.verify-completion-guard` to `false` globally.
 - **Tester verdict is not parsed.** A `tester` subagent run counts as verification; whether its report says pass or fail is not read.
-- **Piped or chained checks are not counted.** `cmd | tail` reports the status of `tail`, and `cmd; echo done` the status of `echo`, so the guard treats them as unverified and says the exit status was masked. Run the check on its own, or use `set -o pipefail` and still end the command with the check.
+- **Piped or chained checks are not counted.** `cmd | tail` reports the status of `tail`, and `cmd; echo done` the status of `echo`, so the guard treats them as unverified and says the exit status was masked. Run the check on its own, as the last command (`set -o pipefail; cmd` counts; `cmd | tail` does not).
 - **Block mode never loops.** It allows the stop when its counter file cannot be written, and after two consecutive blocks while `stop_hook_active` is true, whatever the turn key.
-- **`pkill -f` / `pgrep -f` pattern checks** run every match under a 250 ms `vm` timeout (a cheap shape pre-filter rejects nested quantifiers, backreferences, patterns over 256 chars and commands over 8 KiB). A timeout or bad pattern gets an `ask`. Any `kill`/`pkill` in a command that also runs a self-matching `pgrep -f <pat>` (pipe, `xargs -I{}`, `$(...)`, `P=$(...)`, while-read loop) is denied; use `pkill -f '[v]ite'` or `pgrep -x <name>`. In the verify guard, a user pattern that times out counts as not matching and logs `pattern-timeout`.
-- **`pgrep -f` next to any kill is denied** (N4): `pgrep -f vite; kill 1234` is refused too, because where the pids flow is not modelled. Use the bracket form `pgrep -f '[v]ite'` or `pgrep -x <name>`.
-- **After the first regex timeout in a process, every later check reports a timeout** (N5): the bash guard answers `ask` and the verify guard treats user patterns as non-matching (nudge only). One hook run is one process, so this lasts a single command or Stop.
+- **`pkill -f` / `pgrep -f` pattern checks** run every match under a 250 ms `vm` timeout (a cheap shape pre-filter rejects nested quantifiers, backreferences, patterns over 256 chars and commands over 8 KiB). A timeout or bad pattern gets an `ask`. A `kill`/`pkill` in a command that also runs a `pgrep -f <pat>` whose pattern matches that command line (pipe, `xargs -I{}`, `$(...)`, `P=$(...)`, while-read loop) is denied; use `pkill -f '[v]ite'` or `pgrep -x <name>`. In the verify guard, a user pattern that times out counts as not matching and logs `pattern-timeout`.
+- **`pgrep -f` that self-matches, next to any kill, is denied** (N4): `pgrep -f vite; kill 1234` is refused, because where the pids flow is not modelled. The bracket form `pgrep -f '[v]ite'; kill 1234` is allowed.
+- **After the first regex timeout in a process, every later check reports a timeout** (N5): `pkill -f` and `pgrep -f` checks answer `ask`; a name-only `pkill <name>` treats the timeout as no match (allowed); the verify guard treats user patterns as non-matching (nudge only). One hook run is one process, so this lasts a single command or Stop.
 - **Status echoes are fine:** `cmd >log 2>&1; echo "exit=$?"` (also `echo $?`, `printf ... $?`) right after the check counts as verified; `cmd || true; x || exit 1` does not.
 - **Not covered:** `| parallel kill` (N6) and `ps aux | grep X | xargs kill` also self-kills the shell and is not detected (follow-up). A concatenated final message whose last text entry is under 20 chars, or a user message queued after the final text, makes the guard see a transcript lag and allow (missed nudge). `pruneStaleStateFiles` reads the whole tmpdir listing once per new session.
 - **Bash-made edits are not detected.** Only edits through editing tools (and editing subagents) mark a turn as edited.
@@ -88,9 +88,11 @@ Inspect decisions in the log:
 grep -E '"hook":"(verify-completion-guard|bash-safety-guard)"' .claude/hooks/.logs/hook-log.jsonl | tail
 ```
 
+The `note` field of the verify guard holds `unverified` (nudge or block issued; `last-check-failed` when the last check failed), `verified`, `no-edits`, `remind-cap allow`, `block-cap allow`, `transcript-lag allow`, `counter-unwritable allow`, or `skip stop-hook-active` / `skip escape-phrase` / `skip transcript-missing`. Each ends with `mode=<m> src=<default|global|project>`, plus `window-exhausted`, `boundary-unclear` or `pattern-timeout` when set. Rejected patterns log `extraCommandPatterns rejected: ...`. The bash guard writes `decision:<deny|ask> rule:<in-place-edit-symlink|process-kill> cmd:<12-char hash>`.
+
 ## Proof lines for git push
 
-`git-operator` and the `git` and `pr` skills report `✓ pushed: <hash> -> origin/<branch>` only when the local `HEAD` equals the remote ref (checked with `git ls-remote`) and the commit proof passed. Otherwise they print `✗ push NOT confirmed` with the push error tail. A clean tree prints `nothing to commit (working tree clean)`.
+`git-operator` and the `git` and `pr` skills report `✓ pushed: <hash> -> origin/<branch>` (`pr` writes `✓ Pushed:`) only when the local `HEAD` equals the remote ref (checked with `git ls-remote`) and the commit proof passed. Otherwise they print `✗ push NOT confirmed` with the push error tail. A clean tree prints `nothing to commit (working tree clean)`.
 
 ## Debug reports
 
@@ -110,8 +112,8 @@ Some behavior cannot be proven before deploy (for example the first real custome
 
 ```markdown
 ## Pending Live Verification
-- [ ] LIVE: <behavior> | evidence: <fixed log literal> | where: <host + log path> | trigger: <event>
-- [ ] LIVE(blocking): <behavior dependents need> | ...
+- [ ] LIVE: <behavior> — trigger: <condition> — evidence: <pointer, e.g. fixed log literal + host:log path>
+- [ ] LIVE(blocking): <behavior dependents need> — trigger: ... — evidence: ...
 ```
 
 A phase with an open `LIVE:` item stays `In Progress`; `progress-tracker` lists it under "Awaiting live evidence". Open `LIVE:` items do not block dependent plans; `LIVE(blocking):` items do. Tick an item only with an evidence pointer (host, log path, UTC time, match count). Paste raw log excerpts only with your approval, since plan files may be pushed.
