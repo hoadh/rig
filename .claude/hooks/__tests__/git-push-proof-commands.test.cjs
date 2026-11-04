@@ -113,17 +113,39 @@ const scenarios = {
     const { work } = setup();
     const hook = path.join(work, '.git', 'hooks', 'pre-commit');
     fs.writeFileSync(hook, '#!/bin/sh\necho blocked >&2\nexit 1\n', { mode: 0o755 });
-    // PRE is recorded before committing, exactly as workflow-commit.md instructs
-    const r = run(`PRE=$(git rev-parse HEAD); echo x > x.txt; git add -A; git commit -q -m x; ${COMMIT_PROOF}`, work);
+    sh('echo x > x.txt && git add -A', work);
+    // the doc block runs as-is in ONE shell: it must capture PRE itself
+    const r = run(COMMIT_PROOF, work);
     assert.match(r.out, /nothing committed/);
     assert.doesNotMatch(r.out, /^committed /m);
     assert.doesNotMatch(r.out, /pushed/i);
   },
 
-  'successful commit: commit proof reports committed'() {
+  'successful commit: commit proof reports committed (block run as-is)'() {
     const { work } = setup();
-    const r = run(`PRE=$(git rev-parse HEAD); echo x > x.txt; git add -A; git commit -q -m x; ${COMMIT_PROOF}`, work);
+    sh('echo x > x.txt && git add -A', work);
+    const r = run(COMMIT_PROOF, work);
     assert.match(r.out, /^committed \w+/m);
+  },
+
+  'unset PRE (separate Bash call): proof never prints "committed"'() {
+    const { work } = setup();
+    // the check part of the block alone, in a fresh shell without PRE (the old doc's real-world situation)
+    const check = COMMIT_PROOF.slice(COMMIT_PROOF.indexOf('[ "$(git rev-parse HEAD)"'));
+    assert.ok(check.includes('PRE'), 'check part not found');
+    const r = run(check, work);
+    assert.doesNotMatch(r.out, /^committed /m);
+    assert.match(r.out, /PRE unset/);
+    assert.notStrictEqual(r.code, 0);
+  },
+
+  'commit-proof block is self-contained and mirrored in git SKILL.md / git-operator'() {
+    assert.ok(COMMIT_PROOF.startsWith('PRE=$(git rev-parse HEAD);'), 'PRE capture must be inside the block');
+    assert.ok(COMMIT_PROOF.includes('git commit'), 'commit must be inside the block');
+    const skill = fs.readFileSync(path.join(ROOT, '.claude/skills/git/SKILL.md'), 'utf8');
+    assert.ok(skill.includes(COMMIT_PROOF), 'git/SKILL.md commit step drifted from the commit-proof block');
+    const agent = fs.readFileSync(path.join(ROOT, '.claude/agents/git-operator.md'), 'utf8');
+    assert.match(agent, /ONE Bash call/);
   },
 };
 
