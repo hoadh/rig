@@ -4,7 +4,7 @@ You do the work yourself. Use subagents when they buy something: context isolati
 
 ## Size Tiers (single definition; other files point here)
 
-Classify the task before acting. Risk signals (auth, data/migrations, infra, public API or schema change) force Large. The user can always override ("just do it", `/rig:implement --full`).
+Classify the task before acting. Risk signals (auth, data/migrations, infra, public API or schema change) force Large even for a one-line change (risk beats size). The user can always override ("just do it", `/rig:implement --full`).
 
 | Tier | Signal | Process |
 |---|---|---|

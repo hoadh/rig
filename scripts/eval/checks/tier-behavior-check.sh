@@ -9,7 +9,8 @@ OUT="${1:?usage: tier-behavior-check.sh <evidence-dir>}"
 mkdir -p "$OUT"
 SCRATCH="$(mktemp -d)"
 trap 'rm -rf "$SCRATCH"' EXIT
-tar -C "$ROOT" --exclude=.git --exclude=node_modules --exclude=plans -cf - . | tar -C "$SCRATCH" -xf -
+# Tracked files only: untracked files (e.g. .env with keys) must not reach the scratch dir.
+git -C "$ROOT" archive HEAD | tar -C "$SCRATCH" -xf -
 cd "$SCRATCH"
 git init -q && git add -A >/dev/null && git -c user.email=a@b -c user.name=t commit -qm init
 printf 'The quick brown fox jumpd over the lazy dog.\n' > notes.txt
@@ -23,7 +24,18 @@ run() { # name prompt max-turns
     --permission-mode acceptEdits --allowedTools "Read Edit Write Bash Skill Agent Task Glob Grep" \
     > "$OUT/$1.stream.jsonl" 2> "$OUT/$1.stderr" || echo "claude exited non-zero for $1 (see stderr)"
 }
-count_tool() { { grep -o '"type":"tool_use","id":"[^"]*","name":"'"$2"'"' "$OUT/$1.stream.jsonl" || true; } | wc -l; }
+# Count tool_use blocks by name, matching parsed JSON (not key order). jq if present, else node.
+count_tool() {
+  if command -v jq >/dev/null 2>&1; then
+    jq -r --arg n "$2" 'select(.type=="assistant") | .message.content[]? | select(.type=="tool_use" and .name==$n) | .id' "$OUT/$1.stream.jsonl" 2>/dev/null | wc -l
+  else
+    node -e '
+      const lines = require("fs").readFileSync(process.argv[1], "utf8").split("\n");
+      let n = 0;
+      for (const l of lines) { try { const o = JSON.parse(l); if (o.type === "assistant") for (const c of (o.message && o.message.content) || []) if (c.type === "tool_use" && c.name === process.argv[2]) n++; } catch {} }
+      console.log(n);' "$OUT/$1.stream.jsonl" "$2"
+  fi | tr -d ' '
+}
 
 run trivial  "Fix the typo 'jumpd' in notes.txt." 6
 run standard "Add an isEven(n) function to src/math.js plus a small node:test test in src/math.test.js, and run it." 12

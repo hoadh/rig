@@ -1,4 +1,4 @@
-// ESLint 9 flat config. `npm run lint` fails on any error; keep warnings at zero.
+// ESLint 10 flat config. `npm run lint` fails on any error; keep warnings at zero.
 import js from '@eslint/js';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
@@ -14,11 +14,6 @@ export default tseslint.config(
       '.claude/skills/ui-design/data/**', // vendored data
       '.claude/skills/**/assets/**', // vendored browser assets
       '**/dist/**', // compiled output (mcp skill)
-      // Known-broken suites, already listed in SKIPPED_FILES of scripts/run-hook-tests.cjs:
-      // written for bun:test (describe/it globals) and one imports a module that no longer exists.
-      '.claude/skills/markdown-viewer/tests/dashboard-assets.test.cjs',
-      '.claude/skills/markdown-viewer/tests/dashboard-renderer.test.cjs',
-      '.claude/skills/markdown-viewer/tests/http-server.test.cjs',
     ],
   },
   js.configs.recommended,
@@ -47,6 +42,11 @@ export default tseslint.config(
     // Puppeteer scripts pass callbacks to page.evaluate(), which run in the browser (document, window)
     files: ['.claude/skills/browser/scripts/**/*.js'],
     languageOptions: { globals: { ...globals.node, ...globals.browser } },
+  },
+  {
+    // markdown-viewer suites get describe/it from tests/test-framework.cjs (run via tests/run-tests.cjs)
+    files: ['.claude/skills/markdown-viewer/tests/*.test.cjs'],
+    languageOptions: { globals: { ...globals.node, describe: 'readonly', it: 'readonly', before: 'readonly', after: 'readonly' } },
   },
   {
     files: ['**/*.ts'],

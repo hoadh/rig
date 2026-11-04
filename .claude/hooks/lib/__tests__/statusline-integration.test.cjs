@@ -355,7 +355,7 @@ try {
 
   test('NO_COLOR output should be plain text', () => {
     // Check for absence of ANSI escape codes
-// eslint-disable-next-line no-control-regex -- ANSI escape / control characters are the match target
+    // eslint-disable-next-line no-control-regex -- ANSI escape / control characters are the match target
     const hasEscapeCodes = /\x1b\[/.test(noColorResult);
     assertTrue(!hasEscapeCodes || noColorResult.includes('📁'), 'Should prefer plain text with NO_COLOR');
   });
@@ -487,7 +487,7 @@ try {
     // Model should be truncated to ~30 chars max
     const modelLine = longModelResult.split('\n').find(l => l.includes('🤖')) || '';
     // Strip ANSI codes for length check
-// eslint-disable-next-line no-control-regex -- ANSI escape / control characters are the match target
+    // eslint-disable-next-line no-control-regex -- ANSI escape / control characters are the match target
     const stripped = modelLine.replace(/\x1b\[[0-9;]*m/g, '');
     assertTrue(stripped.length <= 100, `Model line should fit in 100 cols, got ${stripped.length}`);
   });

@@ -13,7 +13,7 @@ Principles: YAGNI, KISS, DRY. Do the simplest thing that works.
 ## Code Quality
 - Code must compile and have no syntax errors; style strictness comes second to readability and productivity.
 - Handle errors with try/catch at boundaries and validate external input.
-- Review scales with the tier in `primary-workflow.md`; do not run a reviewer on a one-line fix.
+- Review scales with the tier in `primary-workflow.md`; do not run a reviewer on a one-line fix, unless it carries a risk signal (auth, data, infra, public API): risk signals win, so a one-line auth fix is Large and gets a reviewer.
 
 ## Commit and Push
 - Lint before commit, run tests before push. Never ignore a failing test to get a green build.

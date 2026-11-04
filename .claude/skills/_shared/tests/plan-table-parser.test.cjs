@@ -123,10 +123,6 @@ test('Format 0: multi-table disambiguation prefers table with links', () => {
 console.log('\n--- Format 1: standard 4-column ---');
 
 test('Format 1: standard table', () => {
-  const _content = `| Phase | Name | Status | Link |
-|-------|------|--------|------|
-| 1 | Setup | Pending | [setup](./phase-01-setup.md) |
-`;
   // Format 0 will not match (no status column in header that matches), falls to F1
   // Actually F0 would match if header has Status... let's check with no status col
   const content2 = `Some plan text

@@ -1,7 +1,7 @@
 ---
 name: rig:implement
 description: "Implement a feature or plan end-to-end: plan, code, test, review. Use for Standard and Large tasks (multi-file, planned or risky work). Trivial one-file fixes are done directly without this skill (tiers in .claude/rules/primary-workflow.md)."
-argument-hint: "[task|plan-path] [--interactive|--fast|--parallel|--auto|--no-test]"
+argument-hint: "[task|plan-path] [--interactive|--fast|--full|--parallel|--auto|--no-test]"
 metadata:
   author: rig
   version: "1.0.0"
@@ -19,11 +19,12 @@ End-to-end implementation with automatic workflow detection.
 /rig:implement <natural language task OR plan path>
 ```
 
-If no flag is provided, the skill will use the `interactive` mode by default for the workflow.
+If no flag is provided, the mode follows the task tier (see Size Tiers): Standard runs `fast`, Large runs `interactive`. Explicit flags always override.
 
 **Optional flags to select the workflow mode:** 
-- `--interactive`: Full workflow with user input (**default**)
-- `--fast`: Skip research, explore→plan→code
+- `--interactive`: Full workflow with user input (default for Large)
+- `--fast`: Skip research, explore→plan→code (default for Standard)
+- `--full`: Force the Large tier: research, reviewed plan, full gates (interactive workflow)
 - `--parallel`: Multi-agent execution
 - `--no-test`: Skip testing step
 - `--auto`: Auto-approve all steps
@@ -67,7 +68,8 @@ Standard and Large: do not write implementation code until a plan exists (and, f
 | Contains "trust me", "auto" | auto | Auto-approve all steps |
 | Lists 3+ features OR "parallel" | parallel | Multi-agent execution |
 | Contains "no test", "skip test" | no-test | Skip testing step |
-| Default | interactive | Full workflow with user input |
+| Contains "--full" | interactive | Forces Large tier: full workflow with user input |
+| Default | tier-driven | Trivial: just do it, no skill; Standard: fast; Large (or risk signals): interactive |
 
 See `references/intent-detection.md` for detection logic.
 

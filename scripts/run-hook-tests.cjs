@@ -8,6 +8,7 @@
  * Test files are plain Node scripts (some use node:test, some print their own results);
  * each one is run as `node <file>` and judged by its exit code.
  * Files run in parallel; output is printed only for failures.
+ * Custom-framework suites (COVERED_BY_RUNNER) run through their own runner instead.
  * Files listed in SERIAL_FILES rewrite shared repo files, so they run alone afterwards.
  *
  * Skips are never silent: files in SKIPPED_FILES are listed with their reason, and any
@@ -18,7 +19,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { spawn } = require('child_process');
+const { spawn, spawnSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
 const SCAN_DIRS = [path.join(ROOT, '.claude'), path.join(ROOT, 'scripts')];
@@ -39,9 +40,14 @@ const SERIAL_FILES = new Set(['.claude/hooks/__tests__/hook-logger.test.cjs']);
 const SKIPPED_FILES = new Map([
   ['.claude/skills/sequential-thinking/tests/format-thought.test.js', 'jest suite (describe/test globals); CI runs it with `npx jest` in .claude/skills/sequential-thinking'],
   ['.claude/skills/sequential-thinking/tests/process-thought.test.js', 'jest suite (describe/test globals); CI runs it with `npx jest` in .claude/skills/sequential-thinking'],
-  ['.claude/skills/markdown-viewer/tests/dashboard-assets.test.cjs', 'bun:test-style suite (describe global), not runnable with node; known gap'],
-  ['.claude/skills/markdown-viewer/tests/http-server.test.cjs', 'bun:test-style suite (describe global), not runnable with node; known gap'],
-  ['.claude/skills/markdown-viewer/tests/dashboard-renderer.test.cjs', 'requires missing module scripts/lib/dashboard-renderer.cjs (stale test); known gap'],
+]);
+
+// Custom-framework suites: they rely on the `describe` global installed by
+// tests/test-framework.cjs, so `node <file>` fails. They run through their own runner,
+// which is executed once in place of the listed files.
+const MARKDOWN_VIEWER_RUNNER = '.claude/skills/markdown-viewer/tests/run-tests.cjs';
+const COVERED_BY_RUNNER = new Map([
+  ['.claude/skills/markdown-viewer/tests/http-server.test.cjs', MARKDOWN_VIEWER_RUNNER],
 ]);
 
 const toPosix = (p) => p.split(path.sep).join('/');
@@ -64,29 +70,43 @@ function runFile(file) {
   return new Promise((resolve) => {
     const started = Date.now();
     let output = '';
+    let settled = false;
     // On POSIX the test gets its own process group, so a timeout also kills the
     // hooks, git and shells it spawned (they would otherwise keep the pipes open
     // and 'close' would never fire).
     const posix = process.platform !== 'win32';
     const child = spawn(process.execPath, [file], { cwd: ROOT, env: process.env, detached: posix });
-    const timer = setTimeout(() => {
-      output += `\n[timed out after ${TIMEOUT_MS / 1000}s]`;
+    const finish = (extra) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve({ file, output, ms: Date.now() - started, ...extra });
+    };
+    const killTree = () => {
       try {
         if (posix) process.kill(-child.pid, 'SIGKILL');
-        else child.kill('SIGKILL');
+        else spawnSync('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore' });
       } catch {
-        child.kill('SIGKILL');
+        try { child.kill('SIGKILL'); } catch {}
       }
+    };
+    const timer = setTimeout(() => {
+      output += `\n[timed out after ${TIMEOUT_MS / 1000}s]`;
+      killTree();
+      // Orphaned grandchildren can keep the stdio pipes open so 'close' never fires;
+      // 'exit' fires once the child itself dies, and the guard resolves if even that is lost.
+      setTimeout(() => finish({ ok: false, code: null, signal: 'SIGKILL' }), 5000).unref();
     }, TIMEOUT_MS);
     child.stdout.on('data', (d) => { output += d; });
     child.stderr.on('data', (d) => { output += d; });
-    child.on('close', (code, signal) => {
-      clearTimeout(timer);
-      resolve({ file, ok: code === 0 && !signal, code, signal, output, ms: Date.now() - started });
+    child.on('exit', (code, signal) => {
+      // Give stdio a moment to drain, then resolve even if grandchildren hold the pipes.
+      setTimeout(() => finish({ ok: code === 0 && !signal, code, signal }), 1000).unref();
     });
+    child.on('close', (code, signal) => finish({ ok: code === 0 && !signal, code, signal }));
     child.on('error', (err) => {
-      clearTimeout(timer);
-      resolve({ file, ok: false, code: null, signal: null, output: String(err), ms: Date.now() - started });
+      output += String(err);
+      finish({ ok: false, code: null, signal: null });
     });
   });
 }
@@ -105,17 +125,24 @@ async function main() {
   const discovered = SCAN_DIRS.flatMap(findTestFiles);
   if (discovered.length === 0) {
     console.error('No test files found under .claude/ or scripts/');
-    process.exit(1);
+    process.exitCode = 1;
+    return;
   }
   const rel = (f) => toPosix(path.relative(ROOT, f));
   const skipped = discovered.filter((f) => SKIPPED_FILES.has(rel(f)));
-  const files = discovered.filter((f) => !SKIPPED_FILES.has(rel(f)));
+  const runners = [...new Set(discovered.map(rel).filter((f) => COVERED_BY_RUNNER.has(f)).map((f) => COVERED_BY_RUNNER.get(f)))];
+  const files = [
+    ...discovered.filter((f) => !SKIPPED_FILES.has(rel(f)) && !COVERED_BY_RUNNER.has(rel(f))),
+    ...runners.map((r) => path.join(ROOT, r)),
+  ];
   // A stale SKIPPED_FILES entry would hide a rename; fail loudly instead.
   const known = new Set(discovered.map(rel));
-  const stale = [...SKIPPED_FILES.keys()].filter((k) => !known.has(k));
-  if (stale.length > 0) {
-    console.error(`SKIPPED_FILES entries match no test file: ${stale.join(', ')}`);
-    process.exit(1);
+  const stale = [...SKIPPED_FILES.keys(), ...COVERED_BY_RUNNER.keys()].filter((k) => !known.has(k));
+  const missingRunners = runners.filter((r) => !fs.existsSync(path.join(ROOT, r)));
+  if (stale.length > 0 || missingRunners.length > 0) {
+    console.error(`SKIPPED_FILES/COVERED_BY_RUNNER entries match no file: ${[...stale, ...missingRunners].join(', ')}`);
+    process.exitCode = 1;
+    return;
   }
 
   const isSerial = (f) => SERIAL_FILES.has(rel(f));
@@ -156,7 +183,10 @@ async function main() {
 
   const passed = results.length - failed.length;
   console.log(`\n${passed} passed, ${failed.length} failed, ${skipped.length} skipped (of ${discovered.length} test files)`);
-  process.exit(failed.length > 0 ? 1 : 0);
+  process.exitCode = failed.length > 0 ? 1 : 0;
 }
 
-main();
+main().catch((err) => {
+  console.error(err);
+  process.exitCode = 1;
+});

@@ -177,7 +177,7 @@ function writeSessionState(sessionId, state) {
  * macOS/Linux: / and null byte
  * Also includes control characters and other problematic chars
  */
-// eslint-disable-next-line no-control-regex -- ANSI escape / control characters are the match target
+// eslint-disable-next-line no-control-regex -- control characters are the match target
 const INVALID_FILENAME_CHARS = /[<>:"/\\|?*\x00-\x1f\x7f]/g;
 
 /**
@@ -397,7 +397,7 @@ function sanitizePath(pathValue, projectRoot) {
   if (!normalized) return null;
 
   // Block null bytes and other dangerous chars
-// eslint-disable-next-line no-control-regex -- ANSI escape / control characters are the match target
+  // eslint-disable-next-line no-control-regex -- null byte is the match target
   if (/[\x00]/.test(normalized)) return null;
 
   // Allow absolute paths (user explicitly wants consolidated plans elsewhere)
