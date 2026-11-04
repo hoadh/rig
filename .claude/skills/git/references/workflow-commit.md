@@ -3,8 +3,6 @@
 Execute via `git-operator` subagent.
 
 ## Tool 1: Stage + Analyze
-Record HEAD first (`PRE=$(git rev-parse HEAD)`, keep the value for the commit proof below).
-
 If the tree is clean and nothing is ahead of remote, output exactly `nothing to commit (working tree clean)` (for `cp` also `nothing to push` when ahead = 0) and stop. No "pushed" line.
 
 ```bash
@@ -43,22 +41,17 @@ NOTE:
 
 ## Tool 3: Commit
 
-**Single:**
-```bash
-git commit -m "type(scope): description"
-```
+Commit and proof run in ONE Bash call: Bash calls do not share shell variables, so `PRE` must be captured in the same block that commits and checks (a missing `PRE` fails loudly via `${PRE:?}`, never a false "committed").
 
-**Multi (sequential):**
-```bash
-git reset && git add file1 file2 && git commit -m "type(scope): desc"
-```
-Repeat for each group.
+**Single:** stage first (Tool 1), then run the commit proof block below with the real message.
+
+**Multi (sequential):** per group run `git reset && git add file1 file2` then the block below (one call per group, message changed).
 
 ### Commit proof
-After committing, require HEAD to have moved (a rejecting pre-commit hook leaves it unchanged):
+HEAD must move (a rejecting pre-commit hook leaves it unchanged). Capture, commit, check in this single block:
 <!-- commit-proof -->
 ```bash
-[ "$(git rev-parse HEAD)" != "$PRE" ] && echo "committed $(git rev-parse --short HEAD)" || echo "nothing committed"
+PRE=$(git rev-parse HEAD); git commit -m "type(scope): description"; [ "$(git rev-parse HEAD)" != "${PRE:?PRE unset}" ] && echo "committed $(git rev-parse --short HEAD)" || echo "nothing committed"
 ```
 <!-- /commit-proof -->
 If `nothing committed`: report it, do NOT push.

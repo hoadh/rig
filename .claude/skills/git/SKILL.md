@@ -79,7 +79,7 @@ git diff --cached | grep -iE "(api[_-]?key|token|password|secret|credential)"
 
 ### Step 4: Commit
 ```bash
-git commit -m "type(scope): description"
+PRE=$(git rev-parse HEAD); git commit -m "type(scope): description"; [ "$(git rev-parse HEAD)" != "${PRE:?PRE unset}" ] && echo "committed $(git rev-parse --short HEAD)" || echo "nothing committed"
 ```
 
 ## Output Format
