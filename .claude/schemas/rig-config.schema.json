@@ -470,12 +470,56 @@
           "type": "boolean",
           "default": true,
           "description": "UserPromptSubmit hook - injects dev rules context"
+        },
+        "verify-completion-guard": {
+          "type": "boolean",
+          "default": true,
+          "description": "Stop hook - nudges or blocks a stop when code was edited without a passing verify command. Only the global ~/.claude/.rig.json can set it to false."
+        },
+        "bash-safety-guard": {
+          "type": "boolean",
+          "default": true,
+          "description": "PreToolUse(Bash) hook - denies or asks on known footguns (sed -i on a symlink, risky pkill). Read from the global ~/.claude/.rig.json only."
         }
       },
       "additionalProperties": {
         "type": "boolean",
         "description": "Toggle for a retired hook; accepted so older configs stay valid, has no effect"
       }
+    },
+    "verifyGuard": {
+      "type": "object",
+      "description": "verify-completion-guard settings. A project .rig.json may only RAISE mode (off < remind < block); extraCommandPatterns is read from the global ~/.claude/.rig.json only.",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["remind", "block", "off"],
+          "default": "remind",
+          "description": "remind: one nudge per turn. block: refuse to stop (max 2 times per turn) until a verify command passes or the final message has a `Verification skipped: <reason>` line. off: guard disabled."
+        },
+        "extraCommandPatterns": {
+          "type": "array",
+          "maxItems": 20,
+          "items": { "type": "string", "maxLength": 200 },
+          "description": "Extra regexes (global config only) matched against commands to count as verify commands, for example `^make e2e$`. Nested quantifiers are rejected."
+        }
+      },
+      "additionalProperties": false
+    },
+    "bashSafetyGuard": {
+      "type": "object",
+      "description": "bash-safety-guard per-rule switches. Read from the global ~/.claude/.rig.json only; a project .rig.json cannot change them.",
+      "properties": {
+        "rules": {
+          "type": "object",
+          "properties": {
+            "inPlaceEditSymlink": { "type": "boolean", "default": true, "description": "Guard sed -i / perl -i on a symlink" },
+            "processKill": { "type": "boolean", "default": true, "description": "Guard pkill patterns that match Claude's own shell, broad kills and kills by common names" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": true
