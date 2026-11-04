@@ -71,6 +71,7 @@ If you registered a Stop notification hook (`.claude/hooks/notifications/`, opt-
 ## False positives and known limits
 
 - **Wrong nudge:** reply once and move on, or in `block` mode use the `Verification skipped:` line. If it repeats for a project command, add it to `extraCommandPatterns`. If it is noisy everywhere, set `verifyGuard.mode` to `off` or `hooks.verify-completion-guard` to `false` globally.
+- **Symlinks created by the same command are not seen.** The bash guard runs before the command, so in `ln -s target link && sed -i ... link` the link does not exist yet and the edit is allowed. Links that already exist (the Stow case) are caught.
 - **Tester verdict is not parsed.** A `tester` subagent run counts as verification; whether its report says pass or fail is not read.
 - **Piped or chained checks are not counted.** `cmd | tail` reports the status of `tail`, and `cmd; echo done` the status of `echo`, so the guard treats them as unverified and says the exit status was masked. Run the check on its own, as the last command (`set -o pipefail; cmd` counts; `cmd | tail` does not).
 - **Block mode never loops.** It allows the stop when its counter file cannot be written, and after two consecutive blocks while `stop_hook_active` is true, whatever the turn key.
