@@ -241,3 +241,44 @@ test('disabled rules are not run; invalid decisions are ignored', () => {
   const bogus = [stub({ check: () => ({ decision: 'allow', reason: 'r' }) })];
   assert.strictEqual(evaluateCommand('ls', { rules: bogus, cwd: process.cwd() }).result, null);
 });
+
+test('pgrep -f feeding kill is denied at the entry; bracket form allowed (M3, F1)', () => {
+  const w = setup();
+  for (const cmd of ['pgrep -f vite | xargs kill', 'pgrep -f vite | xargs -r kill -9', 'kill $(pgrep -f vite)', 'kill `pgrep -f vite`']) {
+    const { out } = runHook(w, bash(cmd, w));
+    assert.strictEqual(out && out.permissionDecision, 'deny', cmd);
+    assert.doesNotMatch(out.permissionDecisionReason.replace(/^.*?(?=Use the bracket)/, ''), /pgrep -a?f/, cmd);
+  }
+  for (const cmd of [`pgrep -f '[v]ite' | xargs kill`, `kill $(pgrep -f '[v]ite')`, 'pgrep -x vite | xargs kill']) {
+    assert.strictEqual(runHook(w, bash(cmd, w)).out, null, cmd);
+  }
+});
+
+test('ReDoS pattern asks and answers within a second (H2)', () => {
+  const w = setup();
+  const t0 = Date.now();
+  const { out } = runHook(w, bash(`pkill -f '(a+)+b' #${'a'.repeat(40)}`, w));
+  assert.strictEqual(out.permissionDecision, 'ask');
+  assert.ok(Date.now() - t0 < 1000, `took ${Date.now() - t0}ms`);
+});
+
+test('shell option and eval wrappers are inspected (L1)', () => {
+  const w = setup();
+  for (const cmd of [`bash -o pipefail -c 'pkill -f node'`, `eval 'pkill -f node'`]) {
+    assert.strictEqual(runHook(w, bash(cmd, w)).out.permissionDecision, 'deny', cmd);
+  }
+});
+
+test('entry-level crash logs only error name and code (M4)', () => {
+  const w = setup();
+  // the installed copy of a lib module throws an error whose message holds a path and a secret
+  const cfg = path.join(w.home, '.claude', 'hooks', 'lib', 'bash-safety-guard-config.cjs');
+  fs.writeFileSync(cfg, "const e = new Error('boom /home/secret-user/private.txt'); e.code = 'EBOOM'; throw e;\n");
+  const { status, out } = runHook(w, bash('ls', w));
+  assert.strictEqual(status, 0);
+  assert.strictEqual(out, null);
+  const crash = logLines(w).find((l) => l.status === 'crash');
+  assert.ok(crash, 'crash entry expected');
+  assert.strictEqual(crash.error, 'Error:EBOOM');
+  assert.ok(!JSON.stringify(crash).includes('secret-user'));
+});

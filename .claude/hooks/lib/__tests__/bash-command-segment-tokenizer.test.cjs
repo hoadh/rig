@@ -180,3 +180,27 @@ describe('commandName', () => {
     assert.strictEqual(commandName(null), '');
   });
 });
+
+describe('shell options before -c, eval, and segment operators', () => {
+  it('looks inside bash -o pipefail -c and +o / -O option values', () => {
+    assert.deepStrictEqual(argvs(`bash -o pipefail -c 'pkill -f node'`), [['pkill', '-f', 'node']]);
+    assert.deepStrictEqual(argvs(`bash -eo pipefail -c 'a 1'`), [['a', '1']]);
+    assert.deepStrictEqual(argvs(`bash +o history -O extglob -c 'b'`), [['b']]);
+  });
+  it('re-scans eval literals', () => {
+    assert.deepStrictEqual(argvs(`eval 'pkill -f node'`), [['pkill', '-f', 'node']]);
+    assert.deepStrictEqual(argvs('eval pkill -f node'), [['pkill', '-f', 'node']]);
+  });
+  it('respects the nesting depth cap for eval and bash -c', () => {
+    const deep = `eval "eval \\"eval 'eval \\\\\\"pkill -f node\\\\\\"'\\""`;
+    const out = argvs(deep);
+    assert.ok(out.length >= 1);
+    assert.ok(out.every((a) => a[0] !== 'pkill'), JSON.stringify(out));
+  });
+  it('reports the operator that ended each segment, also for bash -c bodies', () => {
+    const ops = (cmd) => tokenize(cmd, { cwd: CWD }).map((s) => s.op);
+    assert.deepStrictEqual(ops('a && b || c; d | e'), ['&&', '||', ';', '|', '']);
+    assert.deepStrictEqual(ops(`bash -c 'a && b'; c`), ['&&', ';', '']);
+    assert.deepStrictEqual(ops(`bash -c 'a' | tail`), ['|', '']);
+  });
+});

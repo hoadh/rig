@@ -131,3 +131,38 @@ test('truncated last line (writer mid-flush) is skipped', () => {
 test('missing transcript throws (caller fails open)', () => {
   assert.throws(() => scanTurn(path.join(dir, 'nope.jsonl'), {}));
 });
+
+test('background Bash and background tester calls are not verification (M2)', () => {
+  const bg = (cmd) => F.call('Bash', { command: cmd, run_in_background: true });
+  assert.strictEqual(scan([P(), F.edit('/p/a.cjs'), bg('node --test a.test.cjs')]).verified, false);
+  assert.strictEqual(scan([P(), F.edit('/p/a.cjs'), F.call('Agent', { subagent_type: 'tester', description: 'd', prompt: 'p', run_in_background: true })]).verified, false);
+  // a foreground check after the background one still verifies
+  assert.strictEqual(scan([P(), F.edit('/p/a.cjs'), bg('node --test a.test.cjs'), F.bash('node --test a.test.cjs')]).verified, true);
+});
+
+test('checks masked by ; || | do not verify and are reported as masked (M1)', () => {
+  for (const c of ['node --test a.js; echo done', 'node --test a.js && echo ok || echo fail', 'node --test a.js | tail']) {
+    const r = scan([P(), F.edit('/p/a.cjs'), F.bash(c)]);
+    assert.strictEqual(r.verified, false, c);
+    assert.strictEqual(r.maskedCheck, 'node --test a.js', c);
+  }
+  assert.strictEqual(scan([P(), F.edit('/p/a.cjs'), F.bash('node --test a.js && echo ok')]).verified, true);
+});
+
+test('a short earlier-turn last message ("Done.") is not a stale match for the new message (L3)', () => {
+  const file = F.writeTranscript(path.join(dir, `stale${++n}.jsonl`), P(), F.text('Done.'), F.prompt('now fix the other thing'), F.edit('/p/a.cjs'));
+  const r = scanTurn(file, { lastAssistantMessage: 'Fixed the other thing. Done.', pollMaxMs: 100, pollStepMs: 10, detect: { projectDir: dir, cwd: dir } });
+  assert.strictEqual(r.lagged, true);
+  // and the current message at the tail still matches normally
+  const ok = F.writeTranscript(path.join(dir, `fresh${++n}.jsonl`), P(), F.text('Done.'), F.prompt('again'), F.edit('/p/a.cjs'), F.text('Fixed. Done.'));
+  assert.strictEqual(scanTurn(ok, { lastAssistantMessage: 'Fixed. Done.', pollMaxMs: 100, pollStepMs: 10, detect: { projectDir: dir, cwd: dir } }).lagged, false);
+});
+
+test('window-exhausted turns get a boundary-derived key, not a constant (L5)', () => {
+  const big = (tag) => [P(), ...Array.from({ length: 200 }, (_, i) => F.bash(`echo ${tag}-${i}`)), F.edit('/p/a.cjs')];
+  const a = scan(big('a'), { tailBytes: 20000 });
+  const b = scan(big('b'), { tailBytes: 20000 });
+  assert.strictEqual(a.windowExhausted, true);
+  assert.match(a.turnKey, /^w:[0-9a-f]{12}$/);
+  assert.notStrictEqual(a.turnKey, b.turnKey);
+});

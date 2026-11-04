@@ -35,7 +35,7 @@ test('non-verification and lookalikes do not count', () => {
 test('script names are whole tokens that exist in package.json', () => {
   assert.ok(!v('npm run testing').isVerify);
   assert.ok(!v('npm run e2e').isVerify, 'e2e not defined in this package.json');
-  assert.ok(!v('npm run test; echo done').masked);
+  assert.ok(v('npm run test; echo done').masked);
 });
 
 test('masked chains are flagged', () => {
@@ -44,6 +44,22 @@ test('masked chains are flagged', () => {
     assert.ok(r.isVerify && r.masked, c);
   }
   assert.ok(!v('npm test && echo ok').masked);
+});
+
+test('trailing ; || | & after a verify command mask its exit status (M1)', () => {
+  const masked = [
+    'npm test; echo done', 'npm test && echo ok || echo fail', 'npm test | tail', 'npm test 2>&1 | tail -20',
+    'npm test\necho done', 'npm test &', "bash -c 'npm test' | cat", "bash -c 'npm test'; echo x", 'npm test; npm run lint | tail',
+  ];
+  for (const c of masked) {
+    const r = v(c);
+    assert.ok(r.isVerify && r.masked, c);
+  }
+  const clean = ['npm test', 'npm test;', 'npm test\n', 'npm test && echo ok', 'cd sub && npm test && npm run build', 'echo x; npm test', 'npm test && echo a && echo b', "bash -c 'npm test && echo ok'"];
+  for (const c of clean) {
+    const r = v(c);
+    assert.ok(r.isVerify && !r.masked, c);
+  }
 });
 
 test('extraPatterns match against the segment words', () => {

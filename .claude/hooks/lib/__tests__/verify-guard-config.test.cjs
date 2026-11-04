@@ -75,3 +75,10 @@ test('corrupt config files fall back to defaults', () => {
   fs.writeFileSync(path.join(w.home, '.claude', '.rig.json'), '{not json');
   assert.strictEqual(load(w).mode, 'remind');
 });
+
+test('vetPatterns rejects ReDoS shapes the old single regex missed', () => {
+  const { patterns, rejected } = vetPatterns(['((a+))+$', '(a|aa)+$', '(a{1,})+$', '(a+)+$', '^make e2e$']);
+  assert.strictEqual(patterns.length, 1);
+  assert.strictEqual(rejected.length, 4);
+  assert.ok(patterns[0].test('make e2e'));
+});

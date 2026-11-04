@@ -91,3 +91,57 @@ describe('common names', () => {
     assert.strictEqual(decision('pkill'), null);
   });
 });
+
+describe('ReDoS and length caps', () => {
+  it('asks (never allows) for an unsafe -f pattern and returns fast', () => {
+    const t0 = Date.now();
+    const cmd = `pkill -f '(a+)+b' #${'a'.repeat(40)}`;
+    assert.strictEqual(decision(cmd), 'ask');
+    assert.strictEqual(decision(`true ${'a'.repeat(40)}; pkill -f '(a+)+b|vite'; npx vite &`), 'ask');
+    assert.strictEqual(decision("pkill -f '((a+))+$'"), 'ask');
+    assert.strictEqual(decision("pkill -f '(a|aa)+$'"), 'ask');
+    assert.ok(Date.now() - t0 < 1000, `took ${Date.now() - t0}ms`);
+  });
+  it('asks for a command longer than the matched-text cap', () => {
+    assert.strictEqual(decision(`echo ${'x'.repeat(9000)}; pkill -f vite`), 'ask');
+  });
+});
+
+describe('pgrep -f feeding kill', () => {
+  it('denies pipelines into xargs kill, with or without -r / signal', () => {
+    assert.strictEqual(decision('pgrep -f vite | xargs kill'), 'deny');
+    assert.strictEqual(decision('pgrep -f vite | xargs -r kill -9'), 'deny');
+    assert.strictEqual(decision('pgrep -af vite | awk \'{print $1}\' | xargs kill -TERM'), 'deny');
+  });
+  it('denies command substitution and backtick forms', () => {
+    assert.strictEqual(decision('kill $(pgrep -f vite)'), 'deny');
+    assert.strictEqual(decision('kill -9 $(pgrep -f vite)'), 'deny');
+    assert.strictEqual(decision('kill `pgrep -f vite`'), 'deny');
+  });
+  it('allows the bracket form and pgrep -x', () => {
+    assert.strictEqual(decision("pgrep -f '[v]ite' | xargs kill"), null);
+    assert.strictEqual(decision("kill $(pgrep -f '[v]ite')"), null);
+    assert.strictEqual(decision('pgrep -x vite | xargs kill'), null);
+    assert.strictEqual(decision('kill $(pgrep -x vite)'), null);
+    assert.strictEqual(decision('pgrep -f vite'), null);
+  });
+  it('asks for unsafe or non-literal pgrep patterns feeding kill', () => {
+    assert.strictEqual(decision("pgrep -f '(a+)+b' | xargs kill"), 'ask');
+    assert.strictEqual(decision('pgrep -f "$P" | xargs kill'), 'ask');
+  });
+});
+
+describe('remedy text', () => {
+  it('never suggests pgrep -f / pgrep -af', () => {
+    for (const cmd of ['pkill -f vite', 'pkill node', 'pkill -u me', 'killall -u me', 'kill -9 -1', 'pgrep -f vite | xargs kill']) {
+      const r = run(cmd);
+      assert.ok(r, cmd);
+      assert.doesNotMatch(`${r.reason} ${r.context || ''}`.replace(/^.*?(?=Use the bracket)/, ''), /pgrep -a?f/, cmd); // remedy part only
+      assert.match(r.reason, /\[v\]ite/, cmd);
+    }
+  });
+  it('kill -9 -1 is denied while a lone kill -1 is not', () => {
+    assert.strictEqual(decision('kill -9 -1'), 'deny');
+    assert.strictEqual(decision('kill -1'), null);
+  });
+});

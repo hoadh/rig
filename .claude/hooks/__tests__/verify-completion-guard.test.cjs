@@ -12,6 +12,10 @@ const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
 const F = require('./verify-guard-transcript-fixture-builder.cjs');
+
+// Counter state files live in os.tmpdir(): point it (this process and every spawned hook) at a private dir.
+const TMP_ROOT = fs.mkdtempSync(path.join(os.tmpdir(), 'rig-vcg-tmp-'));
+for (const key of ['TMPDIR', 'TMP', 'TEMP']) process.env[key] = TMP_ROOT;
 const { stateFile } = require('../lib/verify-guard-turn-counter.cjs');
 
 const HOOKS_SRC = path.resolve(__dirname, '..');
@@ -22,12 +26,13 @@ const NONCE = `${process.pid}-${Date.now()}`;
 const sessions = new Set();
 test.after(() => {
   roots.forEach((r) => fs.rmSync(r, { recursive: true, force: true }));
+  fs.rmSync(TMP_ROOT, { recursive: true, force: true });
   sessions.forEach((id) => fs.rmSync(stateFile(id), { force: true }));
 });
 
 /** Temp world: HOME with hook copy + optional global config; project dir with optional config/lockfile. */
 function setup({ globalCfg, projectCfg, files } = {}) {
-  const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'rig-vcg-')));
+  const root = fs.realpathSync(fs.mkdtempSync(path.join(TMP_ROOT, 'rig-vcg-')));
   roots.push(root);
   const home = path.join(root, 'home');
   const proj = path.join(root, 'proj');
@@ -215,4 +220,90 @@ test('static real-shape fixtures (incl. truncated tail) behave as documented', (
   assert.strictEqual(fromFixture('edit-then-passing-test.jsonl'), null);
   assert.match(fromFixture('edit-then-failing-test.jsonl').hookSpecificOutput.additionalContext, /failed/);
   assert.ok(fromFixture('injected-entries-after-edit.jsonl'), 'truncated tail + injected entries still evaluate the turn');
+});
+
+const blockWorld = () => setup({ globalCfg: { verifyGuard: { mode: 'block' } } });
+
+test('block mode allows when the counter cannot be persisted (H1a)', () => {
+  const w = blockWorld();
+  const bad = path.join(w.root, 'no-such-dir', 'deeper'); // os.tmpdir() points at a missing directory: writes fail
+  const r = run(w, [P(), F.edit('/p/a.cjs')], { env: { TMPDIR: bad, TMP: bad, TEMP: bad }, payload: { stop_hook_active: true } });
+  assert.strictEqual(r.status, 0);
+  assert.strictEqual(r.out, null);
+  assert.match(notes(r), /counter-unwritable allow/);
+});
+
+test('block mode hard cap: stop_hook_active chain stops even when the turn key changes (H1b)', () => {
+  const w = blockWorld();
+  const opts = { session: 'chain', payload: { stop_hook_active: true } };
+  // every continuation has a different turn start (fresh prompt uuid), so the per-turn count resets each time
+  assert.strictEqual(run(w, [P(), F.edit('/p/a.cjs')], opts).out.decision, 'block');
+  assert.strictEqual(run(w, [P(), F.edit('/p/a.cjs')], opts).out.decision, 'block');
+  const third = run(w, [P(), F.edit('/p/a.cjs')], opts);
+  assert.strictEqual(third.out, null);
+  assert.match(notes(third), /block-cap/);
+});
+
+test('masked check nudge says the exit status was masked (M1)', () => {
+  const w = setup();
+  const r = run(w, [P(), F.edit('/p/a.cjs'), F.bash('node --test a.test.cjs | tail')]);
+  assert.match(nudge(r), /exit status was masked/);
+  assert.strictEqual(run(w, [P(), F.edit('/p/a.cjs'), F.bash('node --test a.test.cjs && echo ok')]).out, null);
+});
+
+test('background verification does not count (M2)', () => {
+  const w = setup();
+  assert.ok(nudge(run(w, [P(), F.edit('/p/a.cjs'), F.call('Bash', { command: 'node --test a.test.cjs', run_in_background: true })])));
+});
+
+test('entry-level crash logs only error name and code, never message or paths (M4)', { skip: process.platform === 'win32' || (process.getuid && process.getuid() === 0) }, () => {
+  const w = setup();
+  const transcript = F.writeTranscript(path.join(w.root, 'secret-dir-name.jsonl'), [P(), F.edit('/p/a.cjs')], F.text(FINAL));
+  fs.chmodSync(transcript, 0o000);
+  try {
+    const r = run(w, [P()], { payload: { transcript_path: transcript } });
+    assert.strictEqual(r.status, 0);
+    assert.strictEqual(r.out, null);
+    const crash = r.logs.find((l) => l.status === 'crash');
+    assert.ok(crash, 'crash entry expected');
+    assert.strictEqual(crash.error, 'Error:EACCES');
+    assert.ok(!JSON.stringify(crash).includes('secret-dir-name'));
+  } finally {
+    fs.chmodSync(transcript, 0o600);
+  }
+});
+
+test('window-exhausted turns key the counter on prompt_id, else a window-boundary hash (L5)', () => {
+  const w = setup();
+  const filler = F.text('x'.repeat(100000));
+  // > 4 MiB of entries after the only prompt: the turn start falls outside the tail window
+  const big = [P(), Array.from({ length: 50 }, () => ({ ...filler, uuid: `u-${Math.random()}` })), F.edit('/p/a.cjs')];
+  const keyOf = (session) => JSON.parse(fs.readFileSync(stateFile(`${session}-${NONCE}`), 'utf8')).turnKey;
+
+  const withId = run(w, big, { session: 'win-id', payload: { prompt_id: 'prompt-123' } });
+  assert.ok(nudge(withId));
+  assert.match(notes(withId), /window-exhausted/);
+  assert.strictEqual(keyOf('win-id'), 'prompt-123');
+
+  run(w, big, { session: 'win-hash' });
+  assert.match(keyOf('win-hash'), /^w:[0-9a-f]{12}$/);
+});
+
+test('state files older than 24h are pruned on a session first write (L4)', () => {
+  const { pruneStaleStateFiles } = require('../lib/verify-guard-turn-counter.cjs');
+  const old = path.join(TMP_ROOT, 'rig-verify-guard-ancient.json');
+  const fresh = path.join(TMP_ROOT, 'rig-verify-guard-recent.json');
+  const other = path.join(TMP_ROOT, 'unrelated-ancient.json');
+  for (const f of [old, fresh, other]) fs.writeFileSync(f, '{}');
+  const past = new Date(Date.now() - 25 * 3600 * 1000);
+  fs.utimesSync(old, past, past);
+  fs.utimesSync(other, past, past);
+  pruneStaleStateFiles();
+  assert.ok(!fs.existsSync(old));
+  assert.ok(fs.existsSync(fresh));
+  assert.ok(fs.existsSync(other), 'only rig-verify-guard-* files are touched');
+});
+
+test('hook source writes stdout synchronously (L6)', () => {
+  assert.match(fs.readFileSync(path.join(HOOKS_SRC, 'verify-completion-guard.cjs'), 'utf8'), /fs\.writeSync\(1, line\)/);
 });
