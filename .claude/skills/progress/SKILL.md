@@ -103,6 +103,7 @@ When updating plan status, NEVER mark only the currently active phase.
 3. Backfill stale checkboxes in earlier phases before marking later phases done.
 4. Update `plan.md` status/progress from real checkbox counts.
 5. If any completed task cannot be mapped to a phase file, report unresolved mappings and do not claim full completion.
+6. Live-verification guard: NEVER set a phase `Completed` (plan.md table or phase frontmatter), nor plan `status: completed`, while its `## Pending Live Verification` section has unchecked `- [ ] LIVE:` / `LIVE(blocking):` items. Keep/set `In Progress` and list the open items under "Awaiting live evidence" in the report. Do not backfill `LIVE:` checkboxes. Tick one only when evidence is recorded as a pointer under it (host, log path, UTC time, count/hash); raw excerpts need user approval. Open `LIVE:` items do not block dependents; `LIVE(blocking):` items do.
 
 ## Plan YAML Frontmatter
 

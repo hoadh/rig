@@ -16,6 +16,7 @@ Before delivering any status report, verify each item:
 - [ ] Scope changes logged: any deviation from original plan documented with reason and impact
 - [ ] Risks updated: new risks added, resolved risks closed — no stale risk register
 - [ ] Next actions concrete: each next step has an owner and a definition of done
+- [ ] No phase or plan marked Completed while it has open `LIVE:` items under Pending Live Verification (keep In Progress, list under "Awaiting live evidence")
 
 Activate the `progress` skill and follow its instructions.
 

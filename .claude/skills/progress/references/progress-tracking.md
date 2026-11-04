@@ -6,7 +6,7 @@
 2. **Parse YAML frontmatter:** Extract status, priority, branch, tags
 3. **Scan phase files:** Count `[x]` (done) vs `[ ]` (remaining) in each phase
 4. **Reconcile completed tasks:** Ensure all completed task metadata is reflected in phase files (backfill stale earlier phases first)
-5. **Calculate progress:** `completed / total * 100` per plan
+5. **Calculate progress:** `completed / total * 100` per plan; exclude `- [ ] LIVE:` / `LIVE(blocking):` items (Pending Live Verification) from both counts
 6. **Cross-reference:** Compare plan tasks against actual implementation
 
 ## Status Update Protocol
@@ -32,7 +32,11 @@ Update `plan.md` frontmatter `status` field:
 Each `phase-XX-*.md` tracks with checkboxes:
 - `[ ]` = pending
 - `[x]` = completed
-- Count ratio for progress percentage
+- Count ratio for progress percentage (ignore `LIVE:` / `LIVE(blocking):` items)
+
+### Awaiting Live Evidence
+
+Phases with open `LIVE:` items stay `In Progress` (no new status value). Every progress report includes an "Awaiting live evidence" block: phase, item, trigger, evidence pointer expected. Only `LIVE(blocking):` items hold back dependent plans/phases. Waiting is manual or via a session-bound `/loop`; no Stop notification hook is registered by default (notifications are opt-in).
 
 ### Task-Level Status
 

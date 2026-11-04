@@ -58,7 +58,7 @@ function buildPlanStatusSection(agentType) {
   return [
     ``,
     `## Plan Status Updates`,
-    `Edit plan.md directly: phases table Status column = Pending | In Progress | Completed (keep 3-column \`| Phase | Name | Status |\` format); tick \`- [x]\` todos in phase files.`
+    `Edit plan.md directly: phases table Status column = Pending | In Progress | Completed (keep 3-column \`| Phase | Name | Status |\` format); tick \`- [x]\` todos in phase files. Never set Completed for a phase with open \`LIVE:\` items (Pending Live Verification); keep In Progress.`
   ];
 }
 
