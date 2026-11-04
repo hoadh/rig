@@ -5,6 +5,12 @@ Devlog of shipped work, decisions, failures and lessons learned. Newest first.
 
 ## November 2026
 
+- **261104-verification-and-safety-guards-shipped.md**
+  - Shipped on `feat/verification-guards` (not merged): Stop completion-evidence guard, Bash safety guard (pkill self-match, symlink edit), git push proof, debug evidence, Pending Live Verification
+  - Review 7/10 → 8/10 → 8/10; C1 `$PRE` lost across Bash calls made every commit look "committed"; ReDoS shape checker replaced by `vm` 250 ms timeout
+  - Dogfooding found what tests did not: load-flaky latency test, same-command symlink bypass
+  - Lesson: verified-by-ran is not verified-by-passed; per-call shell state is invisible to single-shell tests
+
 - **261104-verification-and-safety-guards-plan.md**
   - Planned, not started: 5 phases closing 8 `/insights` items (Stop completion-evidence guard, Bash safety PreToolUse guard, push proof, live-verification status)
   - Red team: 15 findings, all accepted; 2 Critical fixed in the plan before any code (verify guard credited failing commands; transcript assumed flushed at Stop)
@@ -65,7 +71,7 @@ Devlog of shipped work, decisions, failures and lessons learned. Newest first.
 ## Reading Guide
 
 ### By Topic
-- **Hooks and Claude Code integration**: replace-hooks-with-native-features, replace-hooks-native-features-shipped, insights-driven-rig-improvements-plan, verification-and-safety-guards-plan
+- **Hooks and Claude Code integration**: replace-hooks-with-native-features, replace-hooks-native-features-shipped, insights-driven-rig-improvements-plan, verification-and-safety-guards-plan, verification-and-safety-guards-shipped
 - **Multi-machine orchestration**: rig-remote-multi-machine-plan, rig-remote-implementation-and-acceptance, remote-per-project-clones-machine-id-check, remote-worker-setup-register-and-setup-commands, remote-resume-skips-session-less-runs
 - **Skills design**: fix-skill-v2-rewrite
 - **Windows and cross-platform**: windows-compatibility-fixes, rig-remote-implementation-and-acceptance
@@ -90,4 +96,4 @@ Devlog of shipped work, decisions, failures and lessons learned. Newest first.
 ---
 
 Last updated: 2026-11-04
-Total entries: 11
+Total entries: 12
