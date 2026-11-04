@@ -5,6 +5,12 @@ Devlog of shipped work, decisions, failures and lessons learned. Newest first.
 
 ## November 2026
 
+- **261104-self-assessment-fixes-shipped.md**
+  - Shipped on `feat/self-assessment-fixes` (not merged): CI runs lint and all suites, 381 lint errors fixed, secret-file Bash read rule, size tiers (always-loaded rules 25.6KB → 13.0KB), 36-run benchmark
+  - Benchmark: Rig 18/18 vs vanilla 17/18 hidden tests, Rig ~1.5x cost ($14.23 total); no quality gain shown, tasks too easy
+  - P4 installer dedupe and P5 skill packs cancelled; superseded by Rig 2.0 plugin (plan 261104-1426)
+  - Lesson: a skip that exits 0 hid broken security tests; heredoc prose was tokenized as commands
+
 - **261104-verification-and-safety-guards-shipped.md**
   - Shipped on `feat/verification-guards` (not merged): Stop completion-evidence guard, Bash safety guard (pkill self-match, symlink edit), git push proof, debug evidence, Pending Live Verification
   - Review 7/10 → 8/10 → 8/10; C1 `$PRE` lost across Bash calls made every commit look "committed"; ReDoS shape checker replaced by `vm` 250 ms timeout
