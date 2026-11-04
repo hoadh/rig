@@ -10,7 +10,7 @@
  *   block:  {"decision":"block"} at most twice per turn (own counter); a line starting
  *           `Verification skipped: <reason>` in the final message lets it through. Loop guards: the
  *           stop is allowed when the counter cannot be persisted, and when stop_hook_active is true
- *           after MAX_BLOCKS_PER_TURN consecutive blocks (counted independent of the turn key).
+ *           after MAX_BLOCKS_PER_TURN consecutive blocks (chain counted per turn, reset by any non-active stop).
  * Always off: RIG_VERIFY_GUARD_MODE=off (set by rig:remote for agent children), headless runs
  * (CLAUDE_CODE_ENTRYPOINT=sdk-*, CLAUDE_CODE_SESSION_ATTENDED=0), and stop_hook_active in remind mode.
  *
@@ -25,7 +25,7 @@ try {
   const { loadVerifyGuardConfig } = require('./lib/verify-guard-config.cjs');
   const { scanTurn } = require('./lib/turn-edit-and-verify-scanner.cjs');
   const { detectPackageManager, hasPackageScript } = require('./lib/verify-command-detector.cjs');
-  const { readCount, readChain, incrementCount } = require('./lib/verify-guard-turn-counter.cjs');
+  const { readCount, readChain, resetChain, incrementCount } = require('./lib/verify-guard-turn-counter.cjs');
 
   const HOOK = 'verify-completion-guard';
   const { WINDOW_KEY_PREFIX } = require('./lib/turn-edit-and-verify-scanner.cjs');
@@ -61,6 +61,9 @@ try {
 
   const message = typeof payload.last_assistant_message === 'string' ? payload.last_assistant_message : '';
   const remind = config.mode === 'remind';
+  const sessionId = payload.session_id || env.RIG_SESSION_ID || '';
+  // A Stop that is not a continuation of our own block ends any chain (turn A must not cap turn B).
+  if (!remind && payload.stop_hook_active !== true) resetChain(sessionId);
   // remind: Claude is already continuing from a stop hook, never nudge twice. block: own counter below.
   if (remind && payload.stop_hook_active === true) {
     log(`skip stop-hook-active ${tag}`, 'skip');
@@ -82,7 +85,7 @@ try {
     detect: { projectDir: workDir, cwd: typeof payload.cwd === 'string' ? payload.cwd : undefined, extraPatterns: config.extraPatterns },
   });
 
-  const flags = [scan.windowExhausted && 'window-exhausted', scan.boundaryUnclear && 'boundary-unclear'].filter(Boolean).join(' ');
+  const flags = [scan.windowExhausted && 'window-exhausted', scan.boundaryUnclear && 'boundary-unclear', scan.patternTimeout && 'pattern-timeout'].filter(Boolean).join(' ');
   const suffix = `${flags ? ` ${flags}` : ''} ${tag}`;
   if (scan.lagged) {
     log(`transcript-lag allow${suffix}`, 'skip');
@@ -93,7 +96,6 @@ try {
     process.exit(0);
   }
 
-  const sessionId = payload.session_id || env.RIG_SESSION_ID || '';
   // Turn key: the real turn-start entry; for a window-exhausted turn prefer the Stop input's prompt_id,
   // else the scanner's window-boundary hash (never one constant shared by every exhausted turn).
   const boundaryKey = !scan.turnKey || scan.turnKey.startsWith(WINDOW_KEY_PREFIX);
@@ -102,7 +104,7 @@ try {
   const issued = readCount(sessionId, turnKey);
   const cap = remind ? MAX_REMINDS_PER_TURN : MAX_BLOCKS_PER_TURN;
   // Hard cap that survives a changing turn key: Claude is already continuing from our own blocks.
-  if (issued >= cap || (!remind && active && readChain(sessionId) >= MAX_BLOCKS_PER_TURN)) {
+  if (issued >= cap || (!remind && active && readChain(sessionId, turnKey) >= MAX_BLOCKS_PER_TURN)) {
     log(`${remind ? 'remind-cap' : 'block-cap'} allow${suffix}`, 'skip');
     process.exit(0);
   }

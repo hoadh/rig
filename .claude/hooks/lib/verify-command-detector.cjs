@@ -16,6 +16,7 @@
 const fs = require('fs');
 const path = require('path');
 const { tokenize, commandName } = require('./bash-command-segment-tokenizer.cjs');
+const { regexTestWithTimeout } = require('./regex-test-with-timeout.cjs');
 
 const MAX_COMMAND_CHARS = 2000; // cap before regex work (also bounds user-supplied patterns)
 const MAX_PACKAGE_JSON_BYTES = 1024 * 1024;
@@ -157,13 +158,49 @@ function matchSegment(argv, dirs) {
   return false;
 }
 
+/** `exit` / `exit $?` / `exit <nonzero>`: a tail after `||` that keeps the failure. */
+function isFailureKeepingExit(seg) {
+  if (!seg || !seg.argv || seg.argv[0] !== 'exit') return false;
+  const code = seg.argv[1];
+  return code === undefined || code === '$?' || (/^\d+$/.test(code) && Number(code) !== 0);
+}
+
+/** `|| exit 1`, `|| exit $?`, `|| { echo x; exit 1; }`: the segments from `from` (to the group's `}`) exit non-zero. */
+function failureTailFollows(segments, from) {
+  for (let j = from; j < segments.length; j += 1) {
+    if (isFailureKeepingExit(segments[j])) return true;
+    if (segments[j].argv && segments[j].argv[0] === '}') return false;
+  }
+  return false;
+}
+
+/**
+ * True when the verify segment at `idx` cannot decide the command's exit status: negated (`! cmd`),
+ * piped, backgrounded, followed by `||` (unless it only leads to a failing exit) or by more commands
+ * after `;`. `; exit $?` right after, `&&` chains and a trailing `;` do not mask.
+ */
+function isMasked(segments, idx) {
+  if (/^!\s/.test(segments[idx].raw || '')) return true;
+  for (let k = idx; k < segments.length; k += 1) {
+    const op = segments[k].op;
+    if (op === '||') return !failureTailFollows(segments, k + 1);
+    if (MASKING_OPS_ALWAYS.has(op)) return true;
+    if (MASKING_OPS_IF_MORE.has(op) && k < segments.length - 1) {
+      const next = segments[k + 1];
+      if (next.argv && next.argv[0] === 'exit' && (next.argv[1] === undefined || next.argv[1] === '$?')) return false;
+      return true;
+    }
+  }
+  return false;
+}
+
 /**
  * @param {string} command Bash tool command text
  * @param {{projectDir?: string, cwd?: string, extraPatterns?: RegExp[]}} [opts]
- * @returns {{isVerify: boolean, masked: boolean, label: string}}
+ * @returns {{isVerify: boolean, masked: boolean, patternTimeout: boolean, label: string}}
  */
 function detectVerifyCommand(command, opts = {}) {
-  const none = { isVerify: false, masked: false, label: '' };
+  const none = { isVerify: false, masked: false, patternTimeout: false, label: '' };
   if (typeof command !== 'string' || command.trim() === '') return none;
   const text = command.slice(0, MAX_COMMAND_CHARS);
   const baseCwd = opts.cwd || opts.projectDir || process.cwd();
@@ -174,20 +211,30 @@ function detectVerifyCommand(command, opts = {}) {
     return none;
   }
   const extra = Array.isArray(opts.extraPatterns) ? opts.extraPatterns : [];
-  // The LAST verify segment decides: it is the one whose status can still reach the exit code.
-  let hit = -1;
+  // Every verify segment must be unmasked: `npm test; npm run lint` hides the test status behind lint.
+  const hits = [];
+  let patternTimeout = false;
   segments.forEach((seg, idx) => {
     if (!seg.argv || seg.argv.length === 0) return;
     const dirs = [seg.cwd, opts.projectDir].filter(Boolean);
-    if (matchSegment(seg.argv, dirs) || extra.some((re) => re.test(seg.argv.join(' ').slice(0, MAX_COMMAND_CHARS)))) hit = idx;
+    let hit = matchSegment(seg.argv, dirs);
+    for (const re of hit ? [] : extra) {
+      // user patterns run under a vm timeout (ReDoS); a timeout means "does not match"
+      const run = regexTestWithTimeout(re.source, re.flags, seg.argv.join(' ').slice(0, MAX_COMMAND_CHARS));
+      if (!run.ok && run.reason === 'timeout') patternTimeout = true;
+      if (run.ok && run.matched) {
+        hit = true;
+        break;
+      }
+    }
+    if (hit) hits.push(idx);
   });
-  if (hit >= 0) {
-    // masked: `npm test; echo done`, `npm test || echo x`, `npm test | tail`, `npm test &`;
-    // not masked: last in the command, or followed only by `&&` chains (`npm test && echo ok`).
-    const masked = segments.slice(hit).some((seg, k, rest) => MASKING_OPS_ALWAYS.has(seg.op)
-      || (MASKING_OPS_IF_MORE.has(seg.op) && k < rest.length - 1));
-    return { isVerify: true, masked, label: segments[hit].argv.slice(0, 5).join(' ').slice(0, 80) };
+  if (hits.length > 0) {
+    const maskedIdx = hits.find((idx) => isMasked(segments, idx));
+    const shown = maskedIdx === undefined ? hits[hits.length - 1] : maskedIdx;
+    return { isVerify: true, masked: maskedIdx !== undefined, patternTimeout, label: segments[shown].argv.slice(0, 5).join(' ').slice(0, 80) };
   }
+  none.patternTimeout = patternTimeout;
   return none;
 }
 

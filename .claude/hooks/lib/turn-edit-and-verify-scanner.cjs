@@ -158,11 +158,12 @@ function evaluateTurn(turnEntries, opts) {
     // an Edit that errored did not change anything; an Agent call has no usable result yet
     if (isCodeEdit(u.block) && !(EDIT_TOOLS.has(u.name) && results.get(u.id) === true)) lastEdit = i;
   });
-  if (lastEdit < 0) return { hasEdit: false, verified: false, failedCheck: null, maskedCheck: null };
+  if (lastEdit < 0) return { hasEdit: false, verified: false, failedCheck: null, maskedCheck: null, patternTimeout: false };
 
   let verified = false;
   let failedCheck = null;
   let maskedCheck = null;
+  let patternTimeout = false;
   for (let i = lastEdit + 1; i < uses.length; i += 1) {
     const u = uses[i];
     // A background run returns success at once, before any test has run: never evidence.
@@ -175,6 +176,7 @@ function evaluateTurn(turnEntries, opts) {
     if (u.name !== 'Bash') continue;
     const command = u.block.input && u.block.input.command;
     const det = detectVerifyCommand(command, opts.detect);
+    if (det.patternTimeout) patternTimeout = true;
     if (!det.isVerify || !results.has(u.id)) continue;
     if (det.masked) {
       maskedCheck = det.label; // exit status hidden by `;` `||` `|`: cannot count as a pass
@@ -188,7 +190,7 @@ function evaluateTurn(turnEntries, opts) {
       failedCheck = null;
     }
   }
-  return { hasEdit: true, verified, failedCheck: verified ? null : failedCheck, maskedCheck: verified || failedCheck ? null : maskedCheck };
+  return { hasEdit: true, verified, failedCheck: verified ? null : failedCheck, maskedCheck: verified || failedCheck ? null : maskedCheck, patternTimeout };
 }
 
 /** `w:<hash>` of the first entry in the window ('' for an empty window). */

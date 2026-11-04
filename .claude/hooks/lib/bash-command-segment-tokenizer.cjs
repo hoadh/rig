@@ -252,6 +252,7 @@ function scan(text, start, fullCommand, depth) {
   let opaque = false;
   let segStart = 0;
   let pending = []; // heredocs awaiting their body at the next newline
+  let closedIdx = -1; // last segment inside a `( ... )` group just closed: it inherits the operator after `)`
   const n = text.length;
   let i = 0;
 
@@ -275,6 +276,13 @@ function scan(text, start, fullCommand, depth) {
   /** Finishes the segment ending at `rawEnd`; `op` is the operator that ended it. */
   const endSegment = (rawEnd, op) => {
     endWord();
+    if (words.length === 0 && !opaque && closedIdx >= 0 && op !== ')' && op !== '(') {
+      // `(npm test) | tail`: the operator after `)` applies to the group's last command
+      if (segments[closedIdx].op === ')') segments[closedIdx].op = op;
+      closedIdx = -1;
+    } else if (words.length > 0 || opaque) {
+      closedIdx = -1;
+    }
     if (words.length > 0 || opaque) {
       const raw = text.slice(segStart, rawEnd).trim();
       const stripped = stripPrefixes(dropRedirections(words));
@@ -420,6 +428,7 @@ function scan(text, start, fullCommand, depth) {
       segStart = i;
     } else if (c === ')') {
       endSegment(i, ')');
+      closedIdx = segments.length - 1;
       if (cwdStack.length > 0) ({ cwd, unknown } = cwdStack.pop());
       i += 1;
       segStart = i;

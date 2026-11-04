@@ -53,7 +53,8 @@ function vetPatterns(list) {
     } else if (typeof src !== 'string' || src.length === 0 || src.length > MAX_PATTERN_CHARS) {
       rejected.push(`#${i}: not a string of 1-${MAX_PATTERN_CHARS} chars`);
     } else if (!checkRegexShape(src, { maxLength: MAX_PATTERN_CHARS }).safe) {
-      rejected.push(`#${i}: nested quantifier`); // shared ReDoS shape check (unsafe-regex-shape-checker.cjs)
+      // shared ReDoS shape check (unsafe-regex-shape-checker.cjs): report its actual reason
+      rejected.push(`#${i}: ${checkRegexShape(src, { maxLength: MAX_PATTERN_CHARS }).reason}`);
     } else {
       try {
         patterns.push(new RegExp(src));

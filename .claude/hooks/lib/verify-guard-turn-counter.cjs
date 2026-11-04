@@ -3,17 +3,20 @@
  *
  * The Stop hook must not rely on Claude Code's own continuation cap: it keeps its own count of how
  * many times it has nudged/blocked, in a small temp file `<tmpdir>/rig-verify-guard-<session_id>.json`
- * = {turnKey, count, chain}.
+ * = {turnKey, count, chain, chainKey}.
  *   count  nudges in the current turn; a new turnKey resets it.
- *   chain  consecutive nudges that were issued while stop_hook_active was true, independent of
- *          turnKey (hard cap against a turnKey that changes on every continuation).
- * Writes are atomic (tmp + rename). incrementCount reports whether the write persisted: block mode
+ *   chain  consecutive nudges issued while stop_hook_active was true, valid only for `chainKey`
+ *          (= the turn it was counted in) and reset by any Stop where stop_hook_active is false, so
+ *          a finished turn's chain never suppresses a block in the next turn.
+ * Writes are atomic: a fresh O_EXCL (`wx`, 0600) temp file with a random name, then rename, so a
+ * symlink planted at a predictable name is never followed. incrementCount reports whether the write persisted: block mode
  * must allow the stop when it did not, or an unwritable tmpdir would block forever.
  * On the first write of a session, state files older than 24h are removed (bounded scan).
  *
- * Exports: readCount, readChain, incrementCount(sessionId, turnKey, {active}) -> {count, chain, persisted},
- *          stateFile(sessionId), pruneStaleStateFiles(now)
+ * Exports: readCount, readChain(sessionId, turnKey), resetChain(sessionId), incrementCount(sessionId, turnKey, {active})
+ *          -> {count, chain, persisted}, stateFile(sessionId), pruneStaleStateFiles(now)
  */
+const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -45,9 +48,37 @@ function readCount(sessionId, turnKey) {
   return s.turnKey === turnKey ? positiveInt(s.count) : 0;
 }
 
-/** Consecutive nudges issued while stop_hook_active was true (any turnKey). */
-function readChain(sessionId) {
-  return positiveInt(readState(sessionId).chain);
+/** Consecutive nudges issued while stop_hook_active was true, in this turn (0 for any other turn). */
+function readChain(sessionId, turnKey) {
+  const s = readState(sessionId);
+  return s.chainKey === turnKey ? positiveInt(s.chain) : 0;
+}
+
+/** Atomic best-effort write of the state object; returns whether it persisted. */
+function writeState(sessionId, state) {
+  const file = stateFile(sessionId);
+  const tmp = `${file}.${crypto.randomBytes(8).toString('hex')}.tmp`;
+  try {
+    if (!fs.existsSync(file)) pruneStaleStateFiles();
+    const fd = fs.openSync(tmp, 'wx', 0o600); // O_EXCL: never follows or reuses an existing path
+    try {
+      fs.writeSync(fd, JSON.stringify(state));
+    } finally {
+      fs.closeSync(fd);
+    }
+    fs.renameSync(tmp, file);
+    return true;
+  } catch {
+    try { fs.rmSync(tmp, { force: true }); } catch { /* ignore */ }
+    return false;
+  }
+}
+
+/** Ends a chain: call on every Stop where stop_hook_active is false. No-op when no chain is stored. */
+function resetChain(sessionId) {
+  const s = readState(sessionId);
+  if (positiveInt(s.chain) === 0) return;
+  writeState(sessionId, { turnKey: s.turnKey, count: positiveInt(s.count), chain: 0, chainKey: s.chainKey });
 }
 
 /** Removes `rig-verify-guard-*` files in tmpdir not modified for 24h. Best effort, bounded. */
@@ -75,19 +106,9 @@ function pruneStaleStateFiles(now = Date.now()) {
  */
 function incrementCount(sessionId, turnKey, opts = {}) {
   const count = readCount(sessionId, turnKey) + 1;
-  const chain = opts.active === true ? readChain(sessionId) + 1 : 1;
-  const file = stateFile(sessionId);
-  const tmp = `${file}.${process.pid}.tmp`;
-  let persisted = false;
-  try {
-    if (!fs.existsSync(file)) pruneStaleStateFiles();
-    fs.writeFileSync(tmp, JSON.stringify({ turnKey, count, chain }), { mode: 0o600 });
-    fs.renameSync(tmp, file);
-    persisted = true;
-  } catch {
-    try { fs.rmSync(tmp, { force: true }); } catch { /* ignore */ }
-  }
+  const chain = opts.active === true ? readChain(sessionId, turnKey) + 1 : 1;
+  const persisted = writeState(sessionId, { turnKey, count, chain, chainKey: turnKey });
   return { count, chain, persisted };
 }
 
-module.exports = { readCount, readChain, incrementCount, stateFile, pruneStaleStateFiles };
+module.exports = { readCount, readChain, resetChain, incrementCount, stateFile, pruneStaleStateFiles };
