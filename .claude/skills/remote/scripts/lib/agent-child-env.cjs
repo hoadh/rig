@@ -4,6 +4,8 @@
  * (no GIT_SSH_COMMAND / GIT_ASKPASS / GIT_CONFIG_GLOBAL / tokens) PLUS the git
  * hardening pins, appended AFTER filtering so the allowlist cannot strip them.
  * Result: an agent `git commit` (or any tool subprocess) never runs clone hooks.
+ * Also pins RIG_VERIFY_GUARD_MODE=off: the verify-completion-guard Stop hook would cost an unattended
+ * worker an extra model turn (`claude -p --max-turns N`), so workers never run it.
  */
 const os = require('os');
 const { buildChildEnv } = require('./child-process-env-allowlist.cjs');
@@ -14,7 +16,7 @@ function buildAgentChildEnv(parentEnv, target) {
   const env = buildChildEnv(parentEnv, { pathPrepend: (target && target.pathPrepend) || [] });
   if (!env.HOME && process.platform !== 'win32') env.HOME = os.homedir(); // task contexts may lack HOME
   // NOSYSTEM drops the system autocrlf/eol (Git for Windows); forward just those so the agent sees the runner's worktree view (D4).
-  return { ...env, ...hardenedGitConfigEnv({ baseEnv: env, extraPins: systemLineEndingPins(parentEnv) }) };
+  return { ...env, ...hardenedGitConfigEnv({ baseEnv: env, extraPins: systemLineEndingPins(parentEnv) }), RIG_VERIFY_GUARD_MODE: 'off' };
 }
 
 module.exports = { buildAgentChildEnv };
