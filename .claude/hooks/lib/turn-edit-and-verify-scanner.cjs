@@ -12,13 +12,16 @@
  *
  * Exports: scanTurn(transcriptPath, opts) -> result (see JSDoc), plus pure helpers for tests.
  */
+const crypto = require('crypto');
 const fs = require('fs');
 const { detectVerifyCommand } = require('./verify-command-detector.cjs');
 
 const TAIL_BYTES = 4 * 1024 * 1024;
 const POLL_STEP_MS = 50;
 const POLL_MAX_MS = 1000;
+const WINDOW_KEY_PREFIX = 'w:';
 const MESSAGE_PREFIX_CHARS = 200;
+const MIN_CONCAT_MATCH_CHARS = 20; // shorter last entries ("Done.") are too ambiguous to match by inclusion
 
 const EDIT_TOOLS = new Set(['Edit', 'Write', 'MultiEdit', 'NotebookEdit']);
 const AGENT_TOOLS = new Set(['Agent', 'Task']);
@@ -73,22 +76,31 @@ function blocksOf(entry) {
   return Array.isArray(c) ? c.filter((b) => b && typeof b === 'object') : [];
 }
 
-/** Text of the last assistant entry that has a text block, or ''. */
-function lastAssistantText(entries) {
+/** Index and text of the last assistant entry that has a text block, or {idx: -1, text: ''}. */
+function lastAssistantTextEntry(entries) {
   for (let i = entries.length - 1; i >= 0; i -= 1) {
     if (entries[i].type !== 'assistant') continue;
     const text = blocksOf(entries[i]).filter((b) => b.type === 'text' && typeof b.text === 'string').map((b) => b.text).join('\n');
-    if (text.trim()) return text;
+    if (text.trim()) return { idx: i, text };
   }
-  return '';
+  return { idx: -1, text: '' };
 }
 
+/**
+ * True when the transcript tail already holds our final message: it must be the LAST assistant text
+ * entry AND sit after the last genuine turn start (an earlier turn's "Done." must not match).
+ */
 function transcriptHasMessage(entries, message) {
   const want = message.trim().slice(0, MESSAGE_PREFIX_CHARS);
-  const have = lastAssistantText(entries).trim();
+  const { idx, text } = lastAssistantTextEntry(entries);
+  const have = text.trim();
   if (!have) return false;
+  for (let i = entries.length - 1; i > idx; i -= 1) {
+    if (classifyUserEntry(entries[i]) === 'start') return false;
+  }
   // equal prefix, or the message is the concatenation of several text entries ending in `have`
-  return have.slice(0, MESSAGE_PREFIX_CHARS) === want || message.includes(have.slice(0, MESSAGE_PREFIX_CHARS));
+  const head = have.slice(0, MESSAGE_PREFIX_CHARS);
+  return head === want || (head.length >= MIN_CONCAT_MATCH_CHARS && message.includes(head));
 }
 
 /**
@@ -129,7 +141,7 @@ function agentType(block) {
 
 /**
  * Walks one turn's entries: edits, verification commands, results.
- * @returns {{hasEdit: boolean, verified: boolean, failedCheck: string|null}}
+ * @returns {{hasEdit: boolean, verified: boolean, failedCheck: string|null, maskedCheck: string|null}}
  */
 function evaluateTurn(turnEntries, opts) {
   const uses = []; // {pos, id, name, block}
@@ -146,12 +158,15 @@ function evaluateTurn(turnEntries, opts) {
     // an Edit that errored did not change anything; an Agent call has no usable result yet
     if (isCodeEdit(u.block) && !(EDIT_TOOLS.has(u.name) && results.get(u.id) === true)) lastEdit = i;
   });
-  if (lastEdit < 0) return { hasEdit: false, verified: false, failedCheck: null };
+  if (lastEdit < 0) return { hasEdit: false, verified: false, failedCheck: null, maskedCheck: null };
 
   let verified = false;
   let failedCheck = null;
+  let maskedCheck = null;
   for (let i = lastEdit + 1; i < uses.length; i += 1) {
     const u = uses[i];
+    // A background run returns success at once, before any test has run: never evidence.
+    if (u.block.input && u.block.input.run_in_background === true) continue;
     if (AGENT_TOOLS.has(u.name) && agentType(u.block) === 'tester') {
       // limitation: the tester's reported verdict is not parsed; a completed call counts
       if (results.get(u.id) !== true) verified = true;
@@ -160,7 +175,11 @@ function evaluateTurn(turnEntries, opts) {
     if (u.name !== 'Bash') continue;
     const command = u.block.input && u.block.input.command;
     const det = detectVerifyCommand(command, opts.detect);
-    if (!det.isVerify || det.masked || !results.has(u.id)) continue;
+    if (!det.isVerify || !results.has(u.id)) continue;
+    if (det.masked) {
+      maskedCheck = det.label; // exit status hidden by `;` `||` `|`: cannot count as a pass
+      continue;
+    }
     if (results.get(u.id) === true) {
       failedCheck = det.label;
       verified = false;
@@ -169,14 +188,22 @@ function evaluateTurn(turnEntries, opts) {
       failedCheck = null;
     }
   }
-  return { hasEdit: true, verified, failedCheck: verified ? null : failedCheck };
+  return { hasEdit: true, verified, failedCheck: verified ? null : failedCheck, maskedCheck: verified || failedCheck ? null : maskedCheck };
+}
+
+/** `w:<hash>` of the first entry in the window ('' for an empty window). */
+function windowBoundaryKey(entries) {
+  if (entries.length === 0) return '';
+  const first = entries[0];
+  const seed = String(first.uuid || first.timestamp || JSON.stringify(first).slice(0, 300));
+  return `${WINDOW_KEY_PREFIX}${crypto.createHash('sha1').update(seed).digest('hex').slice(0, 12)}`;
 }
 
 /**
  * @param {string} transcriptPath
  * @param {{lastAssistantMessage?: string, tailBytes?: number, pollStepMs?: number, pollMaxMs?: number,
  *          detect?: {projectDir?: string, cwd?: string, extraPatterns?: RegExp[]}}} [opts]
- * @returns {{hasEdit: boolean, verified: boolean, failedCheck: string|null, turnKey: string,
+ * @returns {{hasEdit: boolean, verified: boolean, failedCheck: string|null, maskedCheck: string|null, turnKey: string,
  *            lagged: boolean, windowExhausted: boolean, boundaryUnclear: boolean}}
  */
 function scanTurn(transcriptPath, opts = {}) {
@@ -190,7 +217,7 @@ function scanTurn(transcriptPath, opts = {}) {
   if (message.trim()) {
     while (!transcriptHasMessage(read.entries, message)) {
       if (Date.now() - t0 >= maxMs) {
-        return { hasEdit: false, verified: false, failedCheck: null, turnKey: '', lagged: true, windowExhausted: false, boundaryUnclear: false };
+        return { hasEdit: false, verified: false, failedCheck: null, maskedCheck: null, turnKey: '', lagged: true, windowExhausted: false, boundaryUnclear: false };
       }
       sleep(stepMs);
       read = readTailEntries(transcriptPath, opts.tailBytes);
@@ -212,9 +239,10 @@ function scanTurn(transcriptPath, opts = {}) {
   const windowExhausted = startIdx < 0 && windowCut;
   const turnEntries = entries.slice(startIdx + 1);
   const start = startIdx >= 0 ? entries[startIdx] : null;
-  const turnKey = start ? String(start.uuid || start.timestamp || startIdx) : '';
+  // No turn start in the window: key on the window boundary (first entry) so it is not one constant.
+  const turnKey = start ? String(start.uuid || start.timestamp || startIdx) : windowBoundaryKey(entries);
   const result = evaluateTurn(turnEntries, { detect: opts.detect || {} });
   return { ...result, turnKey, lagged: false, windowExhausted, boundaryUnclear };
 }
 
-module.exports = { scanTurn, readTailEntries, classifyUserEntry, evaluateTurn, TAIL_BYTES };
+module.exports = { scanTurn, readTailEntries, classifyUserEntry, evaluateTurn, transcriptHasMessage, TAIL_BYTES, WINDOW_KEY_PREFIX };

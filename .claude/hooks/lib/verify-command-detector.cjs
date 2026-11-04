@@ -22,8 +22,10 @@ const MAX_PACKAGE_JSON_BYTES = 1024 * 1024;
 
 // package.json script names that count as verification (whole token, optional `:suffix`/`-suffix`).
 const SCRIPT_RE = /^(test|spec|build|lint|typecheck|type-check|check|verify|e2e|ci)([:-].*)?$/;
-// `... || true`, `...; true`, `|| :`, `|| exit 0` at the very end of the command.
-const MASK_RE = /(\|\||;)\s*(true|:|exit\s+0)\s*;?\s*$/;
+// Operators after a verify segment that stop the command's exit status from reflecting it:
+// `;` / newline (when something runs after), `||`, `|` (pipe status is the last stage's), `&` (backgrounded).
+const MASKING_OPS_ALWAYS = new Set(['||', '|', '&']);
+const MASKING_OPS_IF_MORE = new Set([';', '\n']);
 
 const PACKAGE_MANAGERS = new Set(['npm', 'pnpm', 'yarn', 'bun']);
 const LOCKFILES = [
@@ -172,13 +174,19 @@ function detectVerifyCommand(command, opts = {}) {
     return none;
   }
   const extra = Array.isArray(opts.extraPatterns) ? opts.extraPatterns : [];
-  for (const seg of segments) {
-    if (!seg.argv || seg.argv.length === 0) continue;
+  // The LAST verify segment decides: it is the one whose status can still reach the exit code.
+  let hit = -1;
+  segments.forEach((seg, idx) => {
+    if (!seg.argv || seg.argv.length === 0) return;
     const dirs = [seg.cwd, opts.projectDir].filter(Boolean);
-    const hit = matchSegment(seg.argv, dirs) || extra.some((re) => re.test(seg.argv.join(' ').slice(0, MAX_COMMAND_CHARS)));
-    if (hit) {
-      return { isVerify: true, masked: MASK_RE.test(text.trim()), label: seg.argv.slice(0, 5).join(' ').slice(0, 80) };
-    }
+    if (matchSegment(seg.argv, dirs) || extra.some((re) => re.test(seg.argv.join(' ').slice(0, MAX_COMMAND_CHARS)))) hit = idx;
+  });
+  if (hit >= 0) {
+    // masked: `npm test; echo done`, `npm test || echo x`, `npm test | tail`, `npm test &`;
+    // not masked: last in the command, or followed only by `&&` chains (`npm test && echo ok`).
+    const masked = segments.slice(hit).some((seg, k, rest) => MASKING_OPS_ALWAYS.has(seg.op)
+      || (MASKING_OPS_IF_MORE.has(seg.op) && k < rest.length - 1));
+    return { isVerify: true, masked, label: segments[hit].argv.slice(0, 5).join(' ').slice(0, 80) };
   }
   return none;
 }

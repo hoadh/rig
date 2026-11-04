@@ -8,7 +8,9 @@
  * Modes (verifyGuard.mode, see lib/verify-guard-config.cjs): remind (default) | block | off.
  *   remind: one hookSpecificOutput.additionalContext nudge per turn (costs one extra model turn).
  *   block:  {"decision":"block"} at most twice per turn (own counter); a line starting
- *           `Verification skipped: <reason>` in the final message lets it through.
+ *           `Verification skipped: <reason>` in the final message lets it through. Loop guards: the
+ *           stop is allowed when the counter cannot be persisted, and when stop_hook_active is true
+ *           after MAX_BLOCKS_PER_TURN consecutive blocks (counted independent of the turn key).
  * Always off: RIG_VERIFY_GUARD_MODE=off (set by rig:remote for agent children), headless runs
  * (CLAUDE_CODE_ENTRYPOINT=sdk-*, CLAUDE_CODE_SESSION_ATTENDED=0), and stop_hook_active in remind mode.
  *
@@ -23,9 +25,10 @@ try {
   const { loadVerifyGuardConfig } = require('./lib/verify-guard-config.cjs');
   const { scanTurn } = require('./lib/turn-edit-and-verify-scanner.cjs');
   const { detectPackageManager, hasPackageScript } = require('./lib/verify-command-detector.cjs');
-  const { readCount, incrementCount } = require('./lib/verify-guard-turn-counter.cjs');
+  const { readCount, readChain, incrementCount } = require('./lib/verify-guard-turn-counter.cjs');
 
   const HOOK = 'verify-completion-guard';
+  const { WINDOW_KEY_PREFIX } = require('./lib/turn-edit-and-verify-scanner.cjs');
   const MAX_BLOCKS_PER_TURN = 2;
   const MAX_REMINDS_PER_TURN = 1;
   const ESCAPE_LINE = /^Verification skipped:\s*\S/m;
@@ -91,10 +94,15 @@ try {
   }
 
   const sessionId = payload.session_id || env.RIG_SESSION_ID || '';
-  const turnKey = scan.turnKey || String(payload.prompt_id || 'unknown-turn');
+  // Turn key: the real turn-start entry; for a window-exhausted turn prefer the Stop input's prompt_id,
+  // else the scanner's window-boundary hash (never one constant shared by every exhausted turn).
+  const boundaryKey = !scan.turnKey || scan.turnKey.startsWith(WINDOW_KEY_PREFIX);
+  const turnKey = boundaryKey && payload.prompt_id ? String(payload.prompt_id) : scan.turnKey || 'unknown-turn';
+  const active = payload.stop_hook_active === true;
   const issued = readCount(sessionId, turnKey);
   const cap = remind ? MAX_REMINDS_PER_TURN : MAX_BLOCKS_PER_TURN;
-  if (issued >= cap) {
+  // Hard cap that survives a changing turn key: Claude is already continuing from our own blocks.
+  if (issued >= cap || (!remind && active && readChain(sessionId) >= MAX_BLOCKS_PER_TURN)) {
     log(`${remind ? 'remind-cap' : 'block-cap'} allow${suffix}`, 'skip');
     process.exit(0);
   }
@@ -104,20 +112,35 @@ try {
   const hint = pm && hasPackageScript(workDir, 'test') ? ` (e.g. \`${pm} test\`)` : '';
   let text = scan.failedCheck
     ? `Code was edited this turn and the last check \`${scan.failedCheck}\` failed. Fix it or report the failure; do not claim the work is fixed.`
+    : scan.maskedCheck
+      ? `Code was edited this turn and \`${scan.maskedCheck}\` ran, but its exit status was masked (\`;\`, \`||\`, \`|\` or \`&\`). Re-run it on its own (no pipe or trailing command) and report the actual result, or say plainly that it was not verified.`
     : `Code was edited this turn but no passing test/build/typecheck/lint ran after the last edit. Run the project's verification${hint} and report the actual result, or say plainly that it was not verified. Do not claim the work is fixed or done without evidence.`;
   if (!remind) text += ' If verification is impossible, reply with a line starting `Verification skipped: <reason>`.';
   text = text.slice(0, MAX_MESSAGE_CHARS);
 
-  incrementCount(sessionId, turnKey);
+  const written = incrementCount(sessionId, turnKey, { active });
+  // Block mode needs the counter to stop itself; an unwritable state file would block forever.
+  if (!remind && !written.persisted) {
+    log(`counter-unwritable allow${suffix}`, 'skip');
+    process.exit(0);
+  }
   log(`unverified${scan.failedCheck ? ' last-check-failed' : ''}${suffix}`);
   const output = remind
     ? { hookSpecificOutput: { hookEventName: 'Stop', additionalContext: text } }
     : { decision: 'block', reason: text };
-  process.stdout.write(`${JSON.stringify(output)}\n`);
+  // Synchronous write: process.exit right after an async pipe write could truncate the output.
+  const line = `${JSON.stringify(output)}\n`;
+  try {
+    fs.writeSync(1, line);
+  } catch {
+    process.stdout.write(line);
+  }
   process.exit(0);
 } catch (err) {
   try {
-    require('./lib/hook-logger.cjs').logHookCrash('verify-completion-guard', err, { event: 'Stop' });
+    // Only error name + code: fs error messages contain transcript / project paths.
+    const tag = `${(err && err.name) || 'Error'}:${(err && err.code) || ''}`;
+    require('./lib/hook-logger.cjs').logHookCrash('verify-completion-guard', tag, { event: 'Stop' });
   } catch {
     // logging must never break the hook
   }
