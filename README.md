@@ -35,6 +35,8 @@ Full index: [docs/README.md](./docs/README.md), organized by [Diataxis](https://
 |---|---|
 | [Getting started](./docs/tutorials/getting-started.md) | Install Rig and build a first feature |
 | [Install and update Rig](./docs/how-to/install-and-update-rig.md) | Project vs global install, updates |
+| [Configure the verification and safety guards](./docs/how-to/configure-verification-and-safety-guards.md) | Verify-on-stop and bash safety hooks, config keys, `/loop` for live evidence |
+| [Set the response language](./docs/how-to/set-response-language.md) | Chat in your language, repo stays English |
 | [Run a plan across machines](./docs/how-to/run-plan-across-machines.md) | `rig:remote`: plan phases and tests on macOS, Windows and Linux workers over ssh, with a threat model |
 | [Extend Rig with agents and skills](./docs/how-to/extend-rig-with-agents-and-skills.md) | Add your own agents, skills and hooks |
 | [System architecture](./docs/explanation/architecture.md) | How agents, workflows and handoffs fit together |
@@ -51,7 +53,7 @@ Full index: [docs/README.md](./docs/README.md), organized by [Diataxis](https://
 ├── .claude/
 │   ├── agents/             # 14 subagent definitions
 │   ├── skills/             # 32 skills (27 slash commands, 5 internal helpers)
-│   ├── hooks/              # Session, subagent, team-context and dev-rules reminder hooks
+│   ├── hooks/              # Session, subagent, team-context, dev-rules reminder, verify-on-stop and bash safety hooks
 │   │   └── notifications/  # Telegram, Discord, Slack notifications
 │   ├── rules/              # Workflow, development and orchestration rules
 │   ├── output-styles/      # Coding levels 0-5 (explanation depth)

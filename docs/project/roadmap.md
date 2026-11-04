@@ -54,7 +54,8 @@ Runs plan phases and test commands on macOS, Windows and Linux workers over ssh.
 | Real lint step in CI | Not started | `npm run lint` is a placeholder that always passes |
 | rig:remote: worker auth after a Windows reboot | Not started | Only logoff was verified |
 | rig:remote: `doctor` between two workers | Not started | No worker-to-worker keys by design |
-| rig:remote: per-argument PreToolUse guard | Deferred | Low priority; see ADR 0002 threat model |
+| rig:remote: per-argument PreToolUse guard | Deferred | Low priority; see ADR 0002 threat model. The generic `bash-safety-guard` does not replace it |
+| Verification and safety guards (verify-on-stop hook, bash safety hook, push proof, evidence-based debug reports, live verification items) | Done (Unreleased) | Pending acceptance in live sessions. Follow-ups: SubagentStop verify for `implementer`, tester verdict parsing, `kill $(pgrep -f)`, Windows `taskkill`. See [how-to](../how-to/configure-verification-and-safety-guards.md) |
 | rig:remote: `collect` opens a pull request | Not started | Use `/rig:pr` afterwards for now |
 | rig:remote: enforce a dedicated worker OS user | Not started | Recommended in v1, not enforced |
 | rig:remote: guided worker setup (`register`, `setup`, doctor `fix:` hints) | Done (Unreleased) | Installing Rig, ssh keys and claude login stay manual |

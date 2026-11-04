@@ -105,11 +105,11 @@ rig/
 - ui-styling, ui-design, worktree
 - remote (multi-machine plans over ssh; `scripts/remote.cjs` orchestrator, `scripts/worker.cjs` worker; see [how-to](../how-to/run-plan-across-machines.md))
 
-### 4. Hook System (4 Core Hooks)
+### 4. Hook System (6 Core Hooks)
 
 **Location**: `.claude/hooks/`
 
-Rig uses four hooks. Permission checks, naming rules and usage display use native features (see [system components](./system-components.md)).
+Rig uses six hooks. Permission checks, naming rules and usage display use native features (see [system components](./system-components.md)).
 
 | Hook | Event | Purpose |
 |------|-------|---------|
@@ -117,6 +117,10 @@ Rig uses four hooks. Permission checks, naming rules and usage display use nativ
 | `subagent-init.cjs` | SubagentStart | Injects dynamic Rig context (paths, plan context, naming) into subagents |
 | `team-context-inject.cjs` | SubagentStart | Injects agent team context (peers, tasks) |
 | `dev-rules-reminder.cjs` | UserPromptSubmit | Injects a short `## Rig Session` block: date, paths, plan context, naming |
+| `verify-completion-guard.cjs` | Stop | Nudges or blocks a stop when code was edited and no passing verify command ran (`verifyGuard.mode`) |
+| `bash-safety-guard.cjs` | PreToolUse (Bash) | Denies or asks on `sed -i` of a symlink and risky `pkill`; toggles in global config only |
+
+Supporting modules in `.claude/hooks/lib/`: `bash-command-segment-tokenizer.cjs`, `bash-safety-rule-engine.cjs`, `bash-in-place-edit-symlink-rule.cjs`, `bash-process-kill-rule.cjs`, `bash-safety-guard-config.cjs`, `verify-guard-config.cjs`, `verify-command-detector.cjs`, `turn-edit-and-verify-scanner.cjs`, `verify-guard-turn-counter.cjs`. Guide: [how-to](../how-to/configure-verification-and-safety-guards.md).
 
 **Hook Features:**
 - Fail-Safe: hooks exit 0 (non-blocking) - graceful degradation

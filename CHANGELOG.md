@@ -10,8 +10,16 @@
 * **rig:remote several projects per machine:** the registry takes an optional `repos` map (`{"<normalized origin>": "<clone path>"}`), so one machine holds a clone per project. `register <id> --repo <p>` run in a project adds its clone. A project missing from an existing map fails with `no-clone` (exit 2) and a `register` hint. `machines --json` reports `hasClone`; `doctor` flags a project without a clone. Rig builds without this change reject `repos`: delete the key to roll back.
 * **rig:remote per-clone lock:** one agent run and one test run per clone (was per machine), so two projects on one worker run in parallel. A second run on the same clone is refused `busy`.
 
+* **hooks:** `verify-completion-guard` (Stop). When code was edited and no passing test, build, typecheck or lint command ran after the last edit, it nudges (`verifyGuard.mode: remind`, default) or blocks (`block`, max 2 per turn, `Verification skipped: <reason>` line lets through). Off in headless runs and for `rig:remote` agents (`RIG_VERIFY_GUARD_MODE=off`). A project may only raise the mode; `extraCommandPatterns` and the hook toggle are global only.
+* **hooks:** `bash-safety-guard` (PreToolUse, `Bash`). Denies or asks on `sed -i`/`perl -i` of a symlink and on risky `pkill` (self-matching `-f`, broad kills, common names). Per-rule switches `bashSafetyGuard.rules.*` and `hooks.bash-safety-guard` are read from the global `.rig.json` only.
+* **plans:** optional `## Pending Live Verification` section (`LIVE:` / `LIVE(blocking):` items). A phase with open items stays `In Progress`; evidence is recorded as a pointer. `/loop` template in the new how-to.
+* **docs:** how-tos for the guards and for the response language.
+
 ### Changed
 
+* **git push proof:** `git-operator`, `git` and `pr` report `✓ pushed` only when `HEAD` equals the remote ref after the push, `nothing to commit` on a clean tree, and `✗ push NOT confirmed` otherwise.
+* **debug reports:** `debugger` reports separate `## Confirmed` (with evidence) from `## Hypotheses` (with a confirm or rule-out command).
+* **rules:** privileged steps are handed over as one runnable block; SSH users resolve through `ssh -G` and production hosts are read-only; only chat replies follow the user's language (`language` setting).
 * **rig:remote busy markers:** `agent.busy` and `test.busy` are replaced by `agent-<cloneHash>.busy` and `test-<cloneHash>.busy`. A live legacy marker is still honored; stale files from either version can be deleted.
 
 ### Fixes

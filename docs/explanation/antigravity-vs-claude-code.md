@@ -101,6 +101,7 @@ Claude Code hooks inject context and enforce guards. Antigravity has no hooks, s
 | `session-init.cjs`, `subagent-init.cjs` | Compute plan dir, reports path and naming pattern | Defaults: `plans/{YYMMDD-HHmm}-{slug}/`, reports in `{plan-dir}/reports/` or `plans/reports/`, files named `{type}-{YYMMDD-HHmm}-{slug}.md` |
 | `permissions.ask` in `settings.json` | Prompt before reads of `.env` and credentials | Rule: ask the user before reading them |
 | `permissions.deny` in `settings.json` | Block reads of `node_modules`, `.venv`, `__pycache__`, `.next`, `coverage` | Rule: do not search there unless asked |
+| `verify-completion-guard.cjs` (Stop), `bash-safety-guard.cjs` (PreToolUse) | Catch unverified "fixed" claims, `sed -i` on symlinks, risky `pkill` | None. The rules text in `development-rules.md` still asks for verification, but nothing enforces it |
 | `set-active-plan.cjs` steps | Track the active plan | Skipped |
 
 The concept rule also maps tools: `Task`/`Agent` → do the role yourself, `AskUserQuestion` → ask in chat, `TaskCreate`/`TodoWrite` → own task list, `Skill` → read the `SKILL.md`, `$ARGUMENTS` → the text after the command.

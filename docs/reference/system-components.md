@@ -276,7 +276,7 @@ Planner incorporates into plan
 
 ### 6. Integration Layer
 
-#### 6.1 Hook System (4 Core Hooks)
+#### 6.1 Hook System (6 Core Hooks)
 
 **Purpose**: Intercept and control Claude Code operations for performance, context management, and security
 
@@ -307,6 +307,20 @@ All hooks located in `.claude/hooks/` with consistent patterns - fail-safe exit 
 **4. Team-Context Hook** (`team-context-inject.cjs`)
 - **Trigger**: SubagentStart (agent teams only)
 - **Purpose**: Inject team peers and task context
+
+**5. Verify-Completion-Guard Hook** (`verify-completion-guard.cjs`)
+- **Trigger**: Stop
+- **Purpose**: When code was edited this turn and no passing test/build/typecheck/lint command ran after the last edit, nudge (`remind`, default) or block (`block`, max 2 per turn) the stop
+- **Config**: `verifyGuard.mode` (`remind|block|off`), `verifyGuard.extraCommandPatterns` (global only), `hooks.verify-completion-guard`. A project may only raise the mode. Off for headless runs (`CLAUDE_CODE_ENTRYPOINT=sdk*`, `CLAUDE_CODE_SESSION_ATTENDED=0`) and `RIG_VERIFY_GUARD_MODE=off`
+- **Fail-open**: any error, unreadable or lagging transcript exits 0 silently
+
+**6. Bash-Safety-Guard Hook** (`bash-safety-guard.cjs`)
+- **Trigger**: PreToolUse, matcher `Bash`
+- **Purpose**: Deny or ask on `sed -i`/`perl -i` of a symlink and risky `pkill` (self-matching `-f`, broad, common names). Logs only rule id and command hash
+- **Config** (global `~/.claude/.rig.json` only): `hooks.bash-safety-guard`, `bashSafetyGuard.rules.{inPlaceEditSymlink,processKill}`
+- **Fail-open**: internal errors exit 0
+
+See [how-to](../how-to/configure-verification-and-safety-guards.md).
 
 **Hook Features Summary**:
 - Fail-Safe: All hooks exit 0 (non-blocking) - graceful degradation

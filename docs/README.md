@@ -8,6 +8,8 @@ Rig docs follow [Diataxis](https://diataxis.fr/): each page has one job. Layout 
 ## How-to guides
 - [Install and update Rig](./how-to/install-and-update-rig.md) - install globally or per project, update from git
 - [Extend Rig with agents and skills](./how-to/extend-rig-with-agents-and-skills.md) - add a custom agent, skill, or workflow
+- [Configure the verification and safety guards](./how-to/configure-verification-and-safety-guards.md) - verify-on-stop and bash safety hooks, trust ladder, headless off-switch, `/loop` for live evidence
+- [Set the response language](./how-to/set-response-language.md) - answer in your language while the repo stays English
 - [Run a plan across machines](./how-to/run-plan-across-machines.md) - dispatch plan phases and tests to macOS, Windows and Linux workers over ssh (`rig:remote`)
 
 ## Reference
