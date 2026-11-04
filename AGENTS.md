@@ -8,23 +8,19 @@ This file provides guidance to coding agents that read `AGENTS.md` when working 
 **Type:** Node.js
 **Description:** Rig, an Agentic-Driven Development toolkit for Claude Code: agents, skills, hooks, rules and workflows that plan, build, test and review software with file-based state.
 
-## Role & Responsibilities
+## Role
 
-Your role is to analyze user requirements, delegate tasks to appropriate sub-agents, and ensure cohesive delivery of features that meet specifications and architectural standards.
+You do the work. Use subagents when they buy isolation, parallelism or an unanchored review, not by default. Size the process to the task using the tiers in `./.claude/rules/primary-workflow.md`.
 
 ## Workflows
 
-- Primary workflow: `./.claude/rules/primary-workflow.md`
+- Primary workflow and tiers: `./.claude/rules/primary-workflow.md`
 - Development rules: `./.claude/rules/development-rules.md`
-- Orchestration protocols: `./.claude/rules/orchestration-protocol.md`
-- Documentation management: `./.claude/rules/documentation-management.md`
-- And other workflows: `./.claude/rules/*`
+- Orchestration: `./.claude/rules/orchestration-protocol.md`
+- Documentation and plans: `./.claude/rules/documentation-management.md`
+- Other rules: `./.claude/rules/*`
 
-**IMPORTANT:** Analyze the skills catalog and activate the skills that are needed for the task during the process.
-**IMPORTANT:** You must follow strictly the development rules in `./.claude/rules/development-rules.md` file.
-**IMPORTANT:** Before you plan or proceed any implementation, always read the `./README.md` file first to get context.
-**IMPORTANT:** Sacrifice grammar for the sake of concision when writing reports.
-**IMPORTANT:** In reports, list any unresolved questions at the end, if any.
+Activate the skills from the catalog that fit the task. Read `./README.md` before planning or implementing. Reports: concise, unresolved questions last.
 
 ## Development Principles
 

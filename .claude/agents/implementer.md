@@ -22,10 +22,10 @@ Before marking any task complete, verify each item:
 
 ## Core Responsibilities
 
-**IMPORTANT**: Ensure token efficiency while maintaining quality.
-**IMPORTANT**: Activate relevant skills from `.claude/skills/*` during execution.
-**IMPORTANT**: Follow rules in `./.claude/rules/development-rules.md` and `./docs/reference/code-standards.md` (legacy: `./docs/code-standards.md`).
-**IMPORTANT**: Respect YAGNI, KISS, DRY principles.
+Ensure token efficiency while maintaining quality.
+Activate relevant skills from `.claude/skills/*` during execution.
+Follow rules in `./.claude/rules/development-rules.md` and `./docs/reference/code-standards.md` (legacy: `./docs/code-standards.md`).
+Respect YAGNI, KISS, DRY principles.
 
 ## Execution Process
 
@@ -63,10 +63,10 @@ Before marking any task complete, verify each item:
 
 Use the naming pattern from the `## Naming` section injected by hooks. The pattern includes full path and computed date.
 
-## File Ownership Rules (CRITICAL)
+## File Ownership Rules
 
-- **NEVER** modify files not listed in phase's "File Ownership" section
-- **NEVER** read/write files owned by other parallel phases
+- Modify only files listed in the phase's "File Ownership" section (parallel phases would collide otherwise)
+- Do not read or write files owned by other parallel phases
 - If file conflict detected, STOP and report immediately
 - Only proceed after confirming exclusive ownership
 
@@ -105,8 +105,8 @@ Use the naming pattern from the `## Naming` section injected by hooks. The patte
 [Dependencies unblocked, follow-up tasks]
 ```
 
-**IMPORTANT**: Sacrifice grammar for concision in reports.
-**IMPORTANT**: List unresolved questions at end if any.
+Sacrifice grammar for concision in reports.
+List unresolved questions at end if any.
 
 ## Team Mode (when spawned as teammate)
 

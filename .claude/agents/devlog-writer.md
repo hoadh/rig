@@ -18,7 +18,7 @@ Before completing any devlog entry, verify each item:
 - [ ] Lesson extractable: a future developer can read this and change their behavior
 - [ ] Next steps actionable: what must happen, who owns it, and when
 
-**IMPORTANT**: Analyze the skills catalog and activate the skills that are needed for the task during the process.
+Analyze the skills catalog and activate the skills that are needed for the task during the process.
 
 ## Core Responsibilities
 

@@ -9,9 +9,9 @@ You are an **MCP operator** running Model Context Protocol tools for the main ag
 
 ## Your Skills
 
-**IMPORTANT**: Use `mcp` skill for MCP server interactions.
+Use `mcp` skill for MCP server interactions.
 
-**IMPORTANT**: Analyze skills at `.claude/skills/*` and activate as needed.
+Analyze skills at `.claude/skills/*` and activate as needed.
 
 ## Gemini Model Configuration
 
@@ -34,7 +34,7 @@ Respond with one line of JSON only, no markdown or prose: {"server":"<name>","to
 
 ## Role Responsibilities
 
-**IMPORTANT**: Ensure token efficiency while maintaining high quality.
+Ensure token efficiency while maintaining high quality.
 
 ### Primary Objectives
 
@@ -109,7 +109,7 @@ $ npx tsx cli.ts call-tool chrome-devtools take_screenshot '{"filePath":"screens
 ✓ Screenshot saved: screenshot-1234.png
 ```
 
-**IMPORTANT**: Sacrifice grammar for concision. List unresolved questions at end if any.
+Sacrifice grammar for concision. List unresolved questions at end if any.
 
 ## Team Mode (when spawned as teammate)
 

@@ -1,65 +1,35 @@
 # Primary Workflow
 
-**IMPORTANT:** Analyze the skills catalog and activate the skills that are needed for the task during the process.
-**IMPORTANT**: Ensure token efficiency while maintaining high quality.
+You do the work yourself. Use subagents when they buy something: context isolation, parallelism, or a review not anchored on your own reasoning. Do not delegate by default; every handoff loses detail.
 
-#### 1. Code Implementation
-- Before you start, delegate to `planner` agent to create a implementation plan with TODO tasks in `./plans` directory.
-- When in planning phase, use multiple `researcher` agents in parallel to conduct research on different relevant technical topics and report back to `planner` agent to create implementation plan.
-- Write clean, readable, and maintainable code
-- Follow established architectural patterns
-- Implement features according to specifications
-- Handle edge cases and error scenarios
-- **DO NOT** create new enhanced files, update to the existing files directly.
-- **[IMPORTANT]** After creating or modifying code file, run compile command/script to check for any compile errors.
+## Size Tiers (single definition; other files point here)
 
-#### 2. Testing
-- Delegate to `tester` agent to run tests on the **simplified code**
-  - Write comprehensive unit tests
-  - Ensure high code coverage
-  - Test error scenarios
-  - Validate performance requirements
-- Tests verify the FINAL code that will be reviewed and merged
-- **DO NOT** ignore failing tests just to pass the build.
-- **IMPORTANT:** make sure you don't use fake data, mocks, cheats, tricks, temporary solutions, just to pass the build or github actions.
-- **IMPORTANT:** Always fix failing tests follow the recommendations and delegate to `tester` agent to run tests again, only finish your session when all tests pass.
+Classify the task before acting. Risk signals (auth, data/migrations, infra, public API or schema change) force Large. The user can always override ("just do it", `/rig:implement --full`).
 
-#### 3. Code Quality
-- After testing passes, delegate to `code-reviewer` agent to review clean, tested code.
-- Follow coding standards and conventions
-- Write self-documenting code
-- Add meaningful comments for complex logic
-- Optimize for performance and maintainability
+| Tier | Signal | Process |
+|---|---|---|
+| Trivial | 1 file or less, obvious fix, no API/schema change | Edit directly, run the relevant tests. No plan, no subagents. |
+| Standard | A few files, clear scope | Short plan in chat (or `/rig:plan --fast`), implement in the main session, run tests, one `code-reviewer` pass if logic changed. |
+| Large | Multi-phase, cross-cutting, risky | Full pipeline: `/rig:plan` (research, red-team), `/rig:implement`, tester and reviewer gates, docs update. |
 
-#### 4. Integration
-- Always follow the plan given by `planner` agent
-- Ensure seamless integration with existing code
-- Follow API contracts precisely
-- Maintain backward compatibility
-- Document breaking changes
-- Delegate to `docs-maintainer` agent to update docs in `./docs` directory if any.
+## Implementation
+- Follow the plan if one exists; otherwise follow the tier process above.
+- Update existing files instead of creating "enhanced" copies. Parallel copies drift.
+- After changing code, run the compile/typecheck command. Broken builds waste every later step.
 
-#### 5. Debugging
-- When a user report bugs or issues on the server or a CI/CD pipeline, delegate to `debugger` agent to run tests and analyze the summary report.
-- Read the summary report from `debugger` agent and implement the fix.
-- Delegate to `tester` agent to run tests and analyze the summary report.
-- If the `tester` agent reports failed tests, fix them follow the recommendations and repeat from the **Step 3**.
+## Testing
+- Run the relevant tests on the final code. Never skip or weaken a failing test to get green; a hidden failure ships as a bug. No fake data or mocks standing in for real behavior.
+- Fix failures and re-run until they pass. Large tier: use the `tester` agent.
 
-#### 6. Visual Explanations
-When explaining complex code, protocols, or architecture:
-- **When to use:** User asks "explain", "how does X work", "visualize", or topic has 3+ interacting components
-- Use `/rig:visualize --explain <topic>` to generate visual explanation with ASCII + Mermaid
-- Use `/rig:visualize --diagram <topic>` for architecture and data flow diagrams
-- Use `/rig:visualize --slides <topic>` for step-by-step walkthroughs
-- Use `/rig:visualize --ascii <topic>` for terminal-friendly output only
-- **HTML mode** (add `--html` for self-contained HTML pages, opens directly in browser):
-  - `/rig:visualize --html --explain <topic>` — publication-quality HTML explanation
-  - `/rig:visualize --html --diagram <topic>` — interactive HTML diagram with zoom controls
-  - `/rig:visualize --html --slides <topic>` — magazine-quality slide deck
-  - `/rig:visualize --html --diff [ref]` — visual diff review
-  - `/rig:visualize --html --plan-review` — plan vs codebase comparison
-  - `/rig:visualize --html --recap [timeframe]` — project context snapshot
-- **Plan context:** Visuals save to plan folder from `## Plan Context` hook injection; if none, uses `plans/visuals/`
-- **Markdown mode:** Auto-opens in browser via markdown-viewer with Mermaid rendering
-- **HTML mode:** Opens directly in browser — self-contained, no server needed
-- See `development-rules.md` → "Visual Aids" section for additional guidance
+## Review
+- Review final, tested code. Standard: one pass if logic changed. Large: `code-reviewer` gate.
+
+## Docs and Integration
+- Keep API contracts and backward compatibility; document breaking changes.
+- Update `./docs` when behavior or structure changes (Large: `docs-maintainer`; none needed for pure internal fixes).
+
+## Debugging
+- For CI or server failures use the `debugger` agent (or investigate directly for Trivial/Standard), fix, re-run tests, then review again.
+
+## Visual Explanations
+Use `/rig:visualize` (`--explain`, `--diagram`, `--slides`, `--ascii`, `--html`) when the user asks to explain or visualize, or a topic has 3+ interacting components. Output goes to the active plan's `visuals/` folder, else `plans/visuals/`; mermaid syntax via `/mermaidjs-v11`.

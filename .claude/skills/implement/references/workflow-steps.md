@@ -60,7 +60,7 @@ All modes share core steps with mode-specific variations.
 
 ## Step 3: Implementation
 
-**IMPORTANT:**
+Before starting:
 1. `TaskList` first — check for existing tasks (hydrated by planning skill in same session)
 2. If tasks exist → pick them up, skip re-creation
 3. If no tasks → read plan phases, `TaskCreate` for each unchecked `[ ]` item with priority order and metadata (`phase`, `planDir`, `phaseFile`)
@@ -97,11 +97,11 @@ All modes share core steps with mode-specific variations.
 
 **All modes (except no-test):**
 - Write tests: happy path, edge cases, errors
-- **MUST** spawn `tester` subagent: `Task(subagent_type="tester", prompt="Run test suite", description="Run tests")`
-- If failures: **MUST** spawn `debugger` subagent → fix → repeat
-- **Forbidden:** fake mocks, commented tests, changed assertions, skipping subagent delegation
+- Tests must run and pass; a failing suite is never waved through (it hides a regression).
+- Large tier: spawn `tester` (`Task(subagent_type="tester", prompt="Run test suite", description="Run tests")`); on failures spawn `debugger`, fix, repeat. Standard tier: run the suite in the main session.
+- Forbidden: fake mocks, commented-out tests, weakened assertions
 
-**Output:** `✓ Step 4: Tests [X/X passed] - tester subagent invoked`
+**Output:** `✓ Step 4: Tests [X/X passed] - [tester subagent invoked | run in main session]`
 
 ### [Review Gate 4] Post-Testing (skip if auto mode)
 - Present test results summary
@@ -110,9 +110,9 @@ All modes share core steps with mode-specific variations.
 
 ## Step 5: Code Review
 
-**All modes - MANDATORY subagent:**
-- **MUST** spawn `code-reviewer` subagent: `Task(subagent_type="code-reviewer", prompt="Review changes. Return score, critical issues, warnings.", description="Code review")`
-- **DO NOT** review code yourself - delegate to subagent
+**All modes (Standard: one pass, only if logic changed; Large: required gate):**
+- Spawn `code-reviewer`: `Task(subagent_type="code-reviewer", prompt="Review changes. Return score, critical issues, warnings.", description="Code review")`
+- Do not self-review the code you just wrote; an independent reviewer is the point of this gate
 
 **Interactive/Parallel/Code/No-test:**
 - Interactive cycle (max 3): see `review-cycle.md`
@@ -131,12 +131,11 @@ All modes share core steps with mode-specific variations.
 
 ## Step 6: Finalize
 
-**All modes - MANDATORY subagents (NON-NEGOTIABLE):**
-1. **MUST** spawn these subagents in parallel:
-   - `Task(subagent_type="progress-tracker", prompt="Run full sync-back for [plan-path]: reconcile all completed Claude Tasks with all phase files, backfill stale completed checkboxes across every phase, then update plan.md frontmatter/table progress. Do NOT only mark current phase.", description="Update plan")`
-   - `Task(subagent_type="docs-maintainer", prompt="Update docs for changes.", description="Update docs")`
-2. Progress-tracker sync-back MUST include:
-
+**Scales with tier (see "Gates by Tier" in `../SKILL.md`):**
+1. Spawn in parallel, only what applies:
+   - `progress-tracker` when a plan exists: `Task(subagent_type="progress-tracker", prompt="Run full sync-back for [plan-path]: reconcile all completed Claude Tasks with all phase files, backfill stale completed checkboxes across every phase, then update plan.md frontmatter/table progress. Do not only mark current phase.", description="Update plan")`
+   - `docs-maintainer` when docs impact is not none: `Task(subagent_type="docs-maintainer", prompt="Update docs for changes.", description="Update docs")`
+2. Progress-tracker sync-back includes:
 ### Status Sync (Finalize)
 
 Edit plan.md directly — set the Status column cell to `Completed` / `In Progress` / `Pending`,
@@ -148,14 +147,14 @@ Exception: never set `Completed` for a phase with open `- [ ] LIVE:` / `LIVE(blo
    - Return unresolved mappings if any completed task cannot be matched to a phase file.
 3. Use `TaskUpdate` to mark Claude Tasks complete after sync-back confirmation.
 4. Onboarding check (API keys, env vars)
-5. **MUST** spawn git subagent: `Task(subagent_type="git-operator", prompt="Stage and commit changes", description="Commit")`
+5. Commit only when the user asks (or the flow says so), via git subagent: `Task(subagent_type="git-operator", prompt="Stage and commit changes", description="Commit")`
 
-**CRITICAL:** Step 6 is INCOMPLETE without spawning all 3 subagents. DO NOT skip subagent delegation.
+Large tier: skipping the applicable subagents leaves the plan and docs out of sync, so Step 6 is incomplete without them.
 
 **Auto mode:** Continue to next phase automatically, start from **Step 3**.
 **Others:** Ask user before next phase
 
-**Output:** `✓ Step 6: Finalized - 3 subagents invoked - Full-plan sync-back completed - Committed`
+**Output:** `✓ Step 6: Finalized - [N] subagents invoked - Full-plan sync-back completed - Committed`
 
 ## Mode-Specific Flow Summary
 
@@ -170,15 +169,12 @@ no-test:     0 → 1 → [R] → 2 → [R] → 3 → [R] → skip → 5(user) �
 code:        0 → skip → skip → 3 → [R] → 4 → [R] → 5(user) → 6
 ```
 
-**Key difference:** `auto` mode is the ONLY mode that skips all review gates.
+**Key difference:** `auto` mode is the only mode that skips all review gates.
 
 ## Critical Rules
 
 - Never skip steps without mode justification
-- **MANDATORY SUBAGENT DELEGATION:** Steps 4, 5, 6 MUST spawn subagents via Task tool. DO NOT implement directly.
-  - Step 4: `tester` (and `debugger` if failures)
-  - Step 5: `code-reviewer`
-  - Step 6: `progress-tracker`, `docs-maintainer`, `git-operator`
+- Subagent delegation scales with tier (see `../SKILL.md` "Gates by Tier"): Large spawns `tester`, `code-reviewer`, and the applicable finalize agents; Standard runs tests in the main session with one review pass.
 - Use `TaskCreate` to create Claude Tasks for each unchecked item with priority order and dependencies (or `TodoWrite` if Task tools unavailable).
 - Use `TaskUpdate` to mark Claude Tasks `in_progress` when picking up a task (skip if Task tools unavailable).
 - Use `TaskUpdate` to mark Claude Tasks `complete` immediately after finalizing the task (skip if Task tools unavailable).

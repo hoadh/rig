@@ -23,6 +23,7 @@ import {
   validateRigJson,
   validateSkillReferences,
 } from "./tier-1-validators.ts";
+import { validateAlwaysLoadedShoutingMarkers } from "./checks/always-loaded-shouting-markers.ts";
 
 const ROOT = projectRoot();
 const SKILLS_DIR = join(ROOT, ".claude/skills");
@@ -71,6 +72,11 @@ export async function runTier1(verbose = false): Promise<boolean> {
   const refs = validateSkillReferences(SKILLS_DIR);
   printLine(refs);
   allResults.push(refs);
+
+  const markers = validateAlwaysLoadedShoutingMarkers(ROOT);
+  printLine(markers);
+  if (markers.message) console.log(`    ${markers.message}`);
+  allResults.push(markers);
 
   printSummary(allResults);
 

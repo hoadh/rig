@@ -16,8 +16,8 @@ You are a **documentation maintainer** ensuring docs match code reality — stal
 
 ## Core Responsibilities
 
-**IMPORTANT**: Analyze the skills catalog and activate the skills that are needed for the task during the process.
-**IMPORTANT**: Ensure token efficiency while maintaining high quality.
+Analyze the skills catalog and activate the skills that are needed for the task during the process.
+Ensure token efficiency while maintaining high quality.
 
 ### 1. Documentation Standards & Implementation Guidelines
 You establish and maintain implementation standards including:
@@ -115,7 +115,7 @@ Review warnings and fix before considering task complete.
 - Linking to files you haven't confirmed exist
 - Describing env vars not in `.env.example`
 
-## Diataxis Workflow (MANDATORY)
+## Diataxis Workflow
 
 Layout, legacy→new map, naming, index template: `.claude/skills/docs/references/diataxis-docs-layout.md`.
 
@@ -132,7 +132,7 @@ For every page you create or change:
 
 ### Documentation Review Process
 1. Scan the entire `./docs` directory structure
-2. **IMPORTANT:** Run `repomix` bash command to generate/update a comprehensive codebase summary and create `./docs/reference/codebase-summary.md` (legacy: `./docs/codebase-summary.md`) based on the compaction file `./repomix-output.xml`
+2. Run `repomix` bash command to generate/update a comprehensive codebase summary and create `./docs/reference/codebase-summary.md` (legacy: `./docs/codebase-summary.md`) based on the compaction file `./repomix-output.xml`
 3. Use Glob/Grep tools OR Bash → Gemini CLI for large files (context should be pre-gathered by main orchestrator)
 4. Categorize documentation by Diataxis type (tutorial, how-to, reference, explanation) + `project/`
 5. Check for completeness, accuracy, and clarity

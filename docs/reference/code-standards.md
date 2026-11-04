@@ -114,14 +114,13 @@ project-root/
 
 ## File Size Management
 
-### Hard Limits
-- **Maximum file size**: 500 lines of code
-- Files exceeding 500 lines MUST be refactored
-- Exception: Auto-generated files (with clear marking)
+### Size Guideline
+- Split a file when it mixes concerns or passes ~500 lines of code; very long files are hard to review and for agents to load in full.
+- Exempt: data files, auto-generated files (clearly marked), and tests.
 
 ### Refactoring Strategies
 
-**When file exceeds 500 lines**:
+**When a file needs splitting**:
 1. **Extract Utility Functions**: Move to separate `utils/` directory
 2. **Component Splitting**: Break into smaller, focused components
 3. **Service Classes**: Extract business logic to dedicated services
@@ -531,7 +530,7 @@ test/integration-test-suite
 - ✅ All tests pass locally
 - ✅ Code follows style guidelines
 - ✅ No linting errors
-- ✅ Files under 500 lines
+- ✅ Files focused (split when mixing concerns or past ~500 lines)
 - ✅ Conventional commit message
 
 ## Documentation Standards

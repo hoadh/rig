@@ -1,90 +1,26 @@
 # Team Coordination Rules
 
-> These rules only apply when operating as a teammate within an Agent Team.
-> They have no effect on standard sessions or subagent workflows.
+Applies only to teammates inside an Agent Team; no effect on normal sessions or subagents.
 
-Rules for agents operating as teammates within an Agent Team.
+## File Ownership
+- Each teammate owns distinct files, defined by globs in the task (`File ownership: src/api/*`). Overlapping edits corrupt each other's work.
+- Tester owns test files only. On an ownership conflict, stop and report to the lead, who restructures tasks.
 
-## File Ownership (CRITICAL)
+## Git
+- Prefer one worktree per implementer; commit to the worktree branch, not main or dev. Never force-push. Pull before push. Commit often.
+- Conventional commits, no AI references, focused changes.
 
-- Each teammate MUST own distinct files — no overlapping edits
-- Define ownership via glob patterns in task descriptions: `File ownership: src/api/*, src/models/*`
-- Lead resolves ownership conflicts by restructuring tasks or handling shared files directly
-- Tester owns test files only; reads implementation files but never edits them
-- If ownership violation detected: STOP and report to lead immediately
+## Communication
+- Use `SendMessage` to a named teammate; broadcast only for critical blockers affecting everyone.
+- Mark the task completed via `TaskUpdate` before reporting. Reports carry actionable findings, in plain text, concise, unresolved questions last. Save to `{RIG_REPORTS_PATH}` (fallback `plans/reports/`) as `{type}-{date}-{slug}.md`.
+- Lead states `Docs impact: none|minor|major` after implementation tasks and updates `docs/` when needed.
 
-## Git Safety
+## Tasks and Plans
+- Claim the lowest-ID unblocked task, set it `in_progress`, check `TaskList` afterwards; if all are blocked, tell the lead.
+- With `plan_mode_required`: plan read-only, submit via `ExitPlanMode`, wait for approval, revise if rejected (rejected twice: lead takes over).
 
-- Prefer git worktrees for implementation teams — each dev in own worktree eliminates conflicts
-- Never force-push from a teammate session
-- Commit frequently with descriptive messages
-- Pull before push to catch merge conflicts early
-- If working in a git worktree, commit/push to the worktree branch — not main or dev
-
-## Communication Protocol
-
-- Use `SendMessage(type: "message")` for peer DMs — always specify recipient by name
-- Use `SendMessage(type: "broadcast")` ONLY for critical blocking issues affecting entire team
-- Mark tasks completed via `TaskUpdate` BEFORE sending completion message to lead
-- Include actionable findings in messages, not just "I'm done"
-- Never send structured JSON status messages — use plain text
-
-## Rig Stack Conventions
-
-### Report Output
-- Save reports to `{RIG_REPORTS_PATH}` (injected via hook, fallback: `plans/reports/`)
-- Naming: `{type}-{date}-{slug}.md` where type = your role (researcher, reviewer, debugger)
-- Sacrifice grammar for concision. List unresolved questions at end.
-
-### Commit Messages
-- Use conventional commits: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`
-- No AI references in commit messages
-- Keep commits focused on actual code changes
-
-### Docs Sync (Implementation Teams Only)
-- After completing implementation tasks, lead MUST evaluate docs impact
-- State explicitly: `Docs impact: [none|minor|major]`
-- If impact: update `docs/` directory or note in completion message
-
-## Task Claiming
-
-- Claim lowest-ID unblocked task first (earlier tasks set up context for later ones)
-- Check `TaskList` after completing each task for newly unblocked work
-- Set task to `in_progress` before starting work
-- If all tasks blocked, notify lead and offer to help unblock
-
-## Plan Approval Flow
-
-When `plan_mode_required` is set:
-1. Research and plan your approach (read-only — no file edits)
-2. Send plan via `ExitPlanMode` — this triggers approval request to lead
-3. Wait for lead's `plan_approval_response`
-4. If rejected: revise based on feedback, resubmit
-5. If approved: proceed with implementation
-
-## Conflict Resolution
-
-- If two teammates need the same file: escalate to lead immediately
-- If a teammate's plan is rejected twice: lead takes over that task
-- If findings conflict between reviewers: lead synthesizes and documents disagreement
-- If blocked by another teammate's incomplete work: message them directly first, escalate to lead if unresponsive
-
-## Shutdown Protocol
-
-- Approve shutdown requests unless mid-critical-operation
-- Always mark current task as completed before approving shutdown
-- If rejecting shutdown, explain why concisely
-- Extract `requestId` from shutdown request JSON and pass to `shutdown_response`
-
-## Idle State (Normal Behavior)
-
-- Going idle after sending a message is NORMAL — not an error
-- Idle means waiting for input, not disconnected
-- Sending a message to an idle teammate wakes them up
-- Do not treat idle notifications as completion signals — check task status instead
-
-## Discovery
-
-- Read team config at `~/.claude/teams/{team-name}/config.json` to discover teammates
-- Always refer to teammates by NAME (not agent ID)
-- Names are used for: `recipient` in SendMessage, task `owner` in TaskUpdate
+## Conflicts and Shutdown
+- Same file needed by two teammates: escalate to the lead. Conflicting review findings: lead synthesizes and records the disagreement. If blocked, message the owner first, then the lead.
+- Approve shutdown requests unless mid-critical-operation; finish the current task first and pass the `requestId` to `shutdown_response`.
+- Idle is normal, not an error; messaging an idle teammate wakes it. Check task status, not idle notices, for completion.
+- Discover teammates in `~/.claude/teams/{team-name}/config.json`; refer to them by name.

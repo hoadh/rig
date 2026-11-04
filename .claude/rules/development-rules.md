@@ -1,69 +1,36 @@
 # Development Rules
 
-**IMPORTANT:** Analyze the skills catalog and activate the skills that are needed for the task during the process.
-**IMPORTANT:** You ALWAYS follow these principles: **YAGNI (You Aren't Gonna Need It) - KISS (Keep It Simple, Stupid) - DRY (Don't Repeat Yourself)**
+Principles: YAGNI, KISS, DRY. Do the simplest thing that works.
 
 ## General
-- **File Naming**: Use kebab-case for file names with a meaningful name that describes the purpose of the file, doesn't matter if the file name is long, just make sure when LLMs read the file names while using Grep or other tools, they can understand the purpose of the file right away without reading the file content.
-  - Kebab-case applies to JS/TS/Python/shell. Follow the language convention elsewhere: C#/Java/Kotlin/Swift use PascalCase, Go/Rust use snake_case.
-- **File Size Management**: Keep individual code files under 500 lines (hard limit, see `docs/reference/code-standards.md`)
-  - Split large files into smaller, focused components/modules
-  - Use composition over inheritance for complex widgets
-  - Extract utility functions into separate modules
-  - Create dedicated service classes for business logic
-- When looking for docs, activate `library-docs` skill (`context7` reference) for exploring latest docs.
-- Use `gh` bash command to interact with Github features if needed
-- Use `psql` bash command to query Postgres database for debugging if needed
-- Use `media` skill for describing details of images, videos, documents, etc. if needed
-- Use `media` skill and `imagemagick` skill for generating and editing images, videos, documents, etc. if needed
-- Use `sequential-thinking` and `debug` skills for sequential thinking, analyzing code, debugging, etc. if needed
-- **[IMPORTANT]** Follow the codebase structure and code standards in `./docs` during implementation.
-- **[IMPORTANT]** Do not just simulate the implementation or mocking them, always implement the real code.
+- File names: kebab-case, descriptive enough that Grep/Glob output explains the file (JS/TS/Python/shell). Follow the language convention elsewhere (C#/Java/Kotlin/Swift PascalCase, Go/Rust snake_case).
+- File size: split a file when it mixes concerns or passes ~500 lines; data, generated and test files are exempt (see `docs/reference/code-standards.md`). Prefer extracted utilities and focused modules over inheritance.
+- Follow the structure and standards in `./docs`.
+- Implement real behavior, not simulations or mocks; a mock that passes proves nothing.
+- Update existing files directly; do not create "enhanced" copies.
+- Look up current library docs with the `library-docs` skill. Use `gh` for GitHub, `psql` for Postgres debugging, the `media`/`imagemagick` skills for images and video, `sequential-thinking`/`debug` for hard analysis.
 
-## Code Quality Guidelines
-- Read and follow codebase structure and code standards in `./docs`
-- Don't be too harsh on code linting, but **make sure there are no syntax errors and code are compilable**
-- Prioritize functionality and readability over strict style enforcement and code formatting
-- Use reasonable code quality standards that enhance developer productivity
-- Use try catch error handling & cover security standards
-- Use `code-reviewer` agent to review code after every implementation
+## Code Quality
+- Code must compile and have no syntax errors; style strictness comes second to readability and productivity.
+- Handle errors with try/catch at boundaries and validate external input.
+- Review scales with the tier in `primary-workflow.md`; do not run a reviewer on a one-line fix.
 
-## Pre-commit/Push Rules
-- Run linting before commit
-- Run tests before push (DO NOT ignore failed tests just to pass the build or github actions)
-- Keep commits focused on the actual code changes
-- **DO NOT** commit and push any confidential information (such as dotenv files, API keys, database credentials, etc.) to git repository!
-- Create clean, professional commit messages without AI references. Use conventional commit format.
-
-## Code Implementation
-- Write clean, readable, and maintainable code
-- Follow established architectural patterns
-- Implement features according to specifications
-- Handle edge cases and error scenarios
-- **DO NOT** create new enhanced files, update to the existing files directly.
-
-## Visual Aids
-- Use `/rig:visualize --explain` when explaining unfamiliar code patterns or complex logic
-- Use `/rig:visualize --diagram` for architecture diagrams and data flow visualization
-- Use `/rig:visualize --slides` for step-by-step walkthroughs and presentations
-- Use `/rig:visualize --ascii` for terminal-friendly diagrams (no browser needed to understand)
-- Add `--html` to any generation flag for self-contained HTML output (opens in browser, no server needed)
-- **Plan context:** Active plan determined from `## Plan Context` in hook injection; visuals save to `{plan_dir}/visuals/`
-- If no active plan, fallback to `plans/visuals/` directory
-- For Mermaid diagrams, use `/mermaidjs-v11` skill for v11 syntax rules
-- See `primary-workflow.md` → Step 6 for workflow integration
+## Commit and Push
+- Lint before commit, run tests before push. Never ignore a failing test to get a green build.
+- Never commit secrets (dotenv files, API keys, credentials): a pushed secret must be treated as leaked.
+- Keep commits focused. Conventional commit messages, no AI references.
 
 ## Privileged Steps (sudo, docker, system services)
-- Do all non-privileged prep first (downloads, config files, checks). Never ask the user to edit files you can prepare.
-- Give the user ONE fenced block with every privileged command in order, copy-paste runnable, including the exact launch/start command (e.g. `sudo systemctl restart x`, `docker compose up -d`) and how you will verify it.
-- Wait for the user to say done, then verify yourself (status, logs, version) and report the evidence.
-- Never interleave privileged requests one at a time.
+- Do all non-privileged prep first (downloads, config files, checks). Do not ask the user to edit files you can prepare.
+- Give the user one fenced block with every privileged command in order, copy-paste runnable, including the exact start/launch command (e.g. `sudo systemctl restart x`, `docker compose up -d`) and how you will verify it.
+- Wait for "done", then verify yourself (status, logs, version) and report the evidence.
+- Do not interleave privileged requests one at a time; it stalls the user repeatedly.
 
 ## Remote Hosts and SSH
 - Resolve user/host with `ssh -G <host>` (reads `~/.ssh/config`; check the `user` and `hostname` lines). A `user` equal to the local login with no matching `Host` block means not configured.
-- No User configured: ask the user ONCE, then offer to add a `Host <alias>` entry (`HostName`, `User`) to `~/.ssh/config` so it is not asked again. Write it only if the user agrees; never put keys or passwords there.
-- Never infer users or hosts from shell history, known_hosts or other projects.
-- Production hosts are read-only: inspection only (`tail`, `cat`, `grep`, `journalctl`, `ls`, `df`, `ps`, `systemctl status`). No state-changing command (writes, restarts, deploys, installs) without explicit user approval.
+- No User configured: ask the user once, then offer to add a `Host <alias>` entry (`HostName`, `User`) to `~/.ssh/config` so it is not asked again. Write it only if the user agrees; never put keys or passwords there.
+- Never infer users or hosts from shell history, known_hosts or other projects; guesses connect to the wrong machine.
+- Production hosts are read-only: inspection only (`tail`, `cat`, `grep`, `journalctl`, `ls`, `df`, `ps`, `systemctl status`). Any state change (writes, restarts, deploys, installs) needs explicit user approval, because production outages are costly and hard to undo.
 
 ## Language
 - Only chat replies follow the user's language (Claude Code's `language` setting in settings.json sets it persistently).

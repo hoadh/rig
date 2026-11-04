@@ -1,6 +1,6 @@
 ---
 name: rig:implement
-description: "Implement a feature or plan end-to-end: plan, code, test, review. ALWAYS activate this skill before implementing EVERY feature, plan, or fix."
+description: "Implement a feature or plan end-to-end: plan, code, test, review. Use for Standard and Large tasks (multi-file, planned or risky work). Trivial one-file fixes are done directly without this skill (tiers in .claude/rules/primary-workflow.md)."
 argument-hint: "[task|plan-path] [--interactive|--fast|--parallel|--auto|--no-test]"
 metadata:
   author: rig
@@ -19,7 +19,7 @@ End-to-end implementation with automatic workflow detection.
 /rig:implement <natural language task OR plan path>
 ```
 
-**IMPORTANT:** If no flag is provided, the skill will use the `interactive` mode by default for the workflow.
+If no flag is provided, the skill will use the `interactive` mode by default for the workflow.
 
 **Optional flags to select the workflow mode:** 
 - `--interactive`: Full workflow with user input (**default**)
@@ -34,11 +34,17 @@ End-to-end implementation with automatic workflow detection.
 /rig:implement path/to/plan.md --auto
 ```
 
+## Size Tiers
+
+Tier definitions live in `.claude/rules/primary-workflow.md` (Trivial / Standard / Large); this skill covers Standard and Large. Misjudged scope is the usual failure, so classify first and say the tier in one line.
+
+- **Standard:** a short plan (chat or `--fast` plan file) must exist before code; implement in the main session; tester/reviewer gates below are lighter.
+- **Large:** a reviewed plan must exist before code (`/rig:plan`), full gates below.
+- Risk signals (auth, data/migrations, infra, public API or schema) force Large.
+- User override wins: "just code it", "skip planning" or `--full` is respected; `--full` forces the Large pipeline.
+
 <HARD-GATE>
-Do NOT write implementation code until a plan exists and has been reviewed.
-This applies regardless of task simplicity. "Simple" tasks are where unexamined assumptions waste the most time.
-Exception: `--fast` mode skips research but still requires a plan step.
-User override: If user explicitly says "just code it" or "skip planning", respect their instruction.
+Standard and Large: do not write implementation code until a plan exists (and, for Large, has been reviewed). Unexamined assumptions in "simple" multi-file tasks cost more than the plan. `--fast` skips research but still plans.
 </HARD-GATE>
 
 ## Anti-Rationalization
@@ -50,7 +56,7 @@ User override: If user explicitly says "just code it" or "skip planning", respec
 | "Let me just start coding" | Undisciplined action wastes tokens. Plan first. |
 | "The user wants speed" | Fastest path = plan → implement → done. Not: implement → debug → rewrite. |
 | "I'll plan as I go" | That's not planning, that's hoping. |
-| "Just this once" | Every skip is "just this once." No exceptions. |
+| "Just this once" | Every skip is "just this once." Use the tier table or the user override instead. |
 
 ## Smart Intent Detection
 
@@ -125,30 +131,24 @@ Human review required at these checkpoints (skipped with `--auto`):
 **Always enforced (all modes):**
 - **Testing:** 100% pass required (unless no-test mode)
 - **Code Review:** User approval OR auto-approve (score≥9.5, 0 critical)
-- **Finalize (MANDATORY - never skip):**
-  1. `progress-tracker` subagent → run full plan sync-back (all completed tasks/steps across all `phase-XX-*.md`, not only current phase), then update `plan.md` status/progress
-  2. `docs-maintainer` subagent → update `./docs` if changes warrant
-  3. `TaskUpdate` → mark all Claude Tasks complete after sync-back verification (skip if Task tools unavailable)
+- **Finalize:** scales with tier (table below). Docs and plan sync are skipped when there is nothing to sync, not silently.
+  1. `progress-tracker` subagent (only when a plan exists) -> run full plan sync-back (all completed tasks/steps across all `phase-XX-*.md`, not only current phase), then update `plan.md` status/progress
+  2. `docs-maintainer` subagent (only when docs impact is not none) -> update `./docs`
+  3. `TaskUpdate` -> mark all Claude Tasks complete after sync-back verification (skip if Task tools unavailable)
   4. Ask user if they want to commit via `git-operator` subagent
-  5. Run `/rig:devlog` to write a concise devlog entry upon completion
+  5. Large tier: run `/rig:devlog` to write a concise devlog entry upon completion
 
-## Required Subagents (MANDATORY)
+## Gates by Tier
 
-| Phase | Subagent | Requirement |
-|-------|----------|-------------|
-| Research | `researcher` | Optional in fast/code |
-| Explore | `rig:explore` | Optional in code |
-| Plan | `planner` | Optional in code |
-| UI Work | `ui-ux-designer` | If frontend work |
-| Testing | `tester`, `debugger` | **MUST** spawn |
-| Review | `code-reviewer` | **MUST** spawn |
-| Finalize | `progress-tracker`, `docs-maintainer`, `git-operator` | **MUST** spawn all 3 |
+| Phase | Standard | Large |
+|-------|----------|-------|
+| Research / Plan | Short plan, `planner` optional | `researcher` + `planner`, red-team/validate via `/rig:plan` |
+| UI work | `ui-ux-designer` if frontend | same |
+| Testing | Run tests in main session; tests must pass (a failing suite is never waved through) | `tester` subagent, `debugger` on failures |
+| Review | One `code-reviewer` pass if logic changed | `code-reviewer` subagent gate |
+| Finalize | `progress-tracker` if a plan exists; `docs-maintainer` if docs impact; `git-operator` on request | `progress-tracker`, `docs-maintainer` when docs impact, `git-operator` |
 
-**CRITICAL ENFORCEMENT:**
-- Steps 4, 5, 6 **MUST** use Task tool to spawn subagents
-- DO NOT implement testing, review, or finalization yourself - DELEGATE
-- If workflow ends with 0 Task tool calls, it is INCOMPLETE
-- Pattern: `Task(subagent_type="[type]", prompt="[task]", description="[brief]")`
+Why subagents at Large: tester and reviewer run with fresh context, so they do not inherit the implementer's blind spots. If a Large workflow ends with zero subagent calls, treat it as incomplete. Pattern: `Task(subagent_type="[type]", prompt="[task]", description="[brief]")`.
 
 ## Multi-Machine Plans
 

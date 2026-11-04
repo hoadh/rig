@@ -13,6 +13,8 @@ When no flag specified, analyze task and pick mode:
 
 Use `AskUserQuestion` if detection is uncertain.
 
+Mode choice follows the size tiers in `.claude/rules/primary-workflow.md`: Standard tasks map to `--fast`; Large or risky work (auth, data, infra) maps to `--hard`/`--parallel`/`--two`. Trivial tasks need no plan.
+
 ## Scope Challenge Integration
 
 Step 0 (Scope Challenge, see `scope-challenge.md`) runs before mode detection and can influence it:
@@ -127,7 +129,7 @@ Check `## Plan Context` → `Validation: mode=X, questions=MIN-MAX`:
 
 **Available in:** hard, parallel, two modes. **Skipped in:** fast mode.
 
-## Context Reminder (MANDATORY)
+## Context Reminder
 
 After plan creation, MUST output with **actual absolute path**:
 
