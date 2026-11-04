@@ -28,4 +28,22 @@ describe('regexTestWithTimeout', () => {
     assert.strictEqual(regexTestWithTimeout('(a+)+b', '', 'a'.repeat(40), { timeoutMs: 100 }).reason, 'timeout');
     assert.ok(Date.now() - t0 < 50);
   });
+
+  it('cached script + shared context is cheaper than a fresh context per call (relative, not a wall-clock gate)', () => {
+    const vm = require('vm');
+    const N = 300;
+    regexTestWithTimeout('^node ', '', 'node x'); // warm the cache
+    let t0 = process.hrtime.bigint();
+    for (let i = 0; i < N; i += 1) regexTestWithTimeout('^node ', '', `node x${i}`);
+    const cached = Number(process.hrtime.bigint() - t0);
+    t0 = process.hrtime.bigint();
+    for (let i = 0; i < N; i += 1) vm.runInNewContext('new RegExp(s, f).test(t)', { s: '^node ', f: '', t: `node x${i}` }, { timeout: 250 });
+    const fresh = Number(process.hrtime.bigint() - t0);
+    assert.ok(cached < fresh, `cached ${cached / 1e6}ms should beat fresh-context ${fresh / 1e6}ms`);
+  });
+  it('a bad pattern stays invalid on repeated calls and a good one still works afterwards', () => {
+    assert.strictEqual(regexTestWithTimeout('(x', '', 'x').reason, 'invalid');
+    assert.strictEqual(regexTestWithTimeout('(x', '', 'x').reason, 'invalid');
+    assert.strictEqual(regexTestWithTimeout('x', '', 'x').matched, true);
+  });
 });

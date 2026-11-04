@@ -244,12 +244,30 @@ test('block mode: continuation blocks stop at the cap within one turn (H1b)', ()
   assert.match(notes(third), /block-cap/);
 });
 
+test('shifting window key, no prompt_id: continuations block at most the cap, then allow (N1)', () => {
+  const w = blockWorld();
+  const session = 'shift';
+  const filler = F.text('x'.repeat(100000));
+  // > 4 MiB after the only prompt: the turn start is outside the window, so the key is a window hash
+  // that moves as the head of the window moves; fresh uuids per call model that shift.
+  const big = () => [P(), Array.from({ length: 50 }, () => ({ ...filler, uuid: `u-${Math.random()}` })), F.edit('/p/a.cjs')];
+  const active = { session, payload: { stop_hook_active: true } };
+  const results = [run(w, big(), active), run(w, big(), active), run(w, big(), active), run(w, big(), active)];
+  const blocks = results.filter((r) => r.out && r.out.decision === 'block').length;
+  assert.strictEqual(blocks, 2);
+  assert.strictEqual(results[2].out, null);
+  assert.strictEqual(results[3].out, null);
+  assert.match(notes(results[2]), /block-cap/);
+});
+
 test('a finished turn A chain does not suppress turn B blocks (M-new-2)', () => {
   const w = blockWorld();
   const active = { session: 'ab', payload: { stop_hook_active: true } };
   const a = [P(), F.edit('/p/a.cjs')];
   assert.strictEqual(run(w, a, active).out.decision, 'block');
   assert.strictEqual(run(w, a, active).out.decision, 'block'); // state: chain 2 for turn A
+  // turn A ended: the next Stop (no stop_hook_active) resets the chain
+  run(w, [P()], { session: 'ab' });
   // turn B (new prompt) whose first block-worthy stop is already active (another Stop hook blocked first)
   const b = run(w, [P(), F.edit('/p/b.cjs')], active);
   assert.strictEqual(b.out && b.out.decision, 'block', 'turn B must still be blocked');

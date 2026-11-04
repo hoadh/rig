@@ -122,3 +122,24 @@ test('extraPatterns run under a vm timeout: catastrophic pattern is non-matching
   resetTimeoutLatch();
   assert.ok(v('./ci/e2e.sh', { extraPatterns: [/^\.\/ci\/e2e\.sh/] }).isVerify);
 });
+
+test('failure-keeping exit must directly follow ||, not a later ; command (N3)', () => {
+  for (const c of ['npm test || true; npm run lint || exit 1', 'npm test || echo failed; npm run build || exit 1']) {
+    assert.ok(v(c).masked, c);
+  }
+  assert.ok(!v('npm test || exit 1').masked);
+  assert.ok(!v('npm test || { echo fail; exit 1; }').masked);
+});
+
+test('echoing $? right after the check surfaces the real status and does not mask', () => {
+  const clean = [
+    'npm test >log 2>&1; echo "exit=$?"', 'npm test; echo $?', 'npm test; echo "exit $?"', "npm test; printf 'status=%s\\n' $?",
+    'npm test > out.log 2>&1\necho "exit=$?"',
+  ];
+  for (const c of clean) {
+    const r = v(c);
+    assert.ok(r.isVerify && !r.masked, c);
+  }
+  assert.ok(v('npm test; echo done').masked);
+  assert.ok(v('npm test; echo "exit=$?"; echo more | cat').masked);
+});
