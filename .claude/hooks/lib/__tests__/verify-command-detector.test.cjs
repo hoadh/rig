@@ -83,3 +83,42 @@ test('detectPackageManager reads lockfiles under projectDir', () => {
     fs.rmSync(d, { recursive: true, force: true });
   }
 });
+
+test('any masked verify segment masks the command; subshell pipes are masked (H-2)', () => {
+  const masked = [
+    'npm test; npm run lint', 'npm test | tail -5 && npm run lint', 'npm test || true && npm run lint',
+    '(npm test) | tail', '(cd x && npm test) | tail', 'npm test 2>&1 | tail; npm run build', '! npm test', 'cd x && ! npm test',
+    'npm test; exit 1',
+  ];
+  for (const c of masked) {
+    const r = v(c);
+    assert.ok(r.isVerify && r.masked, c);
+  }
+  const clean = ['npm test && npm run lint', 'cd x && npm test', '(npm test) && echo ok', '(npm test)', 'npm test && npm run lint && npm run build'];
+  for (const c of clean) {
+    const r = v(c);
+    assert.ok(r.isVerify && !r.masked, c);
+  }
+});
+
+test('tails that keep the failure do not mask: || exit N, || exit $?, || { ...; exit N; }, ; exit $?', () => {
+  for (const c of ['npm test || exit 1', 'npm test || exit $?', 'npm test || { echo fail; exit 2; }', 'npm test; exit $?', 'npm test || exit']) {
+    const r = v(c);
+    assert.ok(r.isVerify && !r.masked, c);
+  }
+  for (const c of ['npm test || exit 0', 'npm test || { echo fail; }', 'npm test || echo fail']) {
+    assert.ok(v(c).masked, c);
+  }
+});
+
+test('extraPatterns run under a vm timeout: catastrophic pattern is non-matching and flagged (H-1)', () => {
+  const { resetTimeoutLatch } = require('../regex-test-with-timeout.cjs');
+  resetTimeoutLatch();
+  const t0 = Date.now();
+  const r = v(`./ci/run.sh ${'a'.repeat(40)}`, { extraPatterns: [/(.*a){12}x/] });
+  assert.strictEqual(r.isVerify, false);
+  assert.strictEqual(r.patternTimeout, true);
+  assert.ok(Date.now() - t0 < 1500, `took ${Date.now() - t0}ms`);
+  resetTimeoutLatch();
+  assert.ok(v('./ci/e2e.sh', { extraPatterns: [/^\.\/ci\/e2e\.sh/] }).isVerify);
+});

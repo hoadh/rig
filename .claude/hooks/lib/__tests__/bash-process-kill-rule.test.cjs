@@ -145,3 +145,45 @@ describe('remedy text', () => {
     assert.strictEqual(decision('kill -1'), null);
   });
 });
+
+describe('pgrep -f next to any kill (cycle 2, M-new-1)', () => {
+  it('denies placeholder xargs, while-read loops, assignments and nested-paren patterns', () => {
+    for (const cmd of [
+      'pgrep -f vite | xargs -I{} kill {}',
+      'pgrep -f vite | xargs -I % kill -9 %',
+      'pgrep -f vite | while read p; do kill $p; done',
+      'P=$(pgrep -f vite); kill $P',
+      'kill $(pgrep -f "(vite)")',
+      'P=`pgrep -f vite`; kill -9 $P',
+    ]) assert.strictEqual(decision(cmd), 'deny', cmd);
+  });
+  it('still allows bracket form, pgrep -x and kill without a self-matching pgrep', () => {
+    for (const cmd of [
+      "pgrep -f '[v]ite' | xargs -I{} kill {}",
+      "P=$(pgrep -f '[v]ite'); kill $P",
+      'P=$(pgrep -x vite); kill $P',
+      'pgrep -f vite',
+      'kill 1234',
+    ]) assert.strictEqual(decision(cmd), null, cmd);
+  });
+  it('asks when a nested-paren pgrep pattern is catastrophic', () => {
+    assert.strictEqual(decision(`echo ${'a'.repeat(40)}; kill $(pgrep -f '(.*a){12}x')`), 'ask');
+  });
+});
+
+describe('vm timeout is the real ReDoS bound (cycle 2, H-1)', () => {
+  const { resetTimeoutLatch } = require('../regex-test-with-timeout.cjs');
+  const payloads = [
+    `true ${'a'.repeat(40)}\npkill -f '(.*a){12}x|vite'`,
+    `true ${'a'.repeat(40)}\npkill -f '(?:.*?){20}x|vite'`,
+    `true ${'a'.repeat(7000)}\npkill -f '.*.*Q|vite'`,
+  ];
+  for (const cmd of payloads) {
+    it(`asks fast: ${cmd.split('\n')[1]}`, () => {
+      resetTimeoutLatch();
+      const t0 = Date.now();
+      assert.strictEqual(decision(cmd), 'ask');
+      assert.ok(Date.now() - t0 < 1500, `took ${Date.now() - t0}ms`);
+    });
+  }
+});

@@ -233,15 +233,62 @@ test('block mode allows when the counter cannot be persisted (H1a)', () => {
   assert.match(notes(r), /counter-unwritable allow/);
 });
 
-test('block mode hard cap: stop_hook_active chain stops even when the turn key changes (H1b)', () => {
+test('block mode: continuation blocks stop at the cap within one turn (H1b)', () => {
   const w = blockWorld();
   const opts = { session: 'chain', payload: { stop_hook_active: true } };
-  // every continuation has a different turn start (fresh prompt uuid), so the per-turn count resets each time
-  assert.strictEqual(run(w, [P(), F.edit('/p/a.cjs')], opts).out.decision, 'block');
-  assert.strictEqual(run(w, [P(), F.edit('/p/a.cjs')], opts).out.decision, 'block');
-  const third = run(w, [P(), F.edit('/p/a.cjs')], opts);
+  const t = [P(), F.edit('/p/a.cjs')];
+  assert.strictEqual(run(w, t, opts).out.decision, 'block');
+  assert.strictEqual(run(w, t, opts).out.decision, 'block');
+  const third = run(w, t, opts);
   assert.strictEqual(third.out, null);
   assert.match(notes(third), /block-cap/);
+});
+
+test('a finished turn A chain does not suppress turn B blocks (M-new-2)', () => {
+  const w = blockWorld();
+  const active = { session: 'ab', payload: { stop_hook_active: true } };
+  const a = [P(), F.edit('/p/a.cjs')];
+  assert.strictEqual(run(w, a, active).out.decision, 'block');
+  assert.strictEqual(run(w, a, active).out.decision, 'block'); // state: chain 2 for turn A
+  // turn B (new prompt) whose first block-worthy stop is already active (another Stop hook blocked first)
+  const b = run(w, [P(), F.edit('/p/b.cjs')], active);
+  assert.strictEqual(b.out && b.out.decision, 'block', 'turn B must still be blocked');
+});
+
+test('any non-active stop resets the chain (M-new-2)', () => {
+  const w = blockWorld();
+  const session = 'reset';
+  const key = `${session}-${NONCE}`;
+  const t = [P(), F.edit('/p/a.cjs')];
+  run(w, t, { session, payload: { stop_hook_active: true } });
+  assert.strictEqual(JSON.parse(fs.readFileSync(stateFile(key), 'utf8')).chain, 1);
+  run(w, [P()], { session }); // inactive stop, no edits
+  assert.strictEqual(JSON.parse(fs.readFileSync(stateFile(key), 'utf8')).chain, 0);
+});
+
+test('state temp file is O_EXCL with a random name: a planted symlink is not followed (M-new-3)', { skip: process.platform === 'win32' }, () => {
+  const { incrementCount } = require('../lib/verify-guard-turn-counter.cjs');
+  const victim = path.join(TMP_ROOT, 'victim.txt');
+  fs.writeFileSync(victim, 'ORIGINAL');
+  const sid = `sym-${NONCE}`;
+  // the old predictable names: <state>.<pid>.tmp
+  fs.symlinkSync(victim, `${stateFile(sid)}.${process.pid}.tmp`);
+  const r = incrementCount(sid, 'turn-1', { active: false });
+  assert.strictEqual(r.persisted, true);
+  assert.strictEqual(fs.readFileSync(victim, 'utf8'), 'ORIGINAL');
+  assert.strictEqual(JSON.parse(fs.readFileSync(stateFile(sid), 'utf8')).count, 1);
+  assert.ok(!fs.lstatSync(stateFile(sid)).isSymbolicLink());
+  assert.strictEqual(fs.statSync(stateFile(sid)).mode & 0o777, 0o600);
+  sessions.add(sid);
+});
+
+test('catastrophic extraCommandPatterns: no hang, no match, pattern-timeout logged (H-1)', () => {
+  const w = setup({ globalCfg: { verifyGuard: { extraCommandPatterns: ['(.*a){12}x'] } } });
+  const t0 = Date.now();
+  const r = run(w, [P(), F.edit('/p/a.cjs'), F.bash(`./ci/run.sh ${'a'.repeat(40)}`)]);
+  assert.ok(nudge(r));
+  assert.match(notes(r), /pattern-timeout/);
+  assert.ok(Date.now() - t0 < 3000);
 });
 
 test('masked check nudge says the exit status was masked (M1)', () => {

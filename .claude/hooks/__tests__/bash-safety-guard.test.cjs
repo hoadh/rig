@@ -282,3 +282,25 @@ test('entry-level crash logs only error name and code (M4)', () => {
   assert.strictEqual(crash.error, 'Error:EBOOM');
   assert.ok(!JSON.stringify(crash).includes('secret-user'));
 });
+
+test('reviewer ReDoS payloads return ask in under 1.5s each through the real hook (H-1)', () => {
+  const w = setup();
+  for (const command of [
+    `true ${'a'.repeat(40)}\npkill -f '(.*a){12}x|vite'`,
+    `true ${'a'.repeat(40)}\npkill -f '(?:.*?){20}x|vite'`,
+    `true ${'a'.repeat(7000)}\npkill -f '.*.*Q|vite'`,
+    `echo ${'a'.repeat(40)}; kill $(pgrep -f '(.*a){12}x')`,
+  ]) {
+    const t0 = Date.now();
+    const { out } = runHook(w, bash(command, w));
+    assert.strictEqual(out && out.permissionDecision, 'ask', command.slice(-40));
+    assert.ok(Date.now() - t0 < 1500, `took ${Date.now() - t0}ms`);
+  }
+});
+
+test('placeholder xargs, while-read and assignment pgrep->kill forms are denied at the entry (M-new-1)', () => {
+  const w = setup();
+  for (const cmd of ['pgrep -f vite | xargs -I{} kill {}', 'pgrep -f vite | while read p; do kill $p; done', 'P=$(pgrep -f vite); kill $P', 'kill $(pgrep -f "(vite)")']) {
+    assert.strictEqual(runHook(w, bash(cmd, w)).out.permissionDecision, 'deny', cmd);
+  }
+});

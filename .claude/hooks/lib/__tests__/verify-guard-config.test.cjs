@@ -82,3 +82,10 @@ test('vetPatterns rejects ReDoS shapes the old single regex missed', () => {
   assert.strictEqual(rejected.length, 4);
   assert.ok(patterns[0].test('make e2e'));
 });
+
+test('vetPatterns reports the shape checker reason (L-new-4)', () => {
+  const { rejected } = vetPatterns(['(a)\\1', '(a+)+', 'x'.repeat(10)]);
+  assert.match(rejected[0], /backreference/);
+  assert.match(rejected[1], /repeated group/);
+  assert.strictEqual(rejected.length, 2);
+});
