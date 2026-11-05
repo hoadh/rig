@@ -232,7 +232,7 @@ function applyCd(words, cwd, unknown) {
   const target = words[idx];
   if (target.text === '-' || target.dynamic) return { cwd, unknown: true };
   const expanded = expandHome(target.text);
-  if (path.isAbsolute(expanded)) return { cwd: expanded, unknown: false };
+  if (path.isAbsolute(expanded)) return { cwd: path.resolve(expanded), unknown: false };
   if (unknown) return { cwd, unknown: true };
   return { cwd: path.resolve(cwd, expanded), unknown: false };
 }
