@@ -19,7 +19,7 @@ Rig already runs on files in practice:
 | Docs, changelog, roadmap | `docs/` | Durable, committed |
 | Devlog | `docs/devlog/` | Durable, committed |
 | Active plan for the session | `$TMPDIR/rig-session-<id>.json` (`set-active-plan.cjs`) | One session |
-| Progress tracking | Claude Tasks, hydrated from phase files | One session |
+| Progress tracking | Phase files; Claude Tasks only when the Tasks API is available | One session |
 | Caches (git info, usage limits, notification throttle) | `$TMPDIR/rig-*.json` | Disposable |
 
 ## Decision

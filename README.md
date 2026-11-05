@@ -92,7 +92,7 @@ The commands you will use most. The [skills catalog](./guide/SKILLS.md) lists al
 | Build and fix | `/rig:implement`, `/rig:fix`, `/rig:debug` |
 | Verify | `/rig:test`, `/rig:code-review` |
 | Ship | `/rig:git`, `/rig:pr`, `/rig:worktree` |
-| Parallel work | `/rig:team` (Agent Teams on one machine), `/rig:remote` (workers on other machines) |
+| Parallel work | `/rig:team` (Agent Teams on one machine; needs `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`), `/rig:remote` (workers on other machines) |
 | Document | `/rig:docs`, `/rig:devlog`, `/rig:progress`, `/rig:visualize` |
 
 ## Workflows
@@ -131,7 +131,7 @@ Worker set-up, the dedicated OS user and known limits: [Run a plan across machin
 ## Configuration
 
 - **`CLAUDE.md`** — project instructions: architecture, standards, workflows.
-- **`.claude/rules/`** — rules the agents follow: YAGNI, KISS, DRY, small files, conventional commits without AI attribution.
+- **`.claude/rules/core-rules.md`** — the always-loaded rules: YAGNI, KISS, DRY, small files, conventional commits without AI attribution. Task-specific rules live in skill references ([rules layout](./docs/explanation/rules-layout.md)).
 - **`~/.claude/.rig.json`** — per-user Rig config (schema: `.claude/schemas/rig-config.schema.json`).
 
 ### API keys for `/rig:media`

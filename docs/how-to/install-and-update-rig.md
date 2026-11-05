@@ -46,7 +46,15 @@ git pull
 node scripts/install-kit-from-local-repo.cjs --global   # or the same --dir command you used
 ```
 
-Re-install deletes the retired kit files listed in `scripts/install-kit/retired-kit-hooks-and-files-cleanup.cjs` (`RETIRED_KIT_HOOKS`, `RETIRED_KIT_FILES`). In 1.1 this removes the old rule files `development-rules.md`, `documentation-management.md`, `orchestration-protocol.md`, `primary-workflow.md` and `team-coordination-rules.md` from `.claude/rules/`; each is first copied to `<name>.md.bak` in the same folder so your edits are not lost. Their content moved into `core-rules.md` and skill references (see the codebase summary). Other files removed from the kit are not deleted from the target; delete them by hand if needed.
+Re-install deletes the retired kit files listed in `scripts/install-kit/retired-kit-hooks-and-files-cleanup.cjs` (`RETIRED_KIT_HOOKS`, `RETIRED_KIT_FILES`). In 1.1 that covers:
+
+- Rule files `development-rules.md`, `documentation-management.md`, `orchestration-protocol.md`, `primary-workflow.md` and `team-coordination-rules.md` in `.claude/rules/`. Their content moved to `core-rules.md` and skill references ([rules layout](../explanation/rules-layout.md)).
+- Output style files of the retired level set. The level setting is ignored; use the built-in output-style command.
+- The retired thinking skill and the Stop notification hook files. Use extended thinking and the built-in `PushNotification` tool instead.
+
+The 1.1.0 removals are summarized in the "Removed" section of `CHANGELOG.md`; the installer list is authoritative.
+
+Rule and output style files are first copied to `<name>.md.bak` in the same folder, so your edits are not lost. A retired hook file stays while a settings file still runs it in a form the installer does not strip. Other files removed from the kit are not deleted from the target; delete them by hand if needed.
 
 ## Custom blocked directories
 

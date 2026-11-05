@@ -44,6 +44,8 @@ Catalog of Rig layers and components, plus the technology stack. For why the sys
 - `SessionStart`: `session-init`
 - `SubagentStart`: `subagent-init`, `team-context-inject`
 - `UserPromptSubmit`: `dev-rules-reminder`
+- `PreToolUse` (Bash): `bash-safety-guard`
+- `Stop`: `verify-completion-guard`
 
 **Log Contract**:
 - One JSON object per line
@@ -476,11 +478,6 @@ User sees sorted/filtered plan grid
 - Actions (CI/CD automation)
 - Releases (semantic versioning)
 - Issues and PRs (project management)
-
-**Discord**:
-- Webhook notifications
-- Project updates
-- Team communication
 
 **NPM** (Optional):
 - Package publishing

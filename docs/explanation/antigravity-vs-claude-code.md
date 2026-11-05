@@ -13,7 +13,7 @@ Google Antigravity (announced Nov 2025) is an agent-first IDE built as a VS Code
 | **Form factor** | GUI IDE (VS Code fork) | CLI tool (terminal REPL) |
 | **Paradigm** | Agent-first — agents are primary interface | Human-first — user drives, AI assists |
 | **Autonomy** | 4 levels (full autonomy → review-driven) | Permission-based (auto-allow, ask, plan mode) |
-| **Concurrency** | Native multi-agent parallelism via Manager View | Sequential; parallelism via `Task` tool subagents |
+| **Concurrency** | Native multi-agent parallelism via Manager View | Sequential; parallelism via `Agent` tool subagents |
 | **Execution surfaces** | Editor + Terminal + Browser (3 surfaces) | Terminal only (tools provide file/web access) |
 | **Output model** | "Artifacts" — plans, screenshots, recordings, diffs | Direct file edits + text conversation |
 | **Feedback loop** | Comment on artifacts; agents revise async | Conversational inline text feedback |

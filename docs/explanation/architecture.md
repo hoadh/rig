@@ -1,7 +1,7 @@
 # System Architecture
 
-**Last Updated**: 2026-10-15
-**Version**: 1.0.0
+**Last Updated**: 2026-11-06
+**Version**: 1.1.0 (release pending)
 **Project**: Rig
 
 ## Overview
@@ -191,8 +191,12 @@ Layout rules: `.claude/skills/docs/references/diataxis-docs-layout.md`.
 Agents keep no state outside the file system ([ADR 0001](decisions/0001-agent-state-lives-in-files.md)):
 
 - **Durable**: plans, phase status and reports in `plans/`; docs and devlog in `docs/`. Source of truth across sessions.
-- **Session**: active plan in `$TMPDIR/rig-session-<id>.json`, written by `set-active-plan.cjs`; Claude Tasks hydrated from phase files and synced back.
+- **Session**: active plan in `$TMPDIR/rig-session-<id>.json`, written by `set-active-plan.cjs`; Claude Tasks only when the Tasks API is available (off by default); phase files stay the source of truth.
 - **Disposable**: caches in `$TMPDIR/rig-*.json` (git info, usage limits).
+
+### Rules and Skill References
+
+Always-loaded rules are one file, `.claude/rules/core-rules.md`. Task-specific rules live in the skill that uses them (implement, rig-plan, docs, team, remote) and load only when that skill runs. Where each moved section went: [rules layout](./rules-layout.md).
 
 ### Parallel Work Isolation
 

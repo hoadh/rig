@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.1.0 (unreleased)
 
 ### Features
 
@@ -25,6 +25,10 @@
 * **skills:** `sequential-thinking` (use extended thinking) and the Stop notification hooks `.claude/hooks/notifications/` (never wired by default; use the built-in `PushNotification` tool). Callers in `fix`, `test`, `brainstorm`, `rig-plan`, agents, installers, CI and docs were updated. The installer deletes the old files on re-install.
 * **output styles:** `.claude/output-styles/coding-level-*.md` and the `codingLevel` setting (`.rig.json`, schema, session-init injection). Use the built-in `/output-style` (Explanatory, Learning, custom).
 * **team:** stale Agent Teams reference pages that described `TeamCreate`/`TeamDelete`.
+* **rules:** `.claude/rules/development-rules.md`, `documentation-management.md`, `orchestration-protocol.md`, `primary-workflow.md` and `team-coordination-rules.md`. Their content moved to `core-rules.md` and skill references (see Changed).
+* **agent tools:** `Task` tool references (now the `Agent` tool), `MultiEdit`, `LS`, `BashOutput`, `KillBash` removed from agent and skill instructions.
+* **planning:** `hydration-workflow.md`. Plans are no longer copied into tasks at session start; the next session resumes from the unchecked `[ ]` items.
+* **settings:** `.rig.json` `codingLevel` is ignored and was removed from the schema.
 
 ### Changed (skills)
 
@@ -34,6 +38,12 @@
 
 ### Changed
 
+* **rules layout:** `.claude/rules/core-rules.md` (1,702 bytes, capped at 1,800) is the only always-loaded rules file. Task-specific sections moved to the `implement`, `rig-plan`, `docs`, `team` and `remote` skill references. Map: [rules layout](docs/explanation/rules-layout.md). Static always-loaded text (CLAUDE.md, rules, agent and skill descriptions) fell from 35.1 KB to 9.6 KB.
+* **UserPromptSubmit:** the full `## Rig Session` block is injected on the first prompt, when the active plan changes or when the git branch changes. Other prompts get a one-line `Now:` status. Naming uses `{now}`.
+* **subagents:** `subagent.injectCoreRules` (`.rig.json`, default `false`) appends `core-rules.md` to every subagent's SubagentStart context. Claude Code already loads `.claude/rules/*.md` into subagents, so enable it only for installs without a rules folder.
+* **descriptions:** agent descriptions capped at 300 characters, skill descriptions at 250 (enforced by a budget test).
+* **Tasks API:** optional. `progress` reads phase files and reconciles tasks only when `TaskCreate` is available.
+* **agents:** `effort` and `skills` (preload) in frontmatter; `git-operator` secret rules; ui skills scoped with `paths:`.
 * **rules tone:** always-loaded text (`CLAUDE.md`, `AGENTS.md`, `.claude/rules/*.md`) fell from 25.6 KB to 13.2 KB. Emphasis markers (`MANDATORY`, `NON-NEGOTIABLE`, `NO EXCEPTIONS`) are gone; each hard rule states its reason. Tier 1 eval fails if they return. The 500-line limit is a guideline with exemptions for data, generated and test files.
 * **primary workflow:** "plan first for everything" is replaced by the size tiers. The main agent does the work; subagents are used for isolation, parallelism or independent review.
 * **docs:** install Rig once, globally or per project. Both installs load the rules twice.
@@ -45,6 +55,11 @@
 
 ### Fixes
 
+* **hooks:** plugin-prefixed agent types (`rig:tester`) are normalized to `tester` wherever hooks key on the agent type.
+* **hooks:** `subagent.agents.*.contextPrefix` now takes effect in SubagentStart.
+* **rig:remote:** the owns-denylist covers `plugins/*/**`, `.claude-plugin`, `hooks.json` and `.worktreeinclude`.
+* **line endings:** `.gitattributes` pins LF for `.cjs`, `.mjs` and `bin` files.
+* **installer:** retired rule and output-style files are copied to `<name>.md.bak` before removal. A retired hook file stays while a settings file still runs it.
 * **rig:remote:** `stripUrlCredentials` no longer leaks the tail of a password that contains a raw `@` (`https://u:p@ss@host`), and keeps the user of `ssh://user:pw@host` (drops only the password).
 * **hooks:** `RIG_REPORTS_PATH` and `RIG_PLANS_PATH` were double-rooted when a session plan or an absolute `paths.plans` was used, on all platforms. `RIG_REPORTS_PATH` no longer has a trailing separator.
 * **hooks:** false "Subdirectory mode" banner on Windows (paths are compared case-insensitively there).
@@ -59,6 +74,19 @@
 * **rig:remote:** a valid `.rig/<dir>` worktree was rejected as "exists but is not a worktree" on Windows when the repo path held an 8.3 short name (`RUNNER~1`). Paths are now compared with `fs.realpathSync.native`.
 * **hooks:** the Bash tokenizer resolves an absolute `cd` target the same way as a relative one (native form on Windows).
 * **tests:** all node suites pass in CI on Ubuntu, macOS and Windows (first full run: 1 macOS and 11 Windows files failed). Fixes cover tmp-path realpath (`/private/var`, 8.3 names), CRLF checkouts, path separators, a `git.cmd` fake git, and `/tmp` and `/etc/passwd` literals. The `rig:remote` test harness prints full assertion diffs.
+
+### Migration from 1.0.x
+
+| If you | Do |
+|--------|----|
+| Used `sequential-thinking` | Use extended thinking (built in). |
+| Relied on Stop notifications (`hooks/notifications/`) | Use the built-in `PushNotification` tool or your own `Stop` hook. |
+| Used a coding level (`codingLevel`, `coding-level-*` styles) | Ignored now. Use the built-in `/output-style` (Explanatory, Learning or custom). |
+| Edited a removed rule file | Re-install keeps it as `<name>.md.bak`. Port the edits to `core-rules.md` or the skill reference that now holds the section. |
+| Installed Rig globally and into a project | Keep one. Both load the rules twice. Remove the copy you do not want by hand. |
+| Run subagents in an install without a rules folder | Set `subagent.injectCoreRules: true` in `.rig.json`. |
+| Used `worktree` on a standalone repo | Use native `claude --worktree` or `EnterWorktree`. Monorepo selection still uses the script. `.worktreeinclude` no longer copies `.env` by default; copy `references/worktreeinclude-example` if you need it. |
+| Used `/rig:team` with `TeamCreate` | No explicit team step. Set `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` and spawn named teammates with the Agent tool. |
 
 ## 1.0.0 (2026-10-17)
 

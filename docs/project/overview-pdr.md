@@ -1,7 +1,7 @@
 # Project Overview & Product Development Requirements (PDR)
 
 **Project Name**: Rig
-**Version**: 1.0.0
+**Version**: 1.1.0 (release pending)
 **Last Updated**: 2026-10-17
 **Status**: Active Development
 **Repository**: https://github.com/hoadh/rig
@@ -113,7 +113,7 @@ Full catalog: [guide/SKILLS.md](../../guide/SKILLS.md).
 - Sensitive files: `permissions.ask` rules for `.env*`, keys, `*.pem`, credentials
 - Heavy directories: `permissions.deny` rules for `node_modules`, `.venv`, `__pycache__`, `.next`, `.nuxt`, `coverage`
 - Usage display: statusline reads `rate_limits` from stdin
-- Notifications: optional `Stop` hook posts to Telegram, Discord or Slack
+- Notifications: none shipped; use the built-in `PushNotification` tool or your own `Stop` hook
 
 ### 4. Automated Release Management
 
@@ -150,7 +150,7 @@ Run plan phases and test commands on other machines (macOS, Windows, Linux) over
 - Support sequential and parallel agent execution
 - Hand off between agents through files in `plans/` and `plans/reports/`
 - Give each agent only the context it needs
-- Track task completion with Claude Code tasks
+- Track task completion in the phase files (Claude Code tasks when the Tasks API is available)
 
 **FR2: Skills**
 - Expose skills as `/rig:*` slash commands with arguments
@@ -293,7 +293,6 @@ Architecture details: [system architecture](../explanation/architecture.md).
 **External Services**:
 - GitHub (Actions, Releases, PRs via `gh`)
 - ssh (`rig:remote` only)
-- Telegram, Discord or Slack (notifications, optional)
 
 ## Use Cases
 
@@ -370,7 +369,7 @@ Architecture details: [system architecture](../explanation/architecture.md).
 - Depends on Claude Code CLI (Antigravity through the generated `.agent/` copy, without `rig:remote` and `rig:team`)
 - File-based communication has I/O overhead
 - Token limits on model context windows
-- `permissions.ask` covers the `Read`/`Edit` tools only; a Bash command such as `cat .env` is not caught
+- `permissions.ask` covers the `Read`/`Edit` tools; `bash-safety-guard` asks before common Bash readers and copiers (`cat`, `grep`, `cp`, ...) touch secret files. Other commands are not covered
 
 ### Operational Constraints
 - Requires a Claude Code subscription or API access
@@ -426,7 +425,6 @@ Status, next work and backlog: [roadmap](./roadmap.md). Release notes: [CHANGELO
 - Python 3 (skill scripts)
 - Gemini or MiniMax API key (`/rig:media`)
 - Gemini CLI (`/rig:mcp`, `mcp-runner`, `/rig:research`; falls back to scripts or WebSearch when missing)
-- Telegram, Discord or Slack webhook (notifications)
 - GitHub repository for CI/CD
 - ssh-reachable workers (`rig:remote`)
 

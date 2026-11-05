@@ -1,8 +1,8 @@
 # Agent Teams — Orchestration Guide
 
-> Feature added in Rig v2.11.x | Claude Code v2.1.33+ | Status: Experimental
+> Rig 1.1.0 | Claude Code v2.1.33+ | Status: Experimental
 > Source: https://code.claude.com/docs/en/agent-teams | Last synced: Feb 5, 2026
-> Skill version: v2.1.0 — event-driven hooks, agent memory, Task restrictions
+> Skill version: 1.1.0 (rewritten: no explicit create or delete team step, teammates spawned with the Agent tool `name`, needs `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`)
 
 ## Overview
 
@@ -69,7 +69,7 @@ Enable in `settings.json` (may be GA in Claude Code 2.1.33+):
 
 ## Rig-Native Behavior
 
-The `/rig:team` skill (v2.1.0) is an **imperative execution engine** — templates auto-execute on activation, not a manual playbook.
+The `/rig:team` skill (1.1.0) is an **imperative execution engine** — templates auto-execute on activation, not a manual playbook.
 
 It automatically integrates with the Rig workflow stack:
 
@@ -295,7 +295,7 @@ Automatically orchestrated. Lead executes the full sequence on activation.
 - Root cause report with evidence chain
 - Est. tokens: 200K-400K
 
-## Event-Driven Monitoring (v2.1.0)
+## Event-Driven Monitoring
 
 In v2.0.0, the lead polled `TaskList` every 30s to detect progress — wasting tokens and missing events between polls. v2.1.0 replaces polling with two Claude Code 2.1.33 hook events.
 
@@ -327,7 +327,7 @@ Lead           Teammates                     Lead        HOOKS       Teammates
 Claude Code still fires `TaskCompleted` and `TeammateIdle`, but Rig registers no kit handler for them. Progress comes from teammate messages and `TaskList`. The lead checks `TaskList` when a teammate reports done or goes idle.
 
 
-## Agent Memory (v2.1.0)
+## Agent Memory
 
 Agents persist knowledge across sessions via `memory` frontmatter in agent definitions.
 
@@ -370,7 +370,7 @@ Agents no longer list `Task(Explore)` / `Task(researcher)` in `tools:`. Sub-agen
 | Tool | Purpose |
 |------|---------|
 | `Agent(name, subagent_type, prompt)` | Spawn a named teammate |
-| `TaskCreate / TaskUpdate / TaskList / TaskGet` | Manage shared tasks |
+| `TaskCreate / TaskUpdate / TaskList / TaskGet` | Manage shared tasks (when the Tasks API is available) |
 | `SendMessage(type: "message")` | DM a teammate |
 | `SendMessage(type: "broadcast")` | Message all (use sparingly) |
 | `SendMessage(type: "shutdown_request")` | Request graceful shutdown |
@@ -406,7 +406,7 @@ All teammates inherit the lead's permission settings at spawn. If lead has `--da
 
 ## Limitations
 
-- **Version pairing:** Skill v2.1.0 requires Claude Code v2.1.33+ for hook events (TaskCompleted, TeammateIdle) and agent memory. Falls back to polling on older versions. Rig registers no handlers for these events.
+- **Version pairing:** Agent Teams need Claude Code with the experimental flag; the hook events TaskCompleted and TeammateIdle need v2.1.33+. Rig registers no handlers for these events.
 - No session resumption for in-process teammates (`/resume`, `/rewind` don't restore them)
 - One team per session (finish the current team before starting a new one)
 - No nested teams (teammates cannot spawn their own teams)
@@ -429,10 +429,10 @@ All hooks follow fail-open design (exit 0 always) and are gated by `isHookEnable
 
 | File | Purpose |
 |------|---------|
-| `.claude/skills/team/SKILL.md` | Skill definition with imperative templates (v2.1.0) |
-| `.claude/skills/team/references/` | Official docs reference (hooks, memory, restrictions) |
+| `.claude/skills/team/SKILL.md` | Skill definition with imperative templates (1.1.0) |
+| `.claude/skills/team/references/team-templates.md` | Team templates (research, implement, review, debug) |
 | `.claude/skills/team/references/team-coordination.md` | Teammate behavior rules + Rig conventions |
-| `.claude/skills/implement/references/orchestration-protocol.md` | Decision matrix, file ownership rules |
+| `.claude/skills/implement/references/orchestration-protocol.md` | Size tiers and subagent protocol |
 | `.claude/hooks/team-context-inject.cjs` | Team + Rig context injection (SubagentStart) |
 | `.claude/hooks/session-init.cjs` | Session and Rig path env injection |
 

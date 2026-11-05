@@ -12,6 +12,7 @@ You do the work. Use subagents when they buy isolation, parallelism or an unanch
 - Reports: concise, grammar optional, unresolved questions last.
 - Commits touching `.agent/` do not use the `chore` or `docs` types.
 - Docs live in `./docs` (Diataxis; index in `docs/README.md`); standards in `docs/reference/code-standards.md`.
+- Plan layout and docs upkeep: `.agent/skills/plan/references/plan-organization.md`, `.agent/skills/docs/references/docs-upkeep-rules.md`.
 
 ## Python scripts (skills)
 Run skill scripts with the skills venv (`.agent/skills/.venv/bin/python3`, Windows `.claude\skills\.venv\Scripts\python.exe`) so google-genai and pypdf are found. If a script fails, try to fix it instead of stopping.

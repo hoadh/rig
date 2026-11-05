@@ -1,7 +1,7 @@
 # Codebase Summary
 
-**Last Updated**: 2026-10-17
-**Version**: 1.0.0
+**Last Updated**: 2026-11-06
+**Version**: 1.1.0 (release pending)
 **Repository**: [hoadh/rig](https://github.com/hoadh/rig)
 
 ## Overview
@@ -15,7 +15,7 @@ rig/
 ├── .claude/               # Claude Code configuration
 │   ├── agents/           # Specialized agent definitions (14 agents)
 │   ├── hooks/            # Context hooks, hook tests
-│   ├── rules/            # Workflow and development rules
+│   ├── rules/            # core-rules.md only; task rules live in skill references
 │   ├── schemas/          # .rig.json schema
 │   ├── scripts/          # Helper scripts
 │   ├── skills/           # Specialized skills library (31 skills)
@@ -32,8 +32,7 @@ rig/
 ├── guide/               # User guides and references
 ├── scripts/             # Installer, release, Antigravity sync, eval (scripts/eval/), benchmark (scripts/benchmark/)
 ├── plans/               # Implementation plans and reports
-│   ├── reports/         # Agent-to-agent communication
-│   └── templates/       # Plan templates
+│   └── reports/         # Agent-to-agent communication
 ├── CLAUDE.md           # Project-specific Claude instructions
 ├── README.md           # Project overview
 └── package.json        # Node.js dependencies
@@ -52,7 +51,7 @@ rig/
 
 ### CI/CD
 - **GitHub Actions**: `ci.yml` (lint, Node tests on three OSes, eval tier 1, pytest) and `antigravity-sync-check.yml`; releases are manual
-- **Semantic Versioning**: Automated version management
+- **Semantic Versioning**: bumped by hand in `package.json` and `.claude/metadata.json`
 - **Conventional Commits**: Structured commit messages
 
 ## Key Components
@@ -91,7 +90,7 @@ rig/
 - `code-review/` - Code review workflows
 - `test/` - Testing workflows
 
-### 3. Skills Library (32 Skills)
+### 3. Skills Library (31 Skills)
 
 **Organized Groups** (Progressive Disclosure):
 - **UI Styling** (`ui-styling/`) - shadcn/ui, Tailwind CSS v4
@@ -136,7 +135,7 @@ Supporting modules in `.claude/hooks/lib/`: `bash-command-segment-tokenizer.cjs`
 
 ### 5. Workflows
 
-**Rules and workflow detail:**
+**Rules and workflow detail** (layout and where each moved section lives: [rules layout](../explanation/rules-layout.md)):
 1. **`.claude/rules/core-rules.md`** (<=1.5 KB, loaded natively and injected into subagents): principles, naming, secrets, verification, language, size tiers (one line)
 2. **`.claude/skills/implement/references/orchestration-protocol.md`**: full size tiers, workflow detail, subagent status protocol
 3. **`.claude/skills/rig-plan/references/plan-organization.md`**: plan layout, phase file sections, Pending Live Verification
@@ -198,20 +197,13 @@ Eliminate code duplication
 type(scope): description
 
 Types:
-- feat: Features (minor bump)
-- fix: Bug fixes (patch bump)
-- docs: Documentation (patch bump)
-- refactor: Code refactoring (patch bump)
-- test: Tests (patch bump)
-- ci: CI changes (patch bump)
-- BREAKING CHANGE: Major version bump
+- feat, fix, docs, refactor, test, ci
+- `BREAKING CHANGE:` footer for breaking changes (version bumps are manual)
 ```
 
-**Automated Release**:
-- Every push to `main` triggers release check
-- Semantic versioning (MAJOR.MINOR.PATCH)
-- Automated changelog generation
-- GitHub releases with generated notes
+**Release** (manual):
+- `scripts/prepare-release-assets.cjs` builds `rig.zip`; `scripts/generate-release-manifest.cjs` writes the manifest
+- Publish a GitHub Release from the tag; `CHANGELOG.md` is written by hand
 
 ## Testing Strategy
 
@@ -279,11 +271,11 @@ Features: Fails when `.agent/` or `GEMINI.md` drift from `.claude/`
 
 ## Version History
 
-**Current**: v1.0.0 (released 2026-10-17), see `CHANGELOG.md`
+**Current**: 1.1.0 (implemented, release pending); 1.0.0 released 2026-10-17. See `CHANGELOG.md`
 **License**: MIT (see `LICENSE`)
 **Author**: Alex Dang
 **Repository**: https://github.com/hoadh/rig
 
-## Unresolved Questions
+## Open Items
 
-None identified. All core components are well-documented and functional.
+See the [roadmap](../project/roadmap.md).

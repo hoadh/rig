@@ -93,7 +93,7 @@ Mistakes to avoid
 
 ## Hook Implementation Standards
 
-Rig keeps few hooks: `session-init`, `subagent-init`, `team-context-inject` and `dev-rules-reminder`. Use a native feature first (permission rules in `.claude/settings.json`, a rule in `.claude/rules/`, or a skill). Add a hook only when none fits.
+Rig keeps six hooks: `session-init`, `subagent-init`, `team-context-inject`, `dev-rules-reminder`, `bash-safety-guard` and `verify-completion-guard`. Use a native feature first (permission rules in `.claude/settings.json`, a rule in `.claude/rules/`, or a skill). Add a hook only when none fits.
 
 **Implementation Requirements**:
 - Pure Node.js (`.cjs`), no dependencies

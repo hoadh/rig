@@ -18,12 +18,13 @@ Rig docs follow [Diataxis](https://diataxis.fr/): each page has one job. Layout 
 - [Codebase summary](./reference/codebase-summary.md) - repo structure and key files
 - [System components](./reference/system-components.md) - catalog of layers, agents, skills, and technology stack
 - [Skills interconnection map](./reference/skills-interconnection-map.md) - how skills call each other
-- [Skill native task management](./reference/skill-native-task.md) - which skills use Claude Tasks and how (Vietnamese)
+- [Skill native task management](./reference/skill-native-task.md) - the optional Tasks API: which skills use it and why phase files stay the record
 - [Agent teams guide](./reference/agent-teams-guide.md) - team templates, roles, and coordination rules
 
 ## Explanation
 - [Architecture](./explanation/architecture.md) - how agents, workflows, and file-based handoffs fit together
 - [Antigravity vs Claude Code](./explanation/antigravity-vs-claude-code.md) - concept differences between the two tools
+- [Rules layout](./explanation/rules-layout.md) - the one always-loaded rules file, the skill references, and where each moved section went
 - [ADR 0001: Agent state lives in files](./explanation/decisions/0001-agent-state-lives-in-files.md) - why agents keep no state outside `plans/`, `docs/` and the session temp file
 - [ADR 0002: Multi-machine remote orchestration](./explanation/decisions/0002-multi-machine-remote-orchestration.md) - git as transport, single-writer coordination branch, detached worker runs; extends ADR 0001
 - [ADR 0003: Workflow size tiers](./explanation/decisions/0003-workflow-size-tiers.md) - trivial, standard and large tiers; why small work runs without subagents
