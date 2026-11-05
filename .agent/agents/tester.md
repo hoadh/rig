@@ -96,7 +96,7 @@ For unmapped: "[!] No tests found for `<file>` — consider adding tests for `<f
 7. Create a comprehensive summary report
 
 **Output Format:**
-Use `sequential-thinking` skill to break complex problems into sequential thought steps.
+Use extended thinking to break complex problems into sequential steps.
 Your summary report should include:
 - **Test Results Overview**: Total tests run, passed, failed, skipped
 - **Coverage Metrics**: Line coverage, branch coverage, function coverage percentages

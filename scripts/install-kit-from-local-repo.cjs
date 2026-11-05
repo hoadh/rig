@@ -164,8 +164,9 @@ function printSummary(ctx, { plan, stats }) {
     console.log(`  ${ctx.dryRun ? 'Would delete' : 'Deleted'} ${stats.retiredFiles.length} retired kit file(s): ${stats.retiredFiles.join(', ')}`);
   }
   if (stats.retiredKeptReferenced.length) {
-    console.log(`  Kept retired hook file(s) still run by your settings: ${stats.retiredKeptReferenced.join(', ')}. ` +
-      'Remove those registrations from settings.json / settings.local.json, then re-install.');
+    console.log(`  Kept retired hook file(s) still run by your settings: ${stats.retiredKeptReferenced.join(', ')} (and the retired files beside them). ` +
+      'Remove those registrations from settings.json / settings.local.json, then re-install. ' +
+      'Any hooks/notifications/.env of yours is never touched by the installer.');
   }
   if (stats.backup) console.log(`  Backup: ${stats.backup}`);
 }

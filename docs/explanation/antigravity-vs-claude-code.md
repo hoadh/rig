@@ -82,7 +82,7 @@ Antigravity's `.agent/` has three layers: **rules** (always on), **workflows** (
 | `skills/<name>/` | `skills/<name>/` | All git-tracked files copied. `rig-plan` → `plan`, `rig-debug` → `debug`. `remote` and `team` are skipped: they need `claude -p` and Agent Teams |
 | user-invocable skills | `workflows/<name>.md` | One workflow per skill. `/plan` reads `.agent/skills/plan/SKILL.md`. No `rig:` prefix |
 | `agents/*.md` | `agents/*.md` | Kept as role files. "Delegate to `planner`" means: read `agents/planner.md` and do that role |
-| `hooks/`, `settings.json`, `output-styles/` | none | Replaced by static defaults in `rules/claude-code-concepts-in-antigravity.md` |
+| `hooks/`, `settings.json` | none | Replaced by static defaults in `rules/claude-code-concepts-in-antigravity.md` |
 
 Text rewrites (in `scripts/antigravity/claude-to-antigravity-text-rewrite.cjs`, unit-tested):
 

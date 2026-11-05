@@ -77,11 +77,54 @@ const RETIRED_KIT_FILES = [
   'rules/orchestration-protocol.md',
   'rules/primary-workflow.md',
   'rules/team-coordination-rules.md',
+  // 1.1: built-in duplicates removed (sequential-thinking skill, Stop notification hooks, coding-level output styles)
+  'hooks/notifications/.env.example',
+  'hooks/notifications/docs/discord-hook-setup.md',
+  'hooks/notifications/docs/slack-hook-setup.md',
+  'hooks/notifications/docs/telegram-hook-setup.md',
+  'hooks/notifications/lib/env-loader.cjs',
+  'hooks/notifications/lib/sender.cjs',
+  'hooks/notifications/notify.cjs',
+  'hooks/notifications/providers/discord.cjs',
+  'hooks/notifications/providers/slack.cjs',
+  'hooks/notifications/providers/telegram.cjs',
+  'output-styles/coding-level-0-eli5.md',
+  'output-styles/coding-level-1-junior.md',
+  'output-styles/coding-level-2-mid.md',
+  'output-styles/coding-level-3-senior.md',
+  'output-styles/coding-level-4-lead.md',
+  'output-styles/coding-level-5-god.md',
+  'skills/code-review/references/code-review-reception.md',
+  'skills/code-review/references/edge-case-exploration.md',
+  'skills/code-review/references/input-mode-resolution.md',
+  'skills/code-review/references/requesting-code-review.md',
+  'skills/code-review/references/task-management-reviews.md',
+  'skills/code-review/references/verification-before-completion.md',
+  'skills/explore/references/internal-exploration.md',
+  'skills/explore/references/task-management-exploration.md',
+  'skills/sequential-thinking/.env.example',
+  'skills/sequential-thinking/.gitignore',
+  'skills/sequential-thinking/README.md',
+  'skills/sequential-thinking/SKILL.md',
+  'skills/sequential-thinking/package.json',
+  'skills/sequential-thinking/references/advanced-strategies.md',
+  'skills/sequential-thinking/references/advanced-techniques.md',
+  'skills/sequential-thinking/references/core-patterns.md',
+  'skills/sequential-thinking/references/examples-api.md',
+  'skills/sequential-thinking/references/examples-architecture.md',
+  'skills/sequential-thinking/references/examples-debug.md',
+  'skills/sequential-thinking/scripts/format-thought.js',
+  'skills/sequential-thinking/scripts/process-thought.js',
+  'skills/sequential-thinking/tests/format-thought.test.js',
+  'skills/sequential-thinking/tests/process-thought.test.js',
+  'skills/team/references/agent-teams-controls-and-modes.md',
+  'skills/team/references/agent-teams-examples-and-best-practices.md',
+  'skills/team/references/agent-teams-official-docs.md',
   // NOT listed: session-state/ (runtime dir of the retired hook, no shipped file); remove manually
 ];
 
-// Retired files that are backed up to `<file>.bak` before deletion (rule files only: users edit them)
-const BACKUP_BEFORE_DELETE = /^rules\/.+\.md$/;
+// Retired files backed up to `<file>.bak` before deletion (rule and output-style files: users edit them)
+const BACKUP_BEFORE_DELETE = /^(?:rules|output-styles)\/.+\.md$/;
 
 /**
  * Builds the cleanup functions for a set of retired hooks and files.
@@ -157,7 +200,11 @@ function createRetiredKitCleanup({ hooks: retiredHooks = [], files: retiredFiles
     return commands;
   }
 
-  /** Retired hook names still run by settings.json / settings.local.json in `claudeDir` after stripping. */
+  /**
+   * Retired hook scripts (`hooks/**.cjs` among the retired hooks and files, e.g. hooks/notifications/notify.cjs)
+   * still run by settings.json / settings.local.json in `claudeDir` after stripping.
+   * @returns {string[]} paths relative to claudeDir
+   */
   function findStillReferencedRetiredHooks({ claudeDir, fs }) {
     const commands = [];
     for (const name of ['settings.json', 'settings.local.json']) {
@@ -167,8 +214,13 @@ function createRetiredKitCleanup({ hooks: retiredHooks = [], files: retiredFiles
         // missing or unparsable settings file: nothing to check
       }
     }
-    return retiredHooks.filter((hook) =>
-      commands.some((command) => new RegExp(String.raw`hooks[/\\]+${hook}\.cjs\b`).test(command)));
+    const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return allRetiredFiles
+      .filter((rel) => /^hooks\/.+\.cjs$/.test(rel))
+      .filter((rel) => {
+        const pattern = new RegExp(rel.split('/').map(escape).join(String.raw`[/\\]+`) + String.raw`\b`);
+        return commands.some((command) => pattern.test(command));
+      });
   }
 
   /**
@@ -178,11 +230,14 @@ function createRetiredKitCleanup({ hooks: retiredHooks = [], files: retiredFiles
    */
   function deleteRetiredKitFiles({ claudeDir, fs, dryRun = false }) {
     const root = path.resolve(claudeDir);
-    const keptReferenced = findStillReferencedRetiredHooks({ claudeDir: root, fs }).map((name) => `hooks/${name}.cjs`);
+    const keptReferenced = findStillReferencedRetiredHooks({ claudeDir: root, fs });
     const deleted = [];
     const parents = new Set();
+    // A kept script keeps the retired files that sit beside or below it (its lib/, providers/, docs),
+    // otherwise it would fail at require() time. Scripts directly in hooks/ have no such companions.
+    const keptDirs = keptReferenced.map((rel) => path.posix.dirname(rel)).filter((dir) => dir !== 'hooks');
     for (const rel of allRetiredFiles) {
-      if (keptReferenced.includes(rel)) continue;
+      if (keptReferenced.includes(rel) || keptDirs.some((dir) => rel.startsWith(`${dir}/`))) continue;
       const file = path.resolve(root, rel);
       if (!file.startsWith(root + path.sep)) continue; // path guard: never leave the target dir
       let stat;
@@ -193,7 +248,7 @@ function createRetiredKitCleanup({ hooks: retiredHooks = [], files: retiredFiles
       }
       if (!stat.isFile() && !stat.isSymbolicLink()) continue;
       if (!dryRun) {
-        // Rule files may carry user edits: keep a copy next to the original before deleting it
+        // Rule and output-style files may carry user edits: keep a copy next to the original before deleting it
         if (stat.isFile() && BACKUP_BEFORE_DELETE.test(rel)) fs.copyFileSync(file, `${file}.bak`);
         fs.unlinkSync(file);
       }

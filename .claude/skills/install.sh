@@ -633,13 +633,6 @@ install_node_deps() {
         print_success "browser dependencies installed"
     fi
 
-    # sequential-thinking
-    if [ -d "$SCRIPT_DIR/sequential-thinking" ] && [ -f "$SCRIPT_DIR/sequential-thinking/package.json" ]; then
-        print_info "Installing sequential-thinking dependencies..."
-        (cd "$SCRIPT_DIR/sequential-thinking" && npm install --quiet)
-        print_success "sequential-thinking dependencies installed"
-    fi
-
     # mcp
     if [ -d "$SCRIPT_DIR/mcp/scripts" ] && [ -f "$SCRIPT_DIR/mcp/scripts/package.json" ]; then
         print_info "Installing mcp dependencies..."

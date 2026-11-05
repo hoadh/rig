@@ -1,6 +1,5 @@
 {
   "$schema": "./schemas/rig-config.schema.json",
-  "codingLevel": -1,
   "statusline": "full",
   "statuslineColors": true,
   "docs": {

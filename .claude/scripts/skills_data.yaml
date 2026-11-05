@@ -220,15 +220,6 @@
   has_scripts: false
   name: rig-plan
   path: rig-plan/SKILL.md
-- argument_hint: '[problem to analyze step-by-step]'
-  category: utilities
-  description: Apply step-by-step analysis for complex problems with revision capability.
-    Use for multi-step reasoning, hypothesis verification, adaptive planning, problem
-    decomposition, course correction.
-  has_references: true
-  has_scripts: true
-  name: sequential-thinking
-  path: sequential-thinking/SKILL.md
 - argument_hint: <template> <context> [--devs|--researchers|--reviewers N] [--delegate]
   category: dev-tools
   description: Orchestrate Agent Teams for parallel multi-session collaboration. Use

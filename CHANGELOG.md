@@ -20,6 +20,18 @@
 * **plans:** optional `## Pending Live Verification` section (`LIVE:` / `LIVE(blocking):` items). A phase with open items stays `In Progress`; evidence is recorded as a pointer. `/loop` template in the new how-to.
 * **docs:** how-tos for the guards and for the response language.
 
+### Removed
+
+* **skills:** `sequential-thinking` (use extended thinking) and the Stop notification hooks `.claude/hooks/notifications/` (never wired by default; use the built-in `PushNotification` tool). Callers in `fix`, `test`, `brainstorm`, `rig-plan`, agents, installers, CI and docs were updated. The installer deletes the old files on re-install.
+* **output styles:** `.claude/output-styles/coding-level-*.md` and the `codingLevel` setting (`.rig.json`, schema, session-init injection). Use the built-in `/output-style` (Explanatory, Learning, custom).
+* **team:** stale Agent Teams reference pages that described `TeamCreate`/`TeamDelete`.
+
+### Changed (skills)
+
+* **thin wrappers:** `worktree` (standalone repos use `claude --worktree`, `EnterWorktree`, `worktree.baseRef`, `.worktreeinclude`; the script keeps monorepo project selection; example template excludes `.env`), `explore` (built-in Explore agent, Gemini `ext` kept) and `code-review` (built-in `/code-review` plus the red-team pass and `codebase` scans) each keep a SKILL.md of at most 2.5 KB.
+* **team:** rewritten for current Agent Teams: no `TeamCreate`/`TeamDelete`, teammates spawned with the Agent tool `name` and `SendMessage`, needs `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`, no pinned model.
+* **tests:** `removed-features-reference-scan.test.cjs` fails when removed features are referenced again.
+
 ### Changed
 
 * **rules tone:** always-loaded text (`CLAUDE.md`, `AGENTS.md`, `.claude/rules/*.md`) fell from 25.6 KB to 13.2 KB. Emphasis markers (`MANDATORY`, `NON-NEGOTIABLE`, `NO EXCEPTIONS`) are gone; each hard rule states its reason. Tier 1 eval fails if they return. The 500-line limit is a guideline with exemptions for data, generated and test files.

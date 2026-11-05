@@ -73,7 +73,7 @@ Agents hand off through files in `plans/` and `plans/reports/` ([ADR 0001](../ex
 
 ### 2. Skills and Slash Commands
 
-32 skills in `.claude/skills/`: 27 appear as `/rig:*` slash commands, 5 are internal helpers loaded by other skills.
+31 skills in `.claude/skills/`: 27 appear as `/rig:*` slash commands, 4 are internal helpers loaded by other skills.
 
 **Core Development Commands**:
 - `/rig:plan` - Research and write a phased implementation plan
@@ -88,7 +88,7 @@ Agents hand off through files in `plans/` and `plans/reports/` ([ADR 0001](../ex
 **Skills by Domain**:
 
 **AI & Vision**: media
-**Code Quality & Debugging**: code-review, rig-debug, sequential-thinking
+**Code Quality & Debugging**: code-review, rig-debug
 **Content & Documentation**: brainstorm, diataxis-writer, docs, library-docs, markdown-viewer
 **Design & Frontend**: ui-styling, ui-design
 **Git & Workflow**: git, worktree, pr, devlog

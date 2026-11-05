@@ -309,58 +309,6 @@ function detectFramework(configOverride) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CODING LEVEL
-// ═══════════════════════════════════════════════════════════════════════════
-
-/**
- * Get coding level style name mapping
- * @param {number} level - Coding level (0-5)
- * @returns {string} Style name
- */
-function getCodingLevelStyleName(level) {
-  const styleMap = {
-    0: 'coding-level-0-eli5',
-    1: 'coding-level-1-junior',
-    2: 'coding-level-2-mid',
-    3: 'coding-level-3-senior',
-    4: 'coding-level-4-lead',
-    5: 'coding-level-5-god'
-  };
-  return styleMap[level] || 'coding-level-5-god';
-}
-
-/**
- * Get coding level guidelines by reading from output-styles .md files.
- * Without configDir, checks the project's .claude/ first, then falls back to
- * the global ~/.claude/ install so projects without output-styles still work.
- * @param {number} level - Coding level (-1 to 5)
- * @param {string} [configDir] - Config directory path (disables the fallback)
- * @returns {string|null} Guidelines text or null if disabled/not found
- */
-function getCodingLevelGuidelines(level, configDir) {
-  if (level === -1 || level === null || level === undefined) return null;
-
-  const styleFile = `${getCodingLevelStyleName(level)}.md`;
-  // Resolve lazily: process.cwd()/os.homedir() can throw (deleted cwd, unknown uid);
-  // a failing candidate is skipped so the next one is still tried.
-  const baseDirs = configDir
-    ? [() => configDir]
-    : [() => path.join(process.cwd(), '.claude'), () => path.join(os.homedir(), '.claude')];
-
-  try {
-    const stylePath = baseDirs
-      .map(getDir => { try { return path.join(getDir(), 'output-styles', styleFile); } catch { return null; } })
-      .find(p => p && fs.existsSync(p));
-    if (!stylePath) return null;
-    const content = fs.readFileSync(stylePath, 'utf8');
-    const withoutFrontmatter = content.replace(/^---[\s\S]*?---\n*/, '').trim();
-    return withoutFrontmatter;
-  } catch (e) {
-    return null;
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
 // CONTEXT OUTPUT
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -482,9 +430,6 @@ module.exports = {
   getGitRoot,
   samePath,
 
-  // Coding level
-  getCodingLevelStyleName,
-  getCodingLevelGuidelines,
 
   // Output
   buildContextOutput,

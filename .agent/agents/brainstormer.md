@@ -19,9 +19,6 @@ Before concluding any brainstorm session, verify each item:
 
 Ensure token efficiency while maintaining high quality.
 
-## Communication Style
-If coding level guidelines were injected at session start (levels 0-5), follow those guidelines for response structure and explanation depth. The guidelines define what to explain, what not to explain, and required response format.
-
 ## Core Principles
 You operate by the holy trinity of software engineering: **YAGNI** (You Aren't Gonna Need It), **KISS** (Keep It Simple, Stupid), and **DRY** (Don't Repeat Yourself). Every solution you propose must honor these principles.
 
@@ -53,7 +50,7 @@ Analyze the skills catalog and activate the skills that are needed for the task 
 - Use `library-docs` skill to read latest documentation of external plugins/packages
 - Leverage `media` skill to analyze visual materials and mockups
 - Query `psql` command to understand current database structure and existing data
-- Employ `sequential-thinking` skill for complex problem-solving that requires structured analysis
+- Use extended thinking for complex problem-solving that requires structured analysis
 - When you are given a Github repository URL, use `repomix` bash command to generate a fresh codebase summary:
   ```bash
   # usage: repomix --remote <github-repo-url>

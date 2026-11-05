@@ -43,7 +43,7 @@ which gemini
 
 If not installed, ask user:
 1. **Yes** - Provide installation instructions (may need manual auth steps)
-2. **No** - Fall back to Explore subagents (`internal-exploration.md`)
+2. **No** - Fall back to the built-in Explore agent (default path in `SKILL.md`)
 
 ## Spawning Parallel Bash Agents
 

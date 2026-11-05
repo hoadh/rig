@@ -192,7 +192,7 @@ Agents keep no state outside the file system ([ADR 0001](decisions/0001-agent-st
 
 - **Durable**: plans, phase status and reports in `plans/`; docs and devlog in `docs/`. Source of truth across sessions.
 - **Session**: active plan in `$TMPDIR/rig-session-<id>.json`, written by `set-active-plan.cjs`; Claude Tasks hydrated from phase files and synced back.
-- **Disposable**: caches in `$TMPDIR/rig-*.json` (git info, usage limits, notification throttle).
+- **Disposable**: caches in `$TMPDIR/rig-*.json` (git info, usage limits).
 
 ### Parallel Work Isolation
 
@@ -333,7 +333,7 @@ Developer Machine
 | Job | Runs |
 |---|---|
 | `lint` | `npm ci`, then `npm run lint` (ESLint 10, `eslint.config.mjs`) |
-| `test-node` | `npm test` on Ubuntu, Windows and macOS; the sequential-thinking Jest suite and the library-docs runner on Ubuntu |
+| `test-node` | `npm test` on Ubuntu, Windows and macOS; the library-docs runner on Ubuntu |
 | `eval-tier-1` | `bun scripts/eval/run.ts 1` (static checks, no secrets) |
 | `test-python` | pytest for context-engineering, create-skill, media and ui-styling |
 

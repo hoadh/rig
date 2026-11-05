@@ -359,11 +359,6 @@ See [how-to](../how-to/configure-verification-and-safety-guards.md).
 - Read latest docs for packages/plugins
 - Access up-to-date technical information
 
-**sequential-thinking** skill (Problem Solving):
-- Structured thinking process
-- Break down complex problems
-- Reflective analysis
-
 **media** skill (Visual Analysis):
 - Describe images, videos, documents
 - UI/UX analysis from screenshots
@@ -372,7 +367,7 @@ See [how-to](../how-to/configure-verification-and-safety-guards.md).
 - Generate images, videos, and documents via media
 
 **brain** (Advanced Reasoning):
-- Sequential thinking
+- Extended thinking
 - Code analysis
 - Debugging assistance
 
@@ -557,7 +552,6 @@ Remote Repository (GitHub)
 
 ### Agent Skills Ecosystem
 
-**Sequential Thinking**: Problem decomposition
 **brain**: Advanced reasoning
 **library-docs**: Documentation access
 **media**: Visual understanding

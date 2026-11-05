@@ -653,17 +653,6 @@ function Install-NodeDeps {
         Write-Success "browser dependencies installed"
     }
 
-    # sequential-thinking
-    $seqThinkingPath = Join-Path $ScriptDir "sequential-thinking"
-    $seqPackageJson = Join-Path $seqThinkingPath "package.json"
-    if ((Test-Path $seqThinkingPath) -and (Test-Path $seqPackageJson)) {
-        Write-Info "Installing sequential-thinking dependencies..."
-        Push-Location $seqThinkingPath
-        npm install --quiet
-        Pop-Location
-        Write-Success "sequential-thinking dependencies installed"
-    }
-
     # mcp
     $mcpManagementPath = Join-Path $ScriptDir "mcp\scripts"
     $mcpPackageJson = Join-Path $mcpManagementPath "package.json"

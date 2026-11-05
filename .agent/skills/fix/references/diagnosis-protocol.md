@@ -34,7 +34,7 @@ Read, don't assume. Use `debug` (systematic-debugging Phase 1).
 
 ### Phase 2: Hypothesize — Why might this happen?
 
-Activate `sequential-thinking` skill. Form hypotheses through structured reasoning.
+Use extended thinking. Form hypotheses through structured reasoning.
 
 **Structured hypothesis formation:**
 ```

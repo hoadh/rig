@@ -34,11 +34,6 @@ export default tseslint.config(
     languageOptions: { sourceType: 'module', globals: { ...globals.node } },
   },
   {
-    // Jest-style suites in sequential-thinking use CommonJS plus jest globals
-    files: ['.claude/skills/sequential-thinking/**/*.js'],
-    languageOptions: { sourceType: 'commonjs', globals: { ...globals.node, ...globals.jest } },
-  },
-  {
     // Puppeteer scripts pass callbacks to page.evaluate(), which run in the browser (document, window)
     files: ['.claude/skills/browser/scripts/**/*.js'],
     languageOptions: { globals: { ...globals.node, ...globals.browser } },

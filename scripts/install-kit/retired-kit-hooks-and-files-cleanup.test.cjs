@@ -187,3 +187,53 @@ test('retired rule files are backed up to .bak before deletion; other retired fi
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('keeps a retired hook script in a subdir, with its companions, while settings still run it; deletes it otherwise', () => {
+  const { deleteRetiredKitFiles: del } = shipped.createRetiredKitCleanup({
+    hooks: [],
+    files: ['hooks/notifications/notify.cjs', 'hooks/notifications/lib/sender.cjs', 'hooks/notifications/.env.example', 'hooks/other-retired.txt'],
+  });
+  const setup = (settings) => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'retired-kit-sub-'));
+    fs.mkdirSync(path.join(dir, 'hooks/notifications/lib'), { recursive: true });
+    for (const rel of ['notify.cjs', 'lib/sender.cjs', '.env.example', '.env']) fs.writeFileSync(path.join(dir, 'hooks/notifications', rel), 'x');
+    if (settings) fs.writeFileSync(path.join(dir, 'settings.json'), JSON.stringify(settings));
+    return dir;
+  };
+  const dirs = [];
+  try {
+    // still registered: script and companions stay
+    const kept = setup({ hooks: { Stop: [{ hooks: [{ type: 'command', command: 'node "$CLAUDE_PROJECT_DIR"/.claude/hooks/notifications/notify.cjs' }] }] } });
+    dirs.push(kept);
+    const r1 = del({ claudeDir: kept, fs });
+    assert.deepStrictEqual(r1.keptReferenced, ['hooks/notifications/notify.cjs']);
+    assert.deepStrictEqual(r1.deleted, []);
+    assert.ok(fs.existsSync(path.join(kept, 'hooks/notifications/notify.cjs')));
+    assert.ok(fs.existsSync(path.join(kept, 'hooks/notifications/lib/sender.cjs')));
+
+    // not registered: retired files go, the user's .env is never touched
+    const gone = setup(null);
+    dirs.push(gone);
+    const r2 = del({ claudeDir: gone, fs });
+    assert.deepStrictEqual(r2.keptReferenced, []);
+    assert.ok(!fs.existsSync(path.join(gone, 'hooks/notifications/notify.cjs')));
+    assert.ok(fs.existsSync(path.join(gone, 'hooks/notifications/.env')), '.env survives');
+  } finally {
+    for (const d of dirs) fs.rmSync(d, { recursive: true, force: true });
+  }
+});
+
+test('retired output-style files are backed up to .bak before deletion', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'retired-kit-style-'));
+  try {
+    fs.mkdirSync(path.join(dir, 'output-styles'));
+    fs.writeFileSync(path.join(dir, 'output-styles', 'coding-level-3-senior.md'), 'my style');
+    fs.writeFileSync(path.join(dir, 'output-styles', 'mine.md'), 'user style');
+    shipped.deleteRetiredKitFiles({ claudeDir: dir, fs });
+    assert.strictEqual(fs.readFileSync(path.join(dir, 'output-styles', 'coding-level-3-senior.md.bak'), 'utf8'), 'my style');
+    assert.ok(!fs.existsSync(path.join(dir, 'output-styles', 'coding-level-3-senior.md')));
+    assert.ok(fs.existsSync(path.join(dir, 'output-styles', 'mine.md')), 'user style untouched');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

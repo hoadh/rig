@@ -86,7 +86,7 @@ Reports        → report-format.md
 - **Browser**: `browser` skill for UI testing (screenshots, ARIA, console, network)
 - **Analysis**: `media` skill for screenshot analysis
 - **Debugging**: `debug` skill when tests reveal bugs requiring investigation
-- **Thinking**: `sequential-thinking` skill for complex test failure analysis
+- **Thinking**: extended thinking for complex test failure analysis
 
 ## Quality Standards
 

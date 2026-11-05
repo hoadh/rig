@@ -43,7 +43,6 @@ try {
     getGitBranch,
     getGitRoot,
     samePath,
-    getCodingLevelGuidelines,
     buildContextOutput
   } = require('./lib/project-detector.cjs');
 
@@ -197,13 +196,6 @@ async function main() {
       console.log(`If you were waiting for user approval via AskUserQuestion (e.g., Step 4 review gate),`);
       console.log(`you MUST re-confirm with the user before proceeding. Do NOT assume approval was given.`);
       console.log(`Use AskUserQuestion to verify: "Context was compacted. Please confirm approval to continue."`);
-    }
-
-    // Auto-inject coding level guidelines (if not disabled)
-    const codingLevel = config.codingLevel ?? -1;
-    const guidelines = getCodingLevelGuidelines(codingLevel);
-    if (guidelines) {
-      console.log(`\n${guidelines}`);
     }
 
     if (config.assertions?.length > 0) {

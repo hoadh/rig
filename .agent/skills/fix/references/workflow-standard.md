@@ -42,7 +42,7 @@ See `references/parallel-exploration.md` for patterns.
 **Mandatory skill chain:**
 1. **Capture pre-fix state:** Record exact error messages, failing test output, stack traces.
 2. Activate `debug` skill. Use `debugger` subagent if needed.
-3. Activate `sequential-thinking` — form hypotheses through structured reasoning.
+3. Use extended thinking — form hypotheses through structured reasoning.
 4. Spawn parallel `Explore` subagents to test hypotheses against codebase evidence.
 5. If 2+ hypotheses fail → auto-activate `problem-solving`.
 6. Trace backward to root cause (not just symptom location).
@@ -58,7 +58,7 @@ See `references/diagnosis-protocol.md` for full methodology.
 Fix the ROOT CAUSE per diagnosis findings. Not symptoms.
 
 - Apply `problem-solving` skill if stuck
-- Use `sequential-thinking` for complex logic
+- Use extended thinking for complex logic
 - Minimal changes. Follow existing patterns.
 
 `TaskUpdate(T3, status="completed")`
@@ -109,8 +109,8 @@ See `references/review-cycle.md` for mode-specific handling.
 | Step | Skills/Subagents |
 |------|------------------|
 | 1 | `explore` OR parallel `Explore` subagents |
-| 2 | `debug`, `sequential-thinking`, `debugger` subagent, parallel `Explore`, (`problem-solving` auto) |
-| 3 | `problem-solving` (if stuck), `sequential-thinking` (complex logic) |
+| 2 | `debug`, `debugger` subagent, parallel `Explore`, (`problem-solving` auto) |
+| 3 | `problem-solving` (if stuck) |
 | 4 | `tester` subagent, parallel `Bash` verification |
 | 5 | `code-reviewer` subagent |
 | 6 | `progress`, `git-operator`, `docs-maintainer` subagents |

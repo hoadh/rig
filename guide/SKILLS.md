@@ -66,7 +66,6 @@ Hidden from the `/` menu (`user-invocable: false`). Other skills and agents load
 | Skill | | What it does |
 |---|---|---|
 | `context-engineering` | 📦 📚 | Check context and usage limits; optimize token use. |
-| `sequential-thinking` | 📦 📚 | Step-by-step reasoning with revision for complex problems. |
 | `problem-solving` | 📚 | Techniques for getting unstuck: simplification, inversion, scale game. |
 | `project-organization` | 📚 | Decide where new files and reports go. |
 | `mermaidjs-v11` | 📚 | Mermaid.js v11 diagram syntax. |

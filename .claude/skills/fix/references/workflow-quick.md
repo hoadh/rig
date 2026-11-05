@@ -13,7 +13,7 @@ Locate affected file(s) and their direct dependencies only.
 **Output:** `✓ Step 1: Explored - [file], [N] direct deps`
 
 ### Step 2: Diagnose (Abbreviated)
-Activate `rig:debug` skill. Activate `rig:sequential-thinking` for structured analysis.
+Activate `rig:debug` skill. Use extended thinking for structured analysis.
 
 - Read error message/logs
 - **Capture pre-fix state:** Record exact error output (this is your verification baseline)
@@ -67,7 +67,7 @@ Report summary to user.
 | Step | Skills/Subagents |
 |------|------------------|
 | 1 | `rig:explore` (minimal) or direct file read |
-| 2 | `rig:debug`, `rig:sequential-thinking` |
+| 2 | `rig:debug` |
 | 3 | Parallel `Bash` for verification |
 | 4 | `code-reviewer` subagent |
 | 5 | `git-operator` subagent |

@@ -14,10 +14,10 @@ implement (orchestrator)
 │         → explore (parallel agents)
 │         → mermaidjs-v11
 ├── explore → parallel Explore subagents
-├── debug → library-docs, browser, problem-solving, sequential-thinking
-├── fix → debug, code-review, problem-solving, sequential-thinking, brainstorm, context-engineering
-├── test → browser, media, debug, sequential-thinking
-├── code-review → explore (edge-case exploration)
+├── debug → library-docs, browser, problem-solving
+├── fix → debug, code-review, problem-solving, brainstorm, context-engineering
+├── test → browser, media, debug
+├── code-review → built-in /code-review
 ├── ui-design
 └── git → context-engineering
 
@@ -26,7 +26,7 @@ team (meta-orchestrator)
 ├── code-review, fix, test
 └── wraps each as multi-agent template
 
-brainstorm → explore, library-docs, media, sequential-thinking, plan, research
+brainstorm → explore, library-docs, media, plan, research
 create-skill → library-docs, research
 ```
 
@@ -43,11 +43,11 @@ create-skill → library-docs, research
 |-------|------|----------|-------|
 | **plan** | Architecture & planning | implement, team, brainstorm | research, explore, mermaidjs-v11 |
 | **explore** | Fast codebase exploration | implement, plan, brainstorm, code-review, fix | parallel Explore agents |
-| **debug** | Root cause investigation | implement, fix, test | library-docs, browser, problem-solving, sequential-thinking |
-| **fix** | Bug resolution | implement, team | debug, code-review, problem-solving, sequential-thinking, brainstorm, context-engineering |
-| **test** | Validation & coverage | implement, team | browser, media, debug, sequential-thinking |
+| **debug** | Root cause investigation | implement, fix, test | library-docs, browser, problem-solving |
+| **fix** | Bug resolution | implement, team | debug, code-review, problem-solving, brainstorm, context-engineering |
+| **test** | Validation & coverage | implement, team | browser, media, debug |
 | **code-review** | Quality assurance | implement, fix, team | explore |
-| **brainstorm** | Solution ideation | fix | explore, library-docs, media, sequential-thinking, plan, research |
+| **brainstorm** | Solution ideation | fix | explore, library-docs, media, plan, research |
 
 ### Layer 3 — Utility Providers
 Pure capability providers — referenced by hub skills but don't call other skills.
@@ -56,7 +56,6 @@ Pure capability providers — referenced by hub skills but don't call other skil
 |-------|--------|---------------|
 | **research** | Knowledge gathering | plan, implement, team, brainstorm, create-skill |
 | **library-docs** | External documentation | research, debug, brainstorm, create-skill |
-| **sequential-thinking** | Step-by-step analysis | brainstorm, fix, test, debug |
 | **problem-solving** | Structured problem decomposition | debug, fix |
 | **media** | Image/video/audio analysis | test, brainstorm |
 | **browser** | Browser automation | debug, test |
@@ -76,7 +75,6 @@ Domain-specific tools operating independently.
 | explore | 5 (brainstorm, code-review, fix, plan, implement) |
 | debug | 3 (fix, test, implement) |
 | library-docs | 4 (research, debug, brainstorm, create-skill) |
-| sequential-thinking | 4 (brainstorm, fix, test, debug) |
 | research | 4 (plan, implement, team, create-skill) |
 | media | 2 (test, brainstorm) |
 | code-review | 3 (fix, implement, team) |
@@ -90,6 +88,6 @@ Domain-specific tools operating independently.
 
 3. **Cross-hub references** — fix calls debug, test calls debug, brainstorm calls plan — creating a resilient mesh, not a rigid tree
 
-4. **Utility layer is stateless** — sequential-thinking, problem-solving, library-docs provide pure capabilities without calling other skills, keeping the dependency graph acyclic at the leaf level
+4. **Utility layer is stateless** — problem-solving, library-docs provide pure capabilities without calling other skills, keeping the dependency graph acyclic at the leaf level
 
 5. **team wraps everything** — for multi-session parallel work, team composes implement + plan + research + code-review + fix + test into coordinated agent templates

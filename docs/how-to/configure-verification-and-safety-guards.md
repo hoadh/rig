@@ -66,7 +66,7 @@ Reason: a nudge costs a model turn nobody reads. The bash guard stays on.
 
 ## Stop notification race
 
-If you registered a Stop notification hook (`.claude/hooks/notifications/`, opt-in), it fires when the guard nudges the stop and again after Claude continues. Expect two notifications for one nudged turn. No Stop notification is registered by default.
+If you registered your own Stop notification hook, it fires when the guard nudges the stop and again after Claude continues. Expect two notifications for one nudged turn. No Stop notification is registered by default.
 
 ## False positives and known limits
 

@@ -58,11 +58,6 @@ jobs:
       # Discovers every *.test.cjs / *.test.js under .claude/ and scripts/; prints
       # passed/failed/skipped (with reasons) and exits 1 on any failure.
       - run: npm test
-      # Jest suite that the runner lists as skipped (needs jest, not plain node).
-      - name: sequential-thinking jest suite
-        if: matrix.os == 'ubuntu-latest'
-        working-directory: .claude/skills/sequential-thinking
-        run: npx --yes jest@29
       # Runs the three library-docs test files through their own runner.
       - name: library-docs tests
         if: matrix.os == 'ubuntu-latest'

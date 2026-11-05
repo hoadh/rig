@@ -9,8 +9,8 @@
 - Wait for all researcher agents to report back before proceeding
 - Each researcher investigates a specific aspect or approach
 
-### Sequential Thinking
-- Use `sequential-thinking` skill for dynamic and reflective problem-solving
+### Extended Thinking
+- Use extended thinking for dynamic and reflective problem-solving
 - Structured thinking process for complex analysis
 - Enables multi-step reasoning with revision capability
 

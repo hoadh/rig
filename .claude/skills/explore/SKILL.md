@@ -4,91 +4,30 @@ description: "Explore the codebase fast with parallel agents. Use for file disco
 argument-hint: "[search-target] [ext]"
 metadata:
   author: rig
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # Explore
 
-Fast, token-efficient codebase exploration using parallel agents to find files needed for tasks.
+Find the files a task needs. Default: the built-in `Explore` agent. `ext`: Gemini CLI.
 
-## Arguments
-- Default: Explore using built-in Explore subagents in parallel (`./references/internal-exploration.md`)
-- `ext`: Explore using external Gemini CLI in parallel (`./references/external-exploration.md`)
+## Default (built-in Explore agent)
 
-## When to Use
+1. Turn the prompt into search targets (names, patterns, directories).
+2. Spawn `Explore` agents via the Agent tool with `subagent_type: "Explore"`. State breadth in the prompt: "medium" or "very thorough". Split by directory and run in one message when the scope is large; one agent suffices for a narrow question.
+3. Each agent returns paths with one-line reasons; no file dumps.
+4. Merge into the report below. Save it per `/rig:project-organization` only if the caller asks for a file.
 
-- Beginning work on feature spanning multiple directories
-- User mentions needing to "find", "locate", or "search for" files
-- Starting debugging session requiring file relationships understanding
-- User asks about project structure or where functionality lives
-- Before changes that might affect multiple codebase parts
+## `ext` (external Gemini CLI)
 
-## Quick Start
+Read `references/external-exploration.md`. Config: `.claude/.rig.json` `gemini.model` (default `gemini-3-flash-preview`). Fall back to the default path when `gemini` is not installed.
 
-1. Analyze user prompt to identify search targets
-2. Use a wide range of Grep and Glob patterns to find relevant files and estimate scale of the codebase
-3. Spawn parallel agents with divided directories
-4. Collect results into concise report
-
-## Configuration
-
-Read from `.claude/.rig.json`:
-- `gemini.model` - Gemini model (default: `gemini-3-flash-preview`)
-
-## Workflow
-
-### 1. Analyze Task
-- Parse user prompt for search targets
-- Identify key directories, patterns, file types, lines of code
-- Determine optimal SCALE value of subagents to spawn
-
-### 2. Divide and Conquer
-- Split codebase into logical segments per agent
-- Assign each agent specific directories or patterns
-- Ensure no overlap, maximize coverage
-
-### 3. Register Explore Tasks
-- **Skip if:** Agent count ≤ 2 (overhead exceeds benefit)
-- **Skip if:** Task tools unavailable (VSCode extension) — use `TodoWrite` instead
-- `TaskList` first — check for existing explore tasks in session
-- If not found, `TaskCreate` per agent with scope metadata
-- See `references/task-management-exploration.md` for patterns and examples
-
-### 4. Spawn Parallel Agents
-Load appropriate reference based on decision tree:
-- **Internal (Default):** `references/internal-exploration.md` (Explore subagents)
-- **External:** `references/external-exploration.md` (Gemini CLI)
-
-**Notes:**
-- `TaskUpdate` each task to `in_progress` before spawning its agent (skip if Task tools unavailable)
-- Prompt detailed instructions for each subagent with exact directories or files it should read
-- Remember that each subagent has less than 200K tokens of context window
-- Amount of subagents to-be-spawned depends on the current system resources available and amount of files to be scanned
-- Each subagent must return a detailed summary report to a main agent
-
-### 5. Collect Results
-**IMPORTANT:** Invoke "/rig:project-organization" skill to organize the outputs.
-
-- Timeout: 3 minutes per agent (skip non-responders)
-- `TaskUpdate` completed tasks; log timed-out agents in report (skip if Task tools unavailable)
-- Aggregate findings into single report
-- List unresolved questions at end
-
-## Report Format
+## Report
 
 ```markdown
 # Explore Report
-
 ## Relevant Files
-- `path/to/file.ts` - Brief description
-- ...
-
+- `path/to/file.ts` - why it matters
 ## Unresolved Questions
-- Any gaps in findings
+- gaps in findings
 ```
-
-## References
-
-- `references/internal-exploration.md` - Using Explore subagents
-- `references/external-exploration.md` - Using Gemini CLI
-- `references/task-management-exploration.md` - Claude Task patterns for explore coordination

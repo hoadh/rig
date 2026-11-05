@@ -43,7 +43,7 @@ Full index: [docs/README.md](./docs/README.md), organized by [Diataxis](https://
 | [Decisions (ADRs)](./docs/explanation/decisions/) | Why agent state lives in files; multi-machine orchestration; workflow size tiers |
 | [Codebase summary](./docs/reference/codebase-summary.md) | Project structure and components |
 | [Code standards](./docs/reference/code-standards.md) | Naming, file size, conventions |
-| [Skills catalog](./guide/SKILLS.md) | All 32 skills, grouped by task |
+| [Skills catalog](./guide/SKILLS.md) | All 31 skills, grouped by task |
 | [Project overview and PDR](./docs/project/overview-pdr.md), [Roadmap](./docs/project/roadmap.md) | Goals, requirements, what is next |
 | [CHANGELOG](./CHANGELOG.md) | Release notes |
 
@@ -52,11 +52,9 @@ Full index: [docs/README.md](./docs/README.md), organized by [Diataxis](https://
 ```
 ├── .claude/
 │   ├── agents/             # 14 subagent definitions
-│   ├── skills/             # 32 skills (27 slash commands, 5 internal helpers)
+│   ├── skills/             # 31 skills (27 slash commands, 4 internal helpers)
 │   ├── hooks/              # Session, subagent, team-context, dev-rules reminder, verify-on-stop and bash safety hooks
-│   │   └── notifications/  # Telegram, Discord, Slack notifications
 │   ├── rules/              # Workflow, development and orchestration rules
-│   ├── output-styles/      # Coding levels 0-5 (explanation depth)
 │   ├── schemas/            # .rig.json config schema
 │   └── statusline.cjs      # Status line
 ├── docs/                   # Project documentation (Diataxis layout)
@@ -170,7 +168,7 @@ Install with `npm install -g @google/gemini-cli` and sign in once by running `ge
 
 ### Notifications
 
-A `Stop` hook can post to Telegram, Discord or Slack when a session finishes. Setup guides: `.claude/hooks/notifications/docs/`.
+Use the built-in `PushNotification` tool or your own `Stop` hook to be notified when a session finishes. For explanation depth use the built-in `/output-style`.
 
 ## Benchmark
 

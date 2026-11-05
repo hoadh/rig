@@ -43,7 +43,7 @@ See `references/parallel-exploration.md` for patterns.
 **Mandatory skill chain:**
 1. **Capture pre-fix state:** Record ALL error messages, failing tests, stack traces, logs.
 2. Activate `debug` skill (systematic-debugging + root-cause-tracing).
-3. Activate `sequential-thinking` — structured hypothesis formation.
+3. Use extended thinking for structured hypothesis formation.
 4. Spawn parallel `Explore` subagents to test each hypothesis.
 5. If 2+ hypotheses fail → auto-activate `problem-solving`.
 6. Trace backward through call chain to ROOT CAUSE origin.
@@ -89,7 +89,7 @@ Use `planner` subagent to create implementation plan.
 
 ### Step 6: Implement
 `TaskUpdate(T6, status="in_progress")`
-Implement per plan. Use `context-engineering`, `sequential-thinking`, `problem-solving`.
+Implement per plan. Use `context-engineering`, `problem-solving`.
 
 - Fix ROOT CAUSE per diagnosis — not symptoms
 - Follow plan phases
@@ -140,11 +140,11 @@ See `references/review-cycle.md` for mode-specific handling.
 | Step | Skills/Subagents |
 |------|------------------|
 | 1 | `explore` OR parallel `Explore` subagents |
-| 2 | `debug`, `sequential-thinking`, parallel `Explore`, (`problem-solving` auto) |
+| 2 | `debug`, parallel `Explore`, (`problem-solving` auto) |
 | 3 | `researcher` (runs parallel with steps 1+2) |
 | 4 | `brainstorm` |
 | 5 | `planner` |
-| 6 | `problem-solving`, `sequential-thinking`, `context-engineering` |
+| 6 | `problem-solving`, `context-engineering` |
 | 7 | `tester`, parallel `Bash` verification |
 | 8 | `code-reviewer` |
 | 9 | `progress`, `docs-maintainer`, `git-operator` |

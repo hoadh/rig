@@ -510,10 +510,6 @@ function loadConfig(options = {}) {
     if (includeAssertions) {
       result.assertions = merged.assertions || [];
     }
-    // Coding level for output style selection (-1 to 5, default: -1 = disabled)
-    // -1 = disabled (no injection, saves tokens)
-    // 0-5 = inject corresponding level guidelines
-    result.codingLevel = merged.codingLevel ?? -1;
     // Skills configuration
     result.skills = merged.skills || DEFAULT_CONFIG.skills;
     // Hooks configuration
@@ -538,7 +534,6 @@ function getDefaultConfig(includeProject = true, includeAssertions = true, inclu
     plan: { ...DEFAULT_CONFIG.plan },
     paths: { ...DEFAULT_CONFIG.paths },
     docs: { ...DEFAULT_CONFIG.docs },
-    codingLevel: -1,  // Default: disabled (no injection, saves tokens)
     skills: { ...DEFAULT_CONFIG.skills },
     hooks: { ...DEFAULT_CONFIG.hooks },
     statusline: 'full',

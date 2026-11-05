@@ -99,7 +99,7 @@ See `references/mode-selection.md` for AskUserQuestion format.
 **Mandatory skill chain:**
 1. **Capture pre-fix state:** Record exact error messages, failing test output, stack traces, log snippets. This becomes the baseline for Step 5 verification.
 2. Activate `debug` skill (systematic-debugging + root-cause-tracing techniques).
-3. Activate `sequential-thinking` skill — form hypotheses through structured reasoning, NOT guessing.
+3. Use extended thinking — form hypotheses through structured reasoning, NOT guessing.
 4. Spawn parallel `Explore` subagents to test each hypothesis against codebase evidence.
 5. If 2+ hypotheses fail → auto-activate `problem-solving` skill for alternative approaches.
 6. Create diagnosis report: confirmed root cause, evidence chain, affected scope.
@@ -165,7 +165,6 @@ See `references/skill-activation-matrix.md` for complete matrix.
 **Always activate (ALL workflows):**
 - `explore` (Step 1) — understand before diagnosing
 - `debug` (Step 2) — systematic root cause investigation
-- `sequential-thinking` (Step 2) — structured hypothesis formation
 
 **Conditional:**
 - `problem-solving` — auto-triggers when 2+ hypotheses fail in Step 2

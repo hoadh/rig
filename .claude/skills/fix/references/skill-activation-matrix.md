@@ -8,7 +8,6 @@ When to activate each skill and tool during fixing workflows.
 |------------|------|--------|
 | `rig:explore` OR parallel `Explore` | Step 1 | Understand codebase context before diagnosing |
 | `rig:debug` | Step 2 | Systematic root cause investigation |
-| `rig:sequential-thinking` | Step 2 | Structured hypothesis formation — NO guessing |
 
 ## Task Orchestration (Moderate+ Only)
 
@@ -26,7 +25,6 @@ Skip Tasks for Quick workflow (< 3 steps). See `references/task-orchestration.md
 | Skill | Auto-Trigger Condition |
 |-------|------------------------|
 | `rig:problem-solving` | 2+ hypotheses REFUTED in Step 2 diagnosis |
-| `rig:sequential-thinking` | Always in Step 2 (mandatory for hypothesis formation) |
 
 ## Conditional Activation
 
@@ -69,7 +67,7 @@ See `references/parallel-exploration.md` for detailed patterns.
 
 | Workflow | Skills Activated |
 |----------|------------------|
-| Quick | `rig:explore` (minimal), `rig:debug`, `rig:sequential-thinking`, `rig:code-review`, parallel `Bash` verification |
+| Quick | `rig:explore` (minimal), `rig:debug`, `rig:code-review`, parallel `Bash` verification |
 | Standard | Above + Tasks, `rig:problem-solving` (auto), `rig:progress`, `tester`, parallel `Explore` |
 | Deep | All above + `rig:brainstorm`, `rig:context-engineering`, `researcher`, `planner` |
 | Parallel | Per-issue Task trees + `rig:progress` + `implementer` agents + coordination via `TaskList` |
@@ -80,7 +78,7 @@ See `references/parallel-exploration.md` for detailed patterns.
 |------|----------------|
 | Step 0: Mode | `AskUserQuestion` (unless auto/quick detected) |
 | Step 1: Explore | `rig:explore` OR 2-3 parallel `Explore` → map files, deps, tests |
-| Step 2: Diagnose | Capture pre-fix state → `rig:debug` → `rig:sequential-thinking` → parallel `Explore` hypotheses → (`rig:problem-solving` if 2+ fail) |
+| Step 2: Diagnose | Capture pre-fix state → `rig:debug` → parallel `Explore` hypotheses → (`rig:problem-solving` if 2+ fail) |
 | Step 3: Assess | Classify complexity → create Tasks (moderate+) |
 | Step 4: Fix | Implement per workflow → follow root cause |
 | Step 5: Verify+Prevent | Iron-law verify → regression test → defense-in-depth → parallel `Bash` verify |
@@ -92,7 +90,7 @@ See `references/parallel-exploration.md` for detailed patterns.
 |-----------------|-------------------|
 | "AI", "LLM", "agent", "context" | `rig:context-engineering` |
 | "stuck", "tried everything" | `rig:problem-solving` |
-| "complex", "multi-step" | `rig:sequential-thinking` |
+| "complex", "multi-step" | extended thinking |
 | "which approach", "options" | `rig:brainstorm` |
 | "latest docs", "best practice" | `researcher` subagent |
 | Screenshot attached | `rig:media` |

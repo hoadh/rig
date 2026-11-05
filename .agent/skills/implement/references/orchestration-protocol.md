@@ -23,7 +23,7 @@ Review scales with the tier: no reviewer on a one-line fix unless it carries a r
 - Follow the structure and standards in `./docs`. Implement real behavior, not simulations or mocks; a mock that passes proves nothing.
 - Split a file when it mixes concerns or passes ~500 lines; data, generated and test files are exempt (see `docs/reference/code-standards.md`). Prefer extracted utilities and focused modules over inheritance.
 - File names: kebab-case, descriptive enough that Grep/Glob output explains the file (JS/TS/Python/shell). Follow the language convention elsewhere (C#/Java/Kotlin/Swift PascalCase, Go/Rust snake_case).
-- Helper skills: `library-docs` for current library docs, `gh` for GitHub, `psql` for Postgres debugging, `media`/`imagemagick` for images and video, `sequential-thinking`/`debug` for hard analysis.
+- Helper skills: `library-docs` for current library docs, `gh` for GitHub, `psql` for Postgres debugging, `media`/`imagemagick` for images and video, `debug` and extended thinking for hard analysis.
 
 ## Code Quality
 - Code must compile and have no syntax errors; style strictness comes second to readability and productivity.

@@ -38,8 +38,6 @@ const SERIAL_FILES = new Set(['.claude/hooks/__tests__/hook-logger.test.cjs']);
 // Test files that cannot run under plain `node <file>`. Each entry needs a reason;
 // it is printed on every run so the skip stays visible.
 const SKIPPED_FILES = new Map([
-  ['.claude/skills/sequential-thinking/tests/format-thought.test.js', 'jest suite (describe/test globals); CI runs it with `npx jest` in .claude/skills/sequential-thinking'],
-  ['.claude/skills/sequential-thinking/tests/process-thought.test.js', 'jest suite (describe/test globals); CI runs it with `npx jest` in .claude/skills/sequential-thinking'],
 ]);
 
 // Custom-framework suites: they rely on the `describe` global installed by

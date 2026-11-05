@@ -17,10 +17,10 @@ Moved from `.claude/rules/team-coordination-rules.md`. Applies only to teammates
 
 ## Tasks and Plans
 - Claim the lowest-ID unblocked task, set it `in_progress`, check `TaskList` afterwards; if all are blocked, tell the lead.
-- With `plan_mode_required`: plan read-only, submit via `ExitPlanMode`, wait for approval, revise if rejected (rejected twice: lead takes over).
+- When spawned with `mode: "plan"`: plan read-only, submit via `ExitPlanMode`, wait for the lead's approval, revise if rejected (rejected twice: lead takes over).
 
 ## Conflicts and Shutdown
 - Same file needed by two teammates: escalate to the lead. Conflicting review findings: lead synthesizes and records the disagreement. If blocked, message the owner first, then the lead.
-- Approve shutdown requests unless mid-critical-operation; finish the current task first and pass the `requestId` to `shutdown_response`.
+- Shutdown: the lead sends a plain-text message asking a teammate to finish and stop. Finish the current task, mark it done with `TaskUpdate`, then reply in plain text (unless mid-critical-operation, then say why).
 - Idle is normal, not an error; messaging an idle teammate wakes it. Check task status, not idle notices, for completion.
-- Discover teammates in `~/.claude/teams/{team-name}/config.json`; refer to them by name.
+- If present, teammates are listed in `~/.claude/teams/{team-name}/config.json`; refer to them by name.

@@ -14,12 +14,11 @@ Rig is an Agentic-Driven Development (ADD) toolkit for building software with Cl
 rig/
 ├── .claude/               # Claude Code configuration
 │   ├── agents/           # Specialized agent definitions (14 agents)
-│   ├── hooks/            # Context hooks, notifications, hook tests
-│   ├── output-styles/    # Output style definitions
+│   ├── hooks/            # Context hooks, hook tests
 │   ├── rules/            # Workflow and development rules
 │   ├── schemas/          # .rig.json schema
 │   ├── scripts/          # Helper scripts
-│   ├── skills/           # Specialized skills library (32 skills)
+│   ├── skills/           # Specialized skills library (31 skills)
 │   ├── metadata.json     # Kit version and build date
 │   ├── settings.json     # Hooks, permissions, statusline
 │   └── statusline.cjs    # Statusline script
@@ -98,12 +97,12 @@ rig/
 - **UI Styling** (`ui-styling/`) - shadcn/ui, Tailwind CSS v4
   - 7 references, 2 Python utilities
 
-**Current Skills** (32 Total, plus the `common/` shared library):
+**Current Skills** (31 Total, plus the `common/` shared library):
 - media, brainstorm, browser, code-review, context-engineering
 - implement, diataxis-writer, docs, library-docs, fix, git, devlog
 - markdown-viewer, mcp, mermaidjs-v11, problem-solving, visualize
 - progress, project-organization, research, rig-debug, rig-plan
-- explore, pr, sequential-thinking, create-skill, team, test
+- explore, pr, create-skill, team, test
 - ui-styling, ui-design, worktree
 - remote (multi-machine plans over ssh; `scripts/remote.cjs` orchestrator, `scripts/worker.cjs` worker; see [how-to](../how-to/run-plan-across-machines.md))
 
@@ -252,16 +251,12 @@ None (template project)
 
 ## Integration Capabilities
 
-### Notifications
-Script: `.claude/hooks/notifications/notify.cjs` + `providers/` (discord, slack, telegram)
-Purpose: Optional `Stop` hook that posts session updates to Discord, Slack or Telegram
-
 ### GitHub Actions
 Workflow: `.github/workflows/antigravity-sync-check.yml`
 Features: Fails when `.agent/` or `GEMINI.md` drift from `.claude/`
 
 ### Agent Skills
-- **sequential-thinking**, **problem-solving**: Structured reasoning
+- **problem-solving**: Structured reasoning
 - **library-docs**: Library documentation lookup
 - **media**: Image, video and document analysis and generation
 

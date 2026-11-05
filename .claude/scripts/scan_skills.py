@@ -21,7 +21,6 @@ EXACT_CATEGORY_MAP = {
     "devlog": "utilities",
     "plan": "utilities",
     "research": "utilities",
-    "sequential-thinking": "utilities",
     "test": "utilities",
     "git": "dev-tools",
     "explore": "dev-tools",

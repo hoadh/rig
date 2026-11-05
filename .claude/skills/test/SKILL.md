@@ -86,7 +86,7 @@ Reports        → report-format.md
 - **Browser**: `rig:browser` skill for UI testing (screenshots, ARIA, console, network)
 - **Analysis**: `rig:media` skill for screenshot analysis
 - **Debugging**: `rig:debug` skill when tests reveal bugs requiring investigation
-- **Thinking**: `rig:sequential-thinking` skill for complex test failure analysis
+- **Thinking**: extended thinking for complex test failure analysis
 
 ## Quality Standards
 

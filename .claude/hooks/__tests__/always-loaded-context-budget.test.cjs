@@ -21,7 +21,8 @@ const LIMITS = {
   claudeMdBytes: 1500,
   agentDescriptionChars: 300,
   skillDescriptionChars: 250,
-  skillDescriptionTotalBytes: 5000
+  skillDescriptionTotalBytes: 5000,
+  thinSkillBytes: 2500
 };
 
 /** Read `description` and `when_to_use` from YAML frontmatter (single-line or `>-`/`|` block scalars). */
@@ -95,6 +96,13 @@ describe('always-loaded context budget', () => {
       total += Buffer.byteLength(text);
     }
     assert.ok(total <= LIMITS.skillDescriptionTotalBytes, `skill descriptions total ${total} bytes`);
+  });
+
+  it(`thinned wrapper skills (worktree, explore, code-review, team) keep SKILL.md within ${LIMITS.thinSkillBytes} bytes`, () => {
+    for (const name of ['worktree', 'explore', 'code-review', 'team']) {
+      const size = bytes(path.join(CLAUDE_DIR, 'skills', name, 'SKILL.md'));
+      assert.ok(size <= LIMITS.thinSkillBytes, `${name}/SKILL.md is ${size} bytes`);
+    }
   });
 
 });
