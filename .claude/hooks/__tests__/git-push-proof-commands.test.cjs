@@ -21,7 +21,8 @@ const DOCS = {
 };
 
 function extractBlock(file, tag) {
-  const text = fs.readFileSync(path.join(ROOT, file), 'utf8');
+  // Windows checkouts may convert to CRLF
+  const text = fs.readFileSync(path.join(ROOT, file), 'utf8').replace(/\r\n/g, '\n');
   const re = new RegExp(`<!-- ${tag} -->\\s*\`\`\`bash\\n([\\s\\S]*?)\\n\`\`\`\\s*<!-- /${tag} -->`);
   const m = text.match(re);
   assert.ok(m, `${tag} block not found in ${file}`);

@@ -348,7 +348,8 @@ describe('session-init.cjs', () => {
 
   describe('Env file absolute paths (no double-joined project root)', () => {
     it('RIG_REPORTS_PATH is plan/reports once when a session plan is active', async () => {
-      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'session-init-p1-'));
+      // realpath: macOS tmpdir /var is a symlink to /private/var, and the hook resolves cwd
+      const tmp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'session-init-p1-')));
       const planDir = path.join(tmp, 'plans', '261016-1200-sample-plan');
       try {
         fs.mkdirSync(planDir, { recursive: true });

@@ -74,7 +74,9 @@ t.test('conflict: collect exit 4 -> resolve in .rig/int-<slug> -> rerun exit 0',
   const c = fx.cli('alpha', ['collect', dir]);
   t.eq(c.code, 4, c.out + c.err);
   const wt = path.join(fx.repoOf('alpha'), '.rig', `int-${slug}`);
-  t.ok((c.out + c.err).includes(wt), `prints worktree: ${c.out}${c.err}`);
+  // CLI prints git's path; on Windows that is the long form of an 8.3 tmp path
+  const printed = c.out + c.err;
+  t.ok(printed.includes(wt) || printed.includes(fs.realpathSync.native(wt)), `prints worktree: ${printed}`);
   fs.writeFileSync(path.join(wt, 'shared', 'x.txt'), 'resolved\n');
   fx.git(wt, 'add', '-A');
   fx.git(wt, 'commit', '-q', '--no-edit');
