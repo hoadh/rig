@@ -35,12 +35,14 @@ assert.strictEqual(extractBlock(DOCS.commit, 'push-proof'), PUSH_PROOF, 'workflo
 assert.strictEqual(extractBlock(DOCS.pr, 'push-proof'), PUSH_PROOF, 'pr/SKILL.md push-proof drifted');
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'push-proof-'));
+fs.writeFileSync(path.join(tmp, 'empty-gitconfig'), '');
 const ENV = {
   ...process.env,
   HOME: tmp,
   USERPROFILE: tmp,
   XDG_CONFIG_HOME: path.join(tmp, 'xdg'),
-  GIT_CONFIG_GLOBAL: os.devNull,
+  // empty file, not os.devNull: git for Windows cannot open \\.\nul as a config file
+  GIT_CONFIG_GLOBAL: path.join(tmp, 'empty-gitconfig'),
   GIT_CONFIG_NOSYSTEM: '1',
   GIT_TERMINAL_PROMPT: '0',
   GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@example.com',
