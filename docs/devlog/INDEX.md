@@ -5,6 +5,12 @@ Devlog of shipped work, decisions, failures and lessons learned. Newest first.
 
 ## November 2026
 
+- **261106-rig-1-1-context-reduction-shipped.md**
+  - Rig 1.1 (plan 1530) implemented, PR #2, CI green on 3 OSes; merge/tag pending approval
+  - One budget-tested `core-rules.md`; task rules moved into skills; delta UserPromptSubmit
+  - Removed sequential-thinking, notifications, output styles; 510 dead tool refs to 0; guard scans added
+  - Lesson: size budgets must count repo bytes, not CRLF checkout bytes
+
 - **261106-cross-platform-ci-fixes.md**
   - First full macOS/Windows CI run: 1 macOS + 11 Windows test files failed; fixed in PR #1, CI green on 3 OSes
   - Real bugs: rig:remote rejected valid worktrees under 8.3 short paths (now `realpathSync.native`); tokenizer left absolute `cd` unresolved
