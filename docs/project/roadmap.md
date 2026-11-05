@@ -1,25 +1,25 @@
 # Rig - Project Roadmap
 
 **Last Updated:** 2026-11-06
-**Current Version:** 1.1.0 (implemented, release pending; 1.0.0 released 2026-10-17)
+**Current Version:** 1.1.0 (released 2026-11-06)
 **Repository:** https://github.com/hoadh/rig
 
 Version history lives in [CHANGELOG.md](../../CHANGELOG.md). This roadmap tracks status and plans only.
 
 ## Executive Summary
 
-Rig is an orchestration framework for Claude Code: agents, skills, hooks and workflows that plan, build, test and review software with file-based state. 1.0.0 is released. 1.1.0 is implemented and awaits its release gate (see below). Next work closes the security and CI gaps and the `rig:remote` follow-ups.
+Rig is an orchestration framework for Claude Code: agents, skills, hooks and workflows that plan, build, test and review software with file-based state. 1.1.0 is released (2026-11-06). Next work closes the security and CI gaps and the `rig:remote` follow-ups.
 
 ## Status at a Glance
 
 | Milestone | Status | Notes |
 |-------|--------|-------|
 | 1.0.0 | Released (2026-10-17) | Agents, skills, hooks, docs workflow, rig:remote v1, Antigravity copy |
-| 1.1.0 | Implemented, release pending | Rules moved into skills, thinner skills, Agent Teams rewrite, Tasks API optional, plugin-prefixed agent types. Section below. Follow-ups listed under 1.0.0 |
+| 1.1.0 | Released 2026-11-06 | Rules moved into skills, thinner skills, Agent Teams rewrite, Tasks API optional, plugin-prefixed agent types. Section below. Follow-ups listed under 1.0.0 |
 
 ---
 
-## 1.1.0 (Implemented, release pending)
+## 1.1.0 (Released 2026-11-06)
 
 | Area | What ships | Where |
 |------|------------|-------|
@@ -31,7 +31,7 @@ Rig is an orchestration framework for Claude Code: agents, skills, hooks and wor
 | Hooks | Plugin-prefixed agent types normalized (`rig:tester` to `tester`); remote owns-denylist covers plugin paths | `.claude/hooks/lib/agent-type-normalizer.cjs` |
 | Installer | Retired rule and output-style files copied to `.bak` before removal | `scripts/install-kit/` |
 
-Open before release: CI green on Ubuntu, Windows and macOS; Linux and Windows smoke (`/rig:plan`, `/rig:implement`); tag `v1.1.0`; `release/1.x` branch.
+Released with CI green on Ubuntu, Windows and macOS (PR #2). Still open: Linux and Windows smoke (`/rig:plan`, `/rig:implement`) in a live session; the `rig:remote` loopback tests are flaky on Windows.
 
 ## 1.0.0 (Released 2026-10-17)
 

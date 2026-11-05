@@ -1,7 +1,7 @@
 # Project Overview & Product Development Requirements (PDR)
 
 **Project Name**: Rig
-**Version**: 1.1.0 (release pending)
+**Version**: 1.1.0 (released 2026-11-06)
 **Last Updated**: 2026-10-17
 **Status**: Active Development
 **Repository**: https://github.com/hoadh/rig

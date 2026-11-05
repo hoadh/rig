@@ -3,7 +3,7 @@
 **Date**: 2026-11-06 05:10
 **Severity**: Medium
 **Component**: rules, hooks, skills, agents, installer, docs
-**Status**: Implemented on `feat/update-based-on-changelog`, PR #2. CI green on Ubuntu, macOS and Windows (run `42113581106`). Merge, tag `v1.1.0` and `release/1.x` pending approval.
+**Status**: Implemented on `feat/update-based-on-changelog`, PR #2. CI green on Ubuntu, macOS and Windows (run `42113581106`). Merged and tagged `v1.1.0` on 2026-11-06.
 
 ## What Happened
 
@@ -33,7 +33,6 @@ Plan 261104-1530 shipped in 5 phases, one commit each, plus 2 fix commits. It tr
 
 ## Next Steps
 
-- **Alex:** approve merge to `main`, tag `v1.1.0`, create `release/1.x`.
 - LIVE checks: `/context` before/after, subagent quotes a core rule, team spawn and `~/.claude/teams` config, code-review wrapper, monorepo worktree, chained skills, web agent tool list, Linux and Windows smoke.
 - Flaky on Windows (pre-existing): `worker-run-entry-flow`, `worker-detached-launch-protocol`, `remote-run-status-cancel-loopback`. The full diff shows a PowerShell `echo` hitting the 30 s timeout (exit 124), and `Get-Process` timing out at 10 s in the same run. Likely slow PowerShell start under parallel load; not proven.
 - Then plan 261104-1426 (2.0 plugin packaging).

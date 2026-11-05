@@ -1,7 +1,7 @@
 # Codebase Summary
 
 **Last Updated**: 2026-11-06
-**Version**: 1.1.0 (release pending)
+**Version**: 1.1.0 (released 2026-11-06)
 **Repository**: [hoadh/rig](https://github.com/hoadh/rig)
 
 ## Overview
@@ -271,7 +271,7 @@ Features: Fails when `.agent/` or `GEMINI.md` drift from `.claude/`
 
 ## Version History
 
-**Current**: 1.1.0 (implemented, release pending); 1.0.0 released 2026-10-17. See `CHANGELOG.md`
+**Current**: 1.1.0 released 2026-11-06; 1.0.0 released 2026-10-17. See `CHANGELOG.md`
 **License**: MIT (see `LICENSE`)
 **Author**: Alex Dang
 **Repository**: https://github.com/hoadh/rig
