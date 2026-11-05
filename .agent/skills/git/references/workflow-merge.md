@@ -26,7 +26,7 @@ git merge origin/{FROM_BRANCH} --no-ff -m "merge: {FROM_BRANCH} into {TO_BRANCH}
 ## Step 3: Resolve Conflicts
 If conflicts:
 1. Resolve manually
-2. `git add . && git commit`
+2. Review `git status --porcelain` for secret files first (never stage `.env*`, keys, credentials; templates `.env.example`, `*.example`, `*.sample` are fine), then `git add . && git commit`
 3. If clarifications needed, report to main agent
 
 ## Step 4: Push

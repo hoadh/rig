@@ -1,6 +1,17 @@
 ---
 name: rig:ui-design
 description: "UI/UX design intelligence for web, mobile and desktop, with searchable styles, palettes, fonts and UX guidelines. Use when designing, building or reviewing interfaces."
+paths:
+  - "**/*.tsx"
+  - "**/*.jsx"
+  - "**/*.vue"
+  - "**/*.svelte"
+  - "**/*.css"
+  - "**/*.scss"
+  - "**/*.html"
+  - "**/*.astro"
+  - "**/*.less"
+  - "**/*.sass"
 metadata:
   author: nextlevelbuilder
   version: "1.0.0"

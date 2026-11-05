@@ -45,17 +45,17 @@ If not installed, ask user:
 1. **Yes** - Provide installation instructions (may need manual auth steps)
 2. **No** - Fall back to the built-in Explore agent (default path in `SKILL.md`)
 
-## Spawning Parallel Bash Agents
+## Parallel Bash Calls
 
-Use `Task` tool with `subagent_type: "Bash"` to spawn parallel agents:
+Issue several Bash tool calls in one message (there is no built-in Bash agent type):
 
 ```
-Task 1: subagent_type="Bash", prompt="Run: gemini -y -m gemini-3-flash-preview '[prompt1]'"
-Task 2: subagent_type="Bash", prompt="Run: gemini -y -m gemini-3-flash-preview '[prompt2]'"
-Task 3: subagent_type="Bash", prompt="Run: gemini -y -m gemini-3-flash-preview '[prompt3]'"
+Bash call 1: gemini -y -m gemini-3-flash-preview '[prompt1]'
+Bash call 2: gemini -y -m gemini-3-flash-preview '[prompt2]'
+Bash call 3: gemini -y -m gemini-3-flash-preview '[prompt3]'
 ```
 
-Spawn all in single message for parallel execution.
+Send all calls in a single message for parallel execution.
 
 ## Prompt Guidelines
 
@@ -68,7 +68,7 @@ Spawn all in single message for parallel execution.
 
 User: "Find database migration files"
 
-Spawn 3 parallel Bash agents via Task tool:
+Spawn 3 parallel Bash agents via Agent tool:
 ```
 Task 1 (Bash): "Run: gemini -y -m gemini-3-flash-preview 'Search db/, migrations/ for migration files'"
 Task 2 (Bash): "Run: gemini -y -m gemini-3-flash-preview 'Search lib/, src/ for database schema files'"
@@ -94,19 +94,19 @@ chunks = ceil(total_lines / 500)
 lines_per_chunk = ceil(total_lines / chunks)
 ```
 
-### Step 3: Spawn Parallel Bash Agents
+### Step 3: Parallel Bash Calls
 
 **Small files (<500 lines each):**
 ```
-Task 1: subagent_type="Bash", prompt="cat file1.ts file2.ts"
-Task 2: subagent_type="Bash", prompt="cat file3.ts file4.ts"
+Bash call 1: cat file1.ts file2.ts
+Bash call 2: cat file3.ts file4.ts
 ```
 
 **Large file (>500 lines) - use sed for ranges:**
 ```
-Task 1: subagent_type="Bash", prompt="sed -n '1,500p' large-file.ts"
-Task 2: subagent_type="Bash", prompt="sed -n '501,1000p' large-file.ts"
-Task 3: subagent_type="Bash", prompt="sed -n '1001,1500p' large-file.ts"
+Bash call 1: sed -n '1,500p' large-file.ts
+Bash call 2: sed -n '501,1000p' large-file.ts
+Bash call 3: sed -n '1001,1500p' large-file.ts
 ```
 
 ### Chunking Decision Tree
@@ -116,7 +116,7 @@ File 500-1500 lines  → Split into 2-3 chunks
 File > 1500 lines    → Split into ceil(lines/500) chunks
 ```
 
-Spawn all in single message for parallel execution.
+Send all calls in a single message for parallel execution.
 
 ## Timeout and Error Handling
 

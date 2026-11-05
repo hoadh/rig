@@ -1,10 +1,10 @@
 # Task Orchestration
 
-Native Claude Task tools for tracking and coordinating fix workflows.
+Optional Tasks API (only if `TaskCreate` is available; otherwise track in phase files) for tracking and coordinating fix workflows.
 
-**Skill:** Activate `progress` for advanced task orchestration — provides hydration (plan checkboxes → Tasks), sync-back (Tasks → plan checkboxes), cross-session resume, and progress tracking patterns.
+**Skill:** Activate `progress` for advanced task orchestration — provides sync-back to plan checkboxes, cross-session resume, and progress tracking patterns.
 
-**Tool Availability:** `TaskCreate`, `TaskUpdate`, `TaskGet`, `TaskList` are **CLI-only** — disabled in VSCode extension (`isTTY` check). If these tools error, use `TodoWrite` for progress tracking instead. Fix workflow remains fully functional — Tasks add visibility and coordination, not core functionality.
+**Availability:** the Tasks API (`TaskCreate`, `TaskUpdate`, `TaskGet`, `TaskList`) is off by default (`CLAUDE_CODE_ENABLE_TODO_TOOLS=1` enables it). Create tasks only if `TaskCreate` is available; otherwise track steps in phase files. The fix workflow stays fully functional - tasks add visibility, not core function.
 
 ## When to Use Tasks
 
@@ -15,7 +15,7 @@ Native Claude Task tools for tracking and coordinating fix workflows.
 | Complex (Deep) | Yes | 9 steps, dependency chains, parallel agents |
 | Parallel | Yes | Multiple independent issue trees |
 
-## Task Tools
+## Tasks API
 
 - `TaskCreate(subject, description, activeForm, metadata)` - Create task
 - `TaskUpdate(taskId, status, addBlockedBy, addBlocks)` - Update status/deps

@@ -63,11 +63,11 @@ Fix all errors before distributing.
 
 ## Subagent Delegation Enforcement
 
-When a skill requires subagent delegation (via Task tool):
+When a skill requires subagent delegation (via Agent tool):
 
 1. **Use MUST language** - "Use subagent" is weak; "MUST spawn subagent" is enforceable
-2. **Include Task pattern** - Show exact syntax: `Task(subagent_type="X", prompt="Y", description="Z")`
-3. **Add validation rule** - "If Task tool calls = 0 at end, workflow is INCOMPLETE"
+2. **Include Agent pattern** - Show exact syntax: `Agent(subagent_type="X", prompt="Y", description="Z")`
+3. **Add validation rule** - "If Agent tool calls = 0 at end, workflow is INCOMPLETE"
 4. **Mark requirements clearly** - Use table with "MUST spawn" column
 5. **Forbid direct implementation** - "DO NOT implement X yourself - DELEGATE to subagent"
 
@@ -78,6 +78,6 @@ When a skill requires subagent delegation (via Task tool):
 
 **Correct pattern (enforceable):**
 ```
-- **MUST** spawn `tester` subagent: `Task(subagent_type="tester", prompt="Run tests", description="Test")`
+- **MUST** spawn `tester` subagent: `Agent(subagent_type="tester", prompt="Run tests", description="Test")`
 - DO NOT run tests yourself - DELEGATE
 ```

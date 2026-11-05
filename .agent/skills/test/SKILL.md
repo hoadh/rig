@@ -104,11 +104,11 @@ Use naming pattern from `## Naming` section injected by hooks.
 
 ## Team Mode
 
-When operating as teammate:
+When operating as teammate (Tasks API only if `TaskList` is available; otherwise coordinate via `SendMessage` and phase files):
 1. On start: check `TaskList`, claim assigned/next unblocked task via `TaskUpdate`
 2. Read full task description via `TaskGet` before starting
 3. Wait for blocked tasks (implementation) to complete before testing
 4. Respect file ownership — only create/edit test files assigned
 5. When done: `TaskUpdate(status: "completed")` then `SendMessage` results to lead
 
-**Fallback:** Task tools (`TaskList`/`TaskUpdate`/`TaskGet`) are CLI-only — unavailable in VSCode extension. If they error, use `TodoWrite` for progress tracking and coordinate via `SendMessage` only.
+**Optional:** the Tasks API is off by default. If `TaskList` is unavailable, coordinate via `SendMessage` and the phase files.

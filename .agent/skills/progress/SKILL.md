@@ -1,7 +1,7 @@
 ---
 name: progress
-description: "Track progress, update plan statuses, manage Claude Tasks, report status. Use for status checks, plan completion, task hydration."
-argument-hint: "[task: status, hydrate, sync, report]"
+description: "Track progress from plan phase tables, todo checkboxes and LIVE items; update plan statuses and report. Use for status checks and plan completion."
+argument-hint: "[task: status, sync, report]"
 metadata:
   author: rig
   version: "1.0.0"
@@ -9,7 +9,7 @@ metadata:
 
 # Progress Tracking
 
-Project oversight and coordination using Claude native Tasks with persistent plan files.
+Project oversight and coordination. Plan files (phase tables, todo checkboxes, `LIVE:` items) are the source of truth; the Tasks API is optional.
 
 **Principles:** Token efficiency | Concise reports | Data-driven insights
 
@@ -17,42 +17,30 @@ Project oversight and coordination using Claude native Tasks with persistent pla
 
 - Checking project status or progress across plans
 - Updating plan statuses after feature completion
-- Hydrating/syncing Claude Tasks with plan files
+- Syncing plan files with completed work (and with Tasks, when the Tasks API is in use)
 - Generating status reports or summaries
 - Coordinating documentation updates after milestones
 - Verifying task completeness against acceptance criteria
 - Cross-session resume of multi-phase work
 
-## Tool Availability
+## Source of Truth
 
-`TaskCreate`, `TaskUpdate`, `TaskGet`, `TaskList` are **CLI-only** — disabled in VSCode extension (`isTTY` check).
+Read progress from the plan files themselves:
+- `plan.md` phases table (`| Phase | Name | Status |`) and YAML frontmatter
+- `- [ ]` / `- [x]` todo checkboxes in each `phase-XX-*.md`
+- `## Pending Live Verification` items (`- [ ] LIVE:` / `LIVE(blocking):`), reported separately and excluded from progress %
 
-| Environment | Task Tools | Fallback |
-|-------------|-----------|----------|
-| CLI terminal | Available | — |
-| VSCode extension | **Disabled** | `TodoWrite` |
-
-**Fallback behavior:** If Task tools error, use `TodoWrite` for progress tracking. Plan file sync-back (checkbox updates, YAML frontmatter) works identically without Task tools. Core PM workflow remains functional.
+The Tasks API (`TaskCreate`/`TaskUpdate`/`TaskGet`/`TaskList`) is off by default in current Claude Code. Use it only if `TaskCreate` is available; otherwise track everything in the phase files. Everything below works either way.
 
 ## Core Capabilities
 
-### 1. Task Operations
-Load: `references/task-operations.md`
-
-Use `TaskCreate`, `TaskUpdate`, `TaskGet`, `TaskList` to manage session-scoped tasks (CLI only; see Tool Availability above).
-- Create tasks with metadata (phase, priority, planDir, phaseFile)
-- Track status: `pending` → `in_progress` → `completed`
-- Manage dependencies with `addBlockedBy` / `addBlocks`
+### 1. Task Operations (optional)
+Load: `references/task-operations.md` only when the Tasks API is available.
+- Create tasks with metadata (phase, priority, planDir, phaseFile), track `pending` -> `in_progress` -> `completed`
 - Coordinate parallel agents with scoped ownership
 
-### 2. Session Bridging (Hydration Pattern)
-Load: `references/hydration-workflow.md`
-
-Tasks are ephemeral. Plan files are persistent. The hydration pattern bridges them:
-- **Hydrate:** Read plan `[ ]` items → `TaskCreate` per unchecked item
-- **Work:** `TaskUpdate` tracks progress in real-time
-- **Sync-back:** Reconcile all completed tasks against all phase files, update `[ ]` → `[x]`, update YAML frontmatter status
-- **Resume:** Next session re-hydrates from remaining `[ ]` items
+### 2. Sync-Back
+Reconcile completed work against all phase files, update `[ ]` -> `[x]`, update phases table and YAML frontmatter status. If tasks exist, map each completed task to its `phase` / `phaseFile` first. Next session resumes from the remaining `[ ]` items.
 
 ### 3. Progress Tracking
 Load: `references/progress-tracking.md`
@@ -84,25 +72,24 @@ Generate reports: session summaries, plan completion, multi-plan overviews.
 ## Workflow
 
 ```
-[Scan Plans] → [Hydrate Tasks] → [Track Progress] → [Update Status] → [Generate Report] → [Trigger Doc Updates]
+[Scan Plans] → [Track Progress] → [Update Status] → [Generate Report] → [Trigger Doc Updates]
 ```
 
-1. `TaskList()` — check existing tasks first
-2. If empty: hydrate from plan files (unchecked items)
-3. During work: `TaskUpdate` as tasks progress
-4. On completion: run full-plan sync-back (all phase files, including backfill for earlier phases), then update YAML frontmatter
-5. Generate status report to reports directory
-6. Delegate doc updates if changes warrant
+1. Scan `./plans/*/plan.md`: phases table, todos, `LIVE:` items
+2. If tasks exist (`TaskList` available), reconcile them with the phase files
+3. On completion: run full-plan sync-back (all phase files, including backfill for earlier phases), then update the phases table and YAML frontmatter
+4. Generate status report to reports directory
+5. Delegate doc updates if changes warrant
 
 ## Mandatory Sync-Back Guard
 
 When updating plan status, NEVER mark only the currently active phase.
 
 1. Sweep all `phase-XX-*.md` files under the target plan directory.
-2. Reconcile every `TaskUpdate(status: "completed")` item to phase metadata (`phase` / `phaseFile`).
+2. If tasks exist, reconcile every completed task to phase metadata (`phase` / `phaseFile`).
 3. Backfill stale checkboxes in earlier phases before marking later phases done.
 4. Update `plan.md` status/progress from real checkbox counts.
-5. If any completed task cannot be mapped to a phase file, report unresolved mappings and do not claim full completion.
+5. If any completed task or step cannot be mapped to a phase file, report unresolved mappings and do not claim full completion.
 6. Live-verification guard: NEVER set a phase `Completed` (plan.md table or phase frontmatter), nor plan `status: completed`, while its `## Pending Live Verification` section has unchecked `- [ ] LIVE:` / `LIVE(blocking):` items. Keep/set `In Progress` and list the open items under "Awaiting live evidence" in the report. Do not backfill `LIVE:` checkboxes. Tick one only when evidence is recorded as a pointer under it (host, log path, UTC time, count/hash); raw excerpts need user approval. Open `LIVE:` items do not block dependents; `LIVE(blocking):` items do.
 
 ## Plan YAML Frontmatter

@@ -20,7 +20,7 @@ git diff --cached | grep -iE "(AKIA|api[_-]?key|token|password|secret|credential
 | OAuth | `client_secret`, `oauth_token` | `CLIENT_SECRET=abc` |
 
 ### Files to Warn About
-- `.env`, `.env.*` (except `.env.example`)
+- `.env`, `.env.*` (templates `.env.example`, `*.example`, `*.sample` may be committed)
 - `*.key`, `*.pem`, `*.p12`
 - `credentials.json`, `secrets.json`
 - `config/private.*`

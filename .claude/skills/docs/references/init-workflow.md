@@ -9,7 +9,7 @@
 
 ## Phase 2: Documentation Creation (docs-maintainer Agent)
 
-**CRITICAL:** You MUST spawn `docs-maintainer` agent via Task tool with merged reports. Do not wait for user input.
+**CRITICAL:** You MUST spawn `docs-maintainer` agent via Agent tool with merged reports. Do not wait for user input.
 
 Pass the gathered context to docs-maintainer agent to create initial documentation in the Diataxis layout (`references/diataxis-docs-layout.md`):
 - `README.md`: Update README with initial documentation (keep it under 300 lines)

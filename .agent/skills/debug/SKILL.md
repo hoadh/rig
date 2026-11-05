@@ -76,7 +76,7 @@ Structured diagnostic reports: Executive Summary → Technical Analysis → Reco
 
 ### 9. Task Management (`references/task-management-debugging.md`)
 
-Track investigation pipelines via Claude Native Tasks (TaskCreate, TaskUpdate, TaskList). Hydration pattern for multi-step investigations with dependency chains and parallel evidence collection. **Fallback:** Task tools are CLI-only — if unavailable (VSCode extension), use `TodoWrite` for tracking. Debug workflow remains fully functional.
+Track investigation pipelines with dependency chains and parallel evidence collection. Use the Tasks API only if `TaskCreate` is available; otherwise track steps in the investigation report. The debug workflow is fully functional without it.
 
 **Load when:** Multi-component investigation (3+ steps), parallel log collection, coordinating debugger subagents
 

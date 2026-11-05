@@ -33,7 +33,7 @@
 
 ## Phase 2: Documentation Update (docs-maintainer Agent)
 
-**CRITICAL:** You MUST spawn `docs-maintainer` agent via Task tool with merged reports and doc readings.
+**CRITICAL:** You MUST spawn `docs-maintainer` agent via Agent tool with merged reports and doc readings.
 
 Pass the gathered context to docs-maintainer agent to update documentation (paths per `references/diataxis-docs-layout.md`; if the user kept the legacy layout, use the legacy paths):
 - `README.md`: Update README (keep it under 300 lines)

@@ -119,12 +119,12 @@ Classify before routing. See `references/complexity-assessment.md`.
 | **Complex** | System-wide, architecture impact | `references/workflow-deep.md` |
 | **Parallel** | 2+ independent issues OR `--parallel` flag | Parallel `implementer` agents |
 
-**Task Orchestration (Moderate+ only):** After classifying, create native Claude Tasks for all phases upfront with dependencies. See `references/task-orchestration.md`.
+**Task Orchestration (Moderate+ only):** After classifying, create Claude Tasks for all phases upfront with dependencies, only if `TaskCreate` is available (otherwise track in phase files). See `references/task-orchestration.md`.
 - Skip for Quick workflow (< 3 steps, overhead exceeds benefit)
-- Use `TaskCreate` with `addBlockedBy` for dependency chains
-- Update via `TaskUpdate` as each phase completes
+- If available, use `TaskCreate` with `addBlockedBy` for dependency chains
+- If available, update via `TaskUpdate` as each phase completes
 - For Parallel: create separate task trees per independent issue
-- **Fallback:** Task tools (`TaskCreate`/`TaskUpdate`/`TaskGet`/`TaskList`) are CLI-only — unavailable in VSCode extension. If they error, use `TodoWrite` for progress tracking. Fix workflow remains fully functional without them.
+- **Optional:** the Tasks API (`TaskCreate`/`TaskUpdate`/`TaskGet`/`TaskList`) is off by default in current Claude Code. Create tasks only if `TaskCreate` is available; otherwise track steps in the plan or phase files. The fix workflow is fully functional without them.
 
 ### Step 4: Fix Implementation
 
@@ -152,7 +152,7 @@ See `references/prevention-gate.md` for prevention requirements.
 
 1. Report summary: confidence score, root cause, changes, files, prevention measures
 2. `docs-maintainer` subagent → update `./docs` if changes warrant (NON-OPTIONAL)
-3. `TaskUpdate` → mark ALL Claude Tasks `completed` (skip if Task tools unavailable)
+3. If tasks were created (`TaskUpdate` available), mark them all `completed`; otherwise update the phase file checkboxes
 4. Ask user if they want to commit via `git-operator` subagent
 5. Run `/rig:devlog` to write a concise devlog entry upon completion
 

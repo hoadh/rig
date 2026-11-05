@@ -1,5 +1,7 @@
 # Standard Workflow
 
+> Tasks API is optional (off by default): create tasks only if `TaskCreate` is available; otherwise track steps in the phase files. The `TaskCreate`/`TaskUpdate` calls below apply only when it is available.
+
 Full pipeline for moderate complexity issues. Uses native Claude Tasks for phase tracking.
 
 ## Task Setup (Before Starting)
@@ -26,9 +28,9 @@ T6 = TaskCreate(subject="Finalize",               activeForm="Finalizing",      
 
 **Pattern:** In SINGLE message, launch 2-3 Explore agents:
 ```
-Task("Explore", "Find [area1] files related to issue", "Explore area1")
-Task("Explore", "Find [area2] patterns/usage", "Explore area2")
-Task("Explore", "Find [area3] tests/dependencies", "Explore area3")
+Agent(subagent_type="Explore", prompt="Find [area1] files related to issue", description="Explore area1")
+Agent(subagent_type="Explore", prompt="Find [area2] patterns/usage", description="Explore area2")
+Agent(subagent_type="Explore", prompt="Find [area3] tests/dependencies", description="Explore area3")
 ```
 
 See `references/parallel-exploration.md` for patterns.
@@ -73,10 +75,10 @@ Fix the ROOT CAUSE per diagnosis findings. Not symptoms.
 3. **Defense-in-depth:** Apply prevention layers where applicable (see `references/prevention-gate.md`).
 4. **Parallel verification:** Launch `Bash` agents:
 ```
-Task("Bash", "Run typecheck", "Verify types")
-Task("Bash", "Run lint", "Verify lint")
-Task("Bash", "Run build", "Verify build")
-Task("Bash", "Run tests", "Verify tests")
+Bash: typecheck
+Bash: lint
+Bash: build
+Bash: tests
 ```
 
 **If verification fails:** Loop back to Step 2 (re-diagnose). Max 3 attempts.

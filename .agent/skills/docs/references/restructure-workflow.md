@@ -38,7 +38,7 @@ Aliases: `/docs restructure`, `/docs refactor`. An optional path after the subco
 
 ## Phase 4: Splits, Merges, Index (docs-maintainer Agent)
 
-**CRITICAL:** Spawn `docs-maintainer` via Task tool with the approved plan file. Instruct it to:
+**CRITICAL:** Spawn `docs-maintainer` via Agent tool with the approved plan file. Instruct it to:
 - Split each mixed/oversized page per the plan along type lines; move text, do not rewrite facts; cross-link the new pages.
 - Merge pages per the plan, then delete the leftover file and fix links pointing to it.
 - Create or update `docs/README.md` with the index template from the layout ref.

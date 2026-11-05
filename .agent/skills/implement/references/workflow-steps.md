@@ -2,7 +2,7 @@
 
 All modes share core steps with mode-specific variations.
 
-**Task Tool Fallback:** `TaskCreate`/`TaskUpdate`/`TaskGet`/`TaskList` are CLI-only — unavailable in VSCode extension. If they error, use `TodoWrite` for progress tracking. All workflow steps remain functional without Task tools.
+**Tasks API (optional):** `TaskCreate`/`TaskUpdate`/`TaskGet`/`TaskList` are off by default. Create tasks only if `TaskCreate` is available; otherwise track progress in the phase files. All workflow steps work without them.
 
 ## Step 0: Intent Detection & Setup
 
@@ -61,9 +61,9 @@ All modes share core steps with mode-specific variations.
 ## Step 3: Implementation
 
 Before starting:
-1. `TaskList` first — check for existing tasks (hydrated by planning skill in same session)
+1. If `TaskList` is available, check for existing tasks (hydrated by planning skill in same session); otherwise read the phase files
 2. If tasks exist → pick them up, skip re-creation
-3. If no tasks → read plan phases, `TaskCreate` for each unchecked `[ ]` item with priority order and metadata (`phase`, `planDir`, `phaseFile`)
+3. If no tasks and `TaskCreate` is available → read plan phases and create one task per unchecked `[ ]` item with priority order and metadata (`phase`, `planDir`, `phaseFile`); otherwise track in the phase files
 4. Tasks can be blocked by other tasks via `addBlockedBy`
 
 **All modes:**
@@ -98,7 +98,7 @@ Before starting:
 **All modes (except no-test):**
 - Write tests: happy path, edge cases, errors
 - Tests must run and pass; a failing suite is never waved through (it hides a regression).
-- Large tier: spawn `tester` (`Task(subagent_type="tester", prompt="Run test suite", description="Run tests")`); on failures spawn `debugger`, fix, repeat. Standard tier: run the suite in the main session.
+- Large tier: spawn `tester` (`Agent(subagent_type="tester", prompt="Run test suite", description="Run tests")`); on failures spawn `debugger`, fix, repeat. Standard tier: run the suite in the main session.
 - Forbidden: fake mocks, commented-out tests, weakened assertions
 
 **Output:** `✓ Step 4: Tests [X/X passed] - [tester subagent invoked | run in main session]`
@@ -111,7 +111,7 @@ Before starting:
 ## Step 5: Code Review
 
 **All modes (Standard: one pass, only if logic changed; Large: required gate):**
-- Spawn `code-reviewer`: `Task(subagent_type="code-reviewer", prompt="Review changes. Return score, critical issues, warnings.", description="Code review")`
+- Spawn `code-reviewer`: `Agent(subagent_type="code-reviewer", prompt="Review changes. Return score, critical issues, warnings.", description="Code review")`
 - Do not self-review the code you just wrote; an independent reviewer is the point of this gate
 
 **Interactive/Parallel/Code/No-test:**
@@ -133,8 +133,8 @@ Before starting:
 
 **Scales with tier (see "Gates by Tier" in `../SKILL.md`):**
 1. Spawn in parallel, only what applies:
-   - `progress-tracker` when a plan exists: `Task(subagent_type="progress-tracker", prompt="Run full sync-back for [plan-path]: reconcile all completed Claude Tasks with all phase files, backfill stale completed checkboxes across every phase, then update plan.md frontmatter/table progress. Do not only mark current phase.", description="Update plan")`
-   - `docs-maintainer` when docs impact is not none: `Task(subagent_type="docs-maintainer", prompt="Update docs for changes.", description="Update docs")`
+   - `progress-tracker` when a plan exists: `Agent(subagent_type="progress-tracker", prompt="Run full sync-back for [plan-path]: reconcile all completed work (and Claude Tasks, if the Tasks API is available) with all phase files, backfill stale completed checkboxes across every phase, then update plan.md frontmatter/table progress. Do not only mark current phase.", description="Update plan")`
+   - `docs-maintainer` when docs impact is not none: `Agent(subagent_type="docs-maintainer", prompt="Update docs for changes.", description="Update docs")`
 2. Progress-tracker sync-back includes:
 ### Status Sync (Finalize)
 
@@ -147,7 +147,7 @@ Exception: never set `Completed` for a phase with open `- [ ] LIVE:` / `LIVE(blo
    - Return unresolved mappings if any completed task cannot be matched to a phase file.
 3. Use `TaskUpdate` to mark Claude Tasks complete after sync-back confirmation.
 4. Onboarding check (API keys, env vars)
-5. Commit only when the user asks (or the flow says so), via git subagent: `Task(subagent_type="git-operator", prompt="Stage and commit changes", description="Commit")`
+5. Commit only when the user asks (or the flow says so), via git subagent: `Agent(subagent_type="git-operator", prompt="Stage and commit changes", description="Commit")`
 
 Large tier: skipping the applicable subagents leaves the plan and docs out of sync, so Step 6 is incomplete without them.
 
@@ -175,8 +175,8 @@ code:        0 → skip → skip → 3 → [R] → 4 → [R] → 5(user) → 6
 
 - Never skip steps without mode justification
 - Subagent delegation scales with tier (see `../SKILL.md` "Gates by Tier"): Large spawns `tester`, `code-reviewer`, and the applicable finalize agents; Standard runs tests in the main session with one review pass.
-- Use `TaskCreate` to create Claude Tasks for each unchecked item with priority order and dependencies (or `TodoWrite` if Task tools unavailable).
-- Use `TaskUpdate` to mark Claude Tasks `in_progress` when picking up a task (skip if Task tools unavailable).
-- Use `TaskUpdate` to mark Claude Tasks `complete` immediately after finalizing the task (skip if Task tools unavailable).
+- Create tasks only if `TaskCreate` is available (one per unchecked item, with priority order and dependencies); otherwise track in the phase files.
+- If tasks exist, mark them `in_progress` when picking up work.
+- If tasks exist, mark them `completed` right after finalizing; otherwise tick the phase-file checkbox.
 - All step outputs follow format: `✓ Step [N]: [status] - [metrics]`
-- **VALIDATION:** If Task tool calls = 0 at end of workflow, the workflow is INCOMPLETE.
+- **VALIDATION:** If Agent tool calls = 0 at end of workflow, the workflow is INCOMPLETE.

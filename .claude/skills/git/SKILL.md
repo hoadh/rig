@@ -52,6 +52,7 @@ Activate `rig:context-engineering` skill.
 
 ### Step 1: Stage + Analyze
 ```bash
+git status --porcelain   # review for secret files first: never stage .env*, keys, credentials (templates .env.example, *.example, *.sample are fine); else add by path
 git add -A && git diff --cached --stat && git diff --cached --name-only
 ```
 

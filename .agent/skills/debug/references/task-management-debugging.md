@@ -1,5 +1,7 @@
 # Debug Task Management Patterns
 
+> Tasks API is optional (off by default): create tasks only if `TaskCreate` is available; otherwise track steps in the phase files. The `TaskCreate`/`TaskUpdate` calls below apply only when it is available.
+
 Track investigation and debugging pipelines via Claude Native Tasks (TaskCreate, TaskUpdate, TaskList).
 
 ## When to Create Tasks

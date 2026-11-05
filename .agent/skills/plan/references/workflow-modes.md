@@ -94,7 +94,7 @@ Research → Explore → Plan 2 approaches → Compare → Hydrate Tasks.
 | parallel | Phase + steps + ownership | Parallel groups + sequential deps |
 | two | After user selects approach | Sequential chain |
 
-All modes: See `task-management.md` for TaskCreate patterns and metadata.
+All modes: See `task-management.md` for optional TaskCreate patterns (only if `TaskCreate` is available) and metadata.
 
 ## Post-Plan Red Team Review
 

@@ -30,8 +30,8 @@ Implement the fix directly.
 **Parallel Verification:**
 Launch `Bash` agents in parallel:
 ```
-Task("Bash", "Run typecheck", "Verify types")
-Task("Bash", "Run lint", "Verify lint")
+Bash: typecheck
+Bash: lint
 ```
 
 **Before/After comparison:** Re-run the EXACT command from pre-fix state capture. Compare output.

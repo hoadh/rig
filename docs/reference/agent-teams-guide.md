@@ -6,7 +6,7 @@
 
 ## Overview
 
-Agent Teams enable multiple **independent Claude Code sessions** working in parallel, coordinated by a lead session. Unlike subagents (Task tool), teammates have their own context windows, communicate peer-to-peer, and share a task list.
+Agent Teams enable multiple **independent Claude Code sessions** working in parallel, coordinated by a lead session. Unlike subagents (Agent tool), teammates have their own context windows, communicate peer-to-peer, and share a task list.
 
 **Use case:** Complex tasks where parallel exploration + inter-agent discussion adds value (research, cross-layer implementation, competing hypotheses).
 
@@ -31,9 +31,9 @@ Enable in `settings.json` (may be GA in Claude Code 2.1.33+):
 │  │                    TEAM LEAD                            │  │
 │  │            (your main Claude session)                   │  │
 │  │                                                         │  │
-│  │  - Create team (spawnTeam)                              │  │
+│  │  - Spawn named teammates (Agent tool)                    │  │
 │  │  - Create & assign tasks (TaskCreate/TaskUpdate)        │  │
-│  │  - Spawn teammates (Task tool + team_name)              │  │
+│  │  - Spawn teammates (Agent tool with name)              │  │
 │  │  - Message teammates (SendMessage)                      │  │
 │  │  - Synthesize results                                   │  │
 │  │  - Shut down teammates & cleanup                        │  │
@@ -85,7 +85,7 @@ Teammates automatically receive Rig context (reports path, naming pattern, branc
 ## Subagents vs Agent Teams
 
 ```
-SUBAGENTS (Task tool)                  AGENT TEAMS (Teammate tool)
+SUBAGENTS (Agent tool)                  AGENT TEAMS (Agent name + SendMessage)
 ═════════════════════                  ═════════════════════════════
 
   ┌─────────┐                            ┌─────────┐
@@ -182,12 +182,12 @@ Claiming: File locking prevents race conditions when multiple
 ```
 Phase 1: SETUP
 ══════════════
-  User prompt -> Lead calls Teammate(spawnTeam)
+  User prompt -> Lead spawns named teammates with the Agent tool
                  -> Team config at ~/.claude/teams/{name}/config.json
 
 Phase 2: POPULATE
 ═════════════════
-  Lead calls Task(team_name="{name}") x N
+  Lead calls Agent(name="{name}") x N
               |               |               |
           Teammate A      Teammate B      Teammate C
           (spawned)       (spawned)       (spawned)
@@ -207,10 +207,10 @@ Phase 4: SHUTDOWN
 
 Phase 5: CLEANUP
 ════════════════
-  Lead -> Teammate(cleanup)
+  Lead -> asks each teammate to finish and stop (SendMessage)
   ~/.claude/teams/{name}/  -> deleted
   ~/.claude/tasks/{name}/  -> deleted
-  (MUST shut down all teammates first or cleanup fails)
+  (Wait for all teammates to stop before ending the session)
 ```
 
 ## Display Modes
@@ -361,48 +361,20 @@ researcher learns:                     researcher reuses:
                      └── researcher/MEMORY.md  (in ~/.claude/)
 ```
 
-## Task(agent_type) Restrictions (v2.1.0)
+## Agent Tool Restrictions
 
-Controls which sub-agents each agent can spawn via `tools` frontmatter, preventing recursive spawning and token explosion.
-
-```
-BEFORE: No Restrictions                 AFTER: Controlled Access
-═══════════════════════                 ════════════════════════
-
-tester                                  tester
-  └─> spawns planner                      └─> Task(Explore) only
-        └─> spawns researcher
-              └─> spawns researcher     planner
-                    └─> ...               ├─> Task(Explore)
-                                          └─> Task(researcher)
-  = recursive spawning
-  = token explosion                     devlog-writer
-  = unpredictable costs                   └─> NO Task access
-
-                                        = controlled costs
-                                        = predictable behavior
-```
-
-| Agent | Allowed Sub-agents | Rationale |
-|-------|-------------------|-----------|
-| planner | `Task(Explore)`, `Task(researcher)` | Research-then-plan workflow |
-| tester, debugger | `Task(Explore)` | Read-only codebase search |
-| code-simplifier, implementer, docs-maintainer | `Task(Explore)` | Read-only codebase search |
-| ui-ux-designer | `Task(Explore)`, `Task(researcher)` | Design research needs |
-| devlog-writer, mcp-runner | No `Task` access | No sub-agent spawning needed |
+Agents no longer list `Task(Explore)` / `Task(researcher)` in `tools:`. Sub-agent spawning is not granted by the allowlist: editing agents rely on the built-in Explore agent from the main session, and read-only or web-facing agents (brainstormer, researcher, code-reviewer, mcp-runner, git-operator) keep minimal allowlists without the Agent tool. Do not use `disallowedTools` on those agents: it would open MCP, Agent, PowerShell and Workflow tools.
 
 ## Key Tools
 
 | Tool | Purpose |
 |------|---------|
-| `Teammate(operation: "spawnTeam")` | Create team |
-| `Task(team_name, name, subagent_type)` | Spawn teammate |
+| `Agent(name, subagent_type, prompt)` | Spawn a named teammate |
 | `TaskCreate / TaskUpdate / TaskList / TaskGet` | Manage shared tasks |
 | `SendMessage(type: "message")` | DM a teammate |
 | `SendMessage(type: "broadcast")` | Message all (use sparingly) |
 | `SendMessage(type: "shutdown_request")` | Request graceful shutdown |
 | `SendMessage(type: "plan_approval_response")` | Approve/reject teammate plans |
-| `Teammate(operation: "cleanup")` | Remove team resources |
 
 ## File Ownership (Critical)
 
@@ -436,7 +408,7 @@ All teammates inherit the lead's permission settings at spawn. If lead has `--da
 
 - **Version pairing:** Skill v2.1.0 requires Claude Code v2.1.33+ for hook events (TaskCompleted, TeammateIdle) and agent memory. Falls back to polling on older versions. Rig registers no handlers for these events.
 - No session resumption for in-process teammates (`/resume`, `/rewind` don't restore them)
-- One team per session (cleanup current before starting new)
+- One team per session (finish the current team before starting a new one)
 - No nested teams (teammates cannot spawn their own teams)
 - Lead is fixed for team lifetime (no promotion/transfer)
 - Permissions set at spawn (change individually after)

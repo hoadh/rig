@@ -32,7 +32,7 @@ IN CURRENT WORKING PROJECT DIRECTORY:
 
 ### Task Hydration
 
-After creating plan.md and phase files, hydrate tasks (unless `--no-tasks`):
+After creating plan.md and phase files, hydrate tasks only if `TaskCreate` is available (unless `--no-tasks`); otherwise skip:
 1. TaskCreate per phase with `addBlockedBy` dependency chain
 2. Add critical step tasks for high-risk items
 3. See `task-management.md` for patterns and implement handoff protocol

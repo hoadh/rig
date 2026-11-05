@@ -102,6 +102,7 @@ const RETIRED_KIT_FILES = [
   'skills/code-review/references/verification-before-completion.md',
   'skills/explore/references/internal-exploration.md',
   'skills/explore/references/task-management-exploration.md',
+  'skills/progress/references/hydration-workflow.md',
   'skills/sequential-thinking/.env.example',
   'skills/sequential-thinking/.gitignore',
   'skills/sequential-thinking/README.md',

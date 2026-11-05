@@ -135,7 +135,7 @@ flowchart TD
 5. **Plan Documentation** → Write comprehensive plan via planner subagent
 6. **Red Team Review** → Run `/plan red-team {plan-path}` (hard/parallel/two modes)
 7. **Post-Plan Validation** → Run `/plan validate {plan-path}` (hard/parallel/two modes)
-8. **Hydrate Tasks** → Create Claude Tasks from phases (default on, `--no-tasks` to skip)
+8. **Hydrate Tasks** → Only if `TaskCreate` is available: create Claude Tasks from phases (`--no-tasks` to skip); otherwise skip, phase files are the tracker
 9. **Context Reminder** → Output implement command with absolute path (MANDATORY)
 10. **Devlog** → Run `/devlog` to write a concise devlog entry upon completion
 
@@ -152,16 +152,16 @@ flowchart TD
 
 Plan files = persistent. Tasks = session-scoped. Hydration bridges the gap.
 
-**Default:** Auto-hydrate tasks after plan files are written. Skip with `--no-tasks`.
+**Default:** Optional. If `TaskCreate` is available, hydrate tasks after plan files are written (skip with `--no-tasks`); otherwise skip.
 **3-Task Rule:** <3 phases → skip task creation.
-**Fallback:** Task tools (`TaskCreate`/`TaskUpdate`/`TaskGet`/`TaskList`) are CLI-only — unavailable in VSCode extension. If they error, use `TodoWrite` for tracking. Plan files remain the source of truth; hydration is an optimization, not a requirement.
+**Optional:** the Tasks API is off by default. Create tasks only if `TaskCreate` is available; otherwise track in the phase files. Plan files remain the source of truth; hydration is an optimization, not a requirement.
 
 Load: `references/task-management.md` for hydration pattern, TaskCreate patterns, implement handoff protocol.
 
 ### Hydration Workflow
 1. Write plan.md + phase files (persistent layer)
-2. TaskCreate per phase with `addBlockedBy` chain (skip if Task tools unavailable)
-3. TaskCreate for critical/high-risk steps within phases (skip if Task tools unavailable)
+2. TaskCreate per phase with `addBlockedBy` chain
+3. TaskCreate for critical/high-risk steps within phases
 4. Metadata: phase, priority, planDir, phaseFile
 5. Implement picks up via TaskList (same session) or re-hydrates (new session)
 

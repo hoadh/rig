@@ -6,7 +6,7 @@ The rules, skills, workflows and agent files in `.agent/` are generated from Rig
 
 | Text says | Do this in Antigravity |
 |---|---|
-| Delegate to the `<name>` agent, spawn a subagent, `Task(...)`, `Agent(...)` | Read `.agent/agents/<name>.md` and do that role yourself, step by step. For independent work that can run in parallel, the user may start separate agents from the Agent Manager. Write the same report files the agent would write. |
+| Delegate to the `<name>` agent, spawn a subagent, `Agent(...)` | Read `.agent/agents/<name>.md` and do that role yourself, step by step. For independent work that can run in parallel, the user may start separate agents from the Agent Manager. Write the same report files the agent would write. |
 | `AskUserQuestion` | Ask the user in chat. List the options, mark the recommended one, and wait for the answer. |
 | `TaskCreate`, `TaskUpdate`, `TaskList`, `TodoWrite` | Track steps in your own task list. Plan files in `plans/` stay the source of truth. |
 | `Skill` tool, "activate the `<name>` skill", `/<name>` | Read `.agent/skills/<name>/SKILL.md` and follow it. |

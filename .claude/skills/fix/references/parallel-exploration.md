@@ -1,5 +1,7 @@
 # Parallel Exploration
 
+> Tasks API is optional (off by default): create tasks only if `TaskCreate` is available; otherwise track steps in the phase files. The `TaskCreate`/`TaskUpdate` calls below apply only when it is available.
+
 Patterns for launching multiple subagents in parallel to explore codebase, verify implementation, and coordinate via native Tasks.
 
 ## Parallel Exploration
@@ -11,35 +13,35 @@ Launch multiple `Explore` subagents simultaneously when needing to find:
 
 **Pattern:**
 ```
-Task(subagent_type="Explore", prompt="Find [X] in [area1]", description="Explore area1")
-Task(subagent_type="Explore", prompt="Find [Y] in [area2]", description="Explore area2")
-Task(subagent_type="Explore", prompt="Find [Z] in [area3]", description="Explore area3")
+Agent(subagent_type="Explore", prompt="Find [X] in [area1]", description="Explore area1")
+Agent(subagent_type="Explore", prompt="Find [Y] in [area2]", description="Explore area2")
+Agent(subagent_type="Explore", prompt="Find [Z] in [area3]", description="Explore area3")
 ```
 
 **Example - Multi-area exploration:**
 ```
 // Launch in SINGLE message with multiple Task calls:
-Task("Explore", "Find auth-related files in src/", "Explore auth")
-Task("Explore", "Find API routes handling users", "Explore API")
-Task("Explore", "Find test files for auth module", "Explore tests")
+Agent(subagent_type="Explore", prompt="Find auth-related files in src/", description="Explore auth")
+Agent(subagent_type="Explore", prompt="Find API routes handling users", description="Explore API")
+Agent(subagent_type="Explore", prompt="Find test files for auth module", description="Explore tests")
 ```
 
 ## Parallel Verification (Bash)
 
-Launch multiple `Bash` subagents to verify implementation from different angles.
+Run several Bash tool calls in a single message (parallel tool calls) to verify the implementation from different angles. There is no built-in Bash agent type.
 
 **Pattern:**
 ```
-Task(subagent_type="Bash", prompt="Run [command1]", description="Verify X")
-Task(subagent_type="Bash", prompt="Run [command2]", description="Verify Y")
+Bash: [command1]
+Bash: [command2]
 ```
 
 **Example - Multi-verification:**
 ```
-// Launch in SINGLE message:
-Task("Bash", "Run typecheck: bun run typecheck", "Verify types")
-Task("Bash", "Run lint: bun run lint", "Verify lint")
-Task("Bash", "Run build: bun run build", "Verify build")
+// Issue these Bash calls in a SINGLE message:
+Bash: typecheck: bun run typecheck
+Bash: lint: bun run lint
+Bash: build: bun run build
 ```
 
 ## Task-Coordinated Parallel (Moderate+)
@@ -57,8 +59,8 @@ T_B2 = TaskCreate(subject="[Issue B] Fix",   activeForm="Fixing B",   addBlocked
 T_final = TaskCreate(subject="Integration verify", addBlockedBy=[T_A2, T_B2])
 
 // Spawn agents per issue tree
-Task("implementer", "Fix Issue A. Claim tasks via TaskUpdate.", "Fix A")
-Task("implementer", "Fix Issue B. Claim tasks via TaskUpdate.", "Fix B")
+Agent(subagent_type="implementer", prompt="Fix Issue A. Claim tasks via TaskUpdate.", description="Fix A")
+Agent(subagent_type="implementer", prompt="Fix Issue B. Claim tasks via TaskUpdate.", description="Fix B")
 ```
 
 Agents claim work via `TaskUpdate(status="in_progress")` and complete via `TaskUpdate(status="completed")`. Blocked tasks auto-unblock when dependencies resolve.
@@ -69,8 +71,8 @@ Agents claim work via `TaskUpdate(status="in_progress")` and complete via `TaskU
 |----------|-------------------|
 | Root cause unclear, multiple suspects | 2-3 Explore agents on different areas |
 | Multi-module fix | Explore each module in parallel |
-| After implementation | Bash agents for typecheck + lint + build |
-| Before commit | Bash agents for test + build + lint |
+| After implementation | parallel Bash calls for typecheck + lint + build |
+| Before commit | parallel Bash calls for test + build + lint |
 | 2+ independent issues | Task trees per issue + implementer agents |
 
 ## Combining Explore + Tasks + Bash
@@ -81,15 +83,15 @@ Agents claim work via `TaskUpdate(status="in_progress")` and complete via `TaskU
 
 ```
 // Explore phase - parallel
-Task("Explore", "Find payment handlers", "Explore payments")
-Task("Explore", "Find order processors", "Explore orders")
+Agent(subagent_type="Explore", prompt="Find payment handlers", description="Explore payments")
+Agent(subagent_type="Explore", prompt="Find order processors", description="Explore orders")
 
 // Wait for results, implement fix, TaskUpdate each phase
 
 // Verify phase - parallel
-Task("Bash", "Run tests: bun test", "Run tests")
-Task("Bash", "Run typecheck", "Check types")
-Task("Bash", "Run build", "Verify build")
+Bash: tests: bun test
+Bash: typecheck
+Bash: build
 ```
 
 ## Resource Limits

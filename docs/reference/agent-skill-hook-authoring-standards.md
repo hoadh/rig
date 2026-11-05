@@ -161,3 +161,12 @@ tmp/
 temp/
 *.tmp
 ```
+
+## Agent and Skill Frontmatter (Claude Code)
+
+- Agent `tools:` is an allowlist. Keep it minimal for read-only and web-facing agents; never use `disallowedTools` there (it would open MCP, Agent, PowerShell and Workflow tools). Review the allowlists when Claude Code adds tools.
+- No dead tool names: `MultiEdit`, `LS`, `BashOutput`, `KillBash`, `Task(...)`, "Task tool" (it is the Agent tool). Enforced by `dead-tool-reference-scan.test.cjs`.
+- The Tasks API (`TaskCreate` and friends) is off by default: workflows create tasks only if available and otherwise track in phase files.
+- `effort:` per role; `skills:` preloads only where the skill is the agent's core workflow (tester -> `rig:test`, code-reviewer -> `rig:code-review`). No `omitClaudeMd`.
+- `disable-model-invocation: true` only on skills no other skill or agent invokes (`/rig:x`, `Skill(x)`, "activate x"); it blocks chained use. Enforced by `disable-model-invocation-chain-scan.test.cjs`.
+- `paths:` (YAML list of globs) scopes auto-activation of file-type skills such as ui-design and ui-styling; they stay user-invocable.

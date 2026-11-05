@@ -51,7 +51,7 @@ Write to the new paths; if the project still uses the legacy flat layout (e.g. `
 Use `docs-maintainer` subagent for documentation updates:
 
 ```
-Task(
+Agent(
   subagent_type: "docs-maintainer",
   prompt: "Update ./docs for [changes]. Work context: [path]",
   description: "Update docs"

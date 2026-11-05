@@ -66,7 +66,7 @@ Use these predefined tags for consistency:
 
 **description**: 1-2 sentences, concrete deliverables, reference phase file
 
-See `task-management.md` for full TaskCreate patterns and metadata.
+See `task-management.md` for full optional TaskCreate patterns (only if `TaskCreate` is available) and metadata.
 
 ## Task Breakdown
 

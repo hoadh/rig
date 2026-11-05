@@ -305,8 +305,7 @@ Step 5: Agent times out (3m)     → Keep in_progress, add error metadata
 
 | Tool | Operation | Purpose |
 |------|-----------|---------|
-| TeammateTool | `spawnTeam` | Create team + task list |
-| TeammateTool | `cleanup` | Remove team/task dirs |
+| Agent | `name` | Spawn a named teammate |
 | SendMessage | `message` | DM to one teammate |
 | SendMessage | `broadcast` | Send to ALL teammates |
 | SendMessage | `shutdown_request` | Ask teammate to exit |
@@ -453,4 +452,4 @@ Các skills output theo format chuẩn:
 2. **Tất cả phases có corresponding tasks**
 3. **Required metadata fields present**
 4. **Task count matches unchecked `[ ]` items**
-5. **Nếu Task tool calls = 0 cuối workflow** → workflow INCOMPLETE
+5. **Nếu Agent tool calls = 0 cuối workflow** → workflow INCOMPLETE

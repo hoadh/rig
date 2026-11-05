@@ -6,6 +6,8 @@ Execute via `git-operator` subagent.
 If the tree is clean and nothing is ahead of remote, output exactly `nothing to commit (working tree clean)` (for `cp` also `nothing to push` when ahead = 0) and stop. No "pushed" line.
 
 ```bash
+# Review porcelain first: stop if secret files (.env*, keys, credentials) would be swept in. Templates (.env.example, *.example, *.sample) are fine.
+if git status --porcelain | grep -iE '(^|[ /])\.env[^ ]*$|\.(pem|key|p12|keystore)$|credentials|secrets\.json' | grep -viE '\.(example|sample)$'; then echo 'SECRET-FILES: stage by explicit path, skip these'; exit 1; fi
 git add -A && \
 echo "=== STAGED ===" && git diff --cached --stat && \
 echo "=== SECURITY ===" && \
@@ -21,6 +23,8 @@ git diff --cached --name-only | awk -F'/' '{
 ```
 
 **If SECRETS > 0:** STOP, show matches, block commit.
+
+**Staging rule:** `git add -A` / `git add .` only after `git status --porcelain` was reviewed for secret files (never stage `.env*`, keys, credentials; templates `.env.example`, `*.example`, `*.sample` may be committed). If any appear, stage by explicit path instead.
 
 ## Tool 2: Split Decision
 

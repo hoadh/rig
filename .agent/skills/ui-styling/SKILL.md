@@ -1,6 +1,17 @@
 ---
 name: ui-styling
 description: "Style UIs with shadcn/ui (Radix UI + Tailwind CSS). Use for accessible components, themes, dark mode, responsive layouts."
+paths:
+  - "**/*.tsx"
+  - "**/*.jsx"
+  - "**/*.vue"
+  - "**/*.svelte"
+  - "**/*.css"
+  - "**/*.scss"
+  - "**/*.html"
+  - "**/*.astro"
+  - "**/*.less"
+  - "**/*.sass"
 license: MIT
 argument-hint: "[component or layout]"
 metadata:

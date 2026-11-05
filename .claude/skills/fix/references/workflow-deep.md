@@ -1,5 +1,7 @@
 # Deep Workflow
 
+> Tasks API is optional (off by default): create tasks only if `TaskCreate` is available; otherwise track steps in the phase files. The `TaskCreate`/`TaskUpdate` calls below apply only when it is available.
+
 Full pipeline with research, brainstorming, and planning for complex issues. Uses native Claude Tasks with dependency chains.
 
 ## Task Setup (Before Starting)
@@ -25,9 +27,9 @@ T9 = TaskCreate(subject="Finalize & docs",               activeForm="Finalizing"
 
 **Mandatory:** Activate `rig:explore` skill or launch 2-3 `Explore` subagents in parallel:
 ```
-Task("Explore", "Find error origin and affected components", "Trace error")
-Task("Explore", "Find module boundaries and dependencies", "Map deps")
-Task("Explore", "Find related tests and similar patterns", "Find patterns")
+Agent(subagent_type="Explore", prompt="Find error origin and affected components", description="Trace error")
+Agent(subagent_type="Explore", prompt="Find module boundaries and dependencies", description="Map deps")
+Agent(subagent_type="Explore", prompt="Find related tests and similar patterns", description="Find patterns")
 ```
 
 Map: all affected files, module boundaries, call chains, test coverage gaps.

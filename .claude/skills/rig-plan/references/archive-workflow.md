@@ -20,7 +20,7 @@ Use `AskUserQuestion` tool to ask if user wants to document devlog entries or no
 Skip this step if user selects "No".
 If user selects "Yes":
 - Analyze the information in previous steps.
-- Use Task tool with `subagent_type="devlog-writer"` in parallel to document all plans.
+- Use Agent tool with `subagent_type="devlog-writer"` in parallel to document all plans.
 - Devlog entries should be concise and focused on the most important events, key changes, impacts, and decisions.
 - Keep devlog entries in the `./docs/devlog/` directory.
 

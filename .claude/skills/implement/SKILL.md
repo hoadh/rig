@@ -105,7 +105,7 @@ flowchart TD
 
 **Default (non-auto):** Stops at `[Review]` gates for human approval before each major step.
 **Auto mode (`--auto`):** Skips human review gates, implements all phases continuously.
-**Claude Tasks:** Utilize `TaskCreate`, `TaskUpdate`, `TaskGet`, `TaskList` during implementation step. **Fallback:** These are CLI-only tools — unavailable in VSCode extension. If they error, use `TodoWrite` for progress tracking instead.
+**Tasks API (optional):** create tasks only if `TaskCreate` is available; otherwise track in the phase files.
 
 | Mode | Research | Testing | Review Gates | Phase Progression |
 |------|----------|---------|--------------|-------------------|
@@ -136,7 +136,7 @@ Human review required at these checkpoints (skipped with `--auto`):
 - **Finalize:** scales with tier (table below). Docs and plan sync are skipped when there is nothing to sync, not silently.
   1. `progress-tracker` subagent (only when a plan exists) -> run full plan sync-back (all completed tasks/steps across all `phase-XX-*.md`, not only current phase), then update `plan.md` status/progress
   2. `docs-maintainer` subagent (only when docs impact is not none) -> update `./docs`
-  3. `TaskUpdate` -> mark all Claude Tasks complete after sync-back verification (skip if Task tools unavailable)
+  3. If tasks were created (`TaskUpdate` available), mark them complete after sync-back verification; otherwise the phase-file checkboxes are the record
   4. Ask user if they want to commit via `git-operator` subagent
   5. Large tier: run `/rig:devlog` to write a concise devlog entry upon completion
 
@@ -150,7 +150,7 @@ Human review required at these checkpoints (skipped with `--auto`):
 | Review | One `code-reviewer` pass if logic changed | `code-reviewer` subagent gate |
 | Finalize | `progress-tracker` if a plan exists; `docs-maintainer` if docs impact; `git-operator` on request | `progress-tracker`, `docs-maintainer` when docs impact, `git-operator` |
 
-Why subagents at Large: tester and reviewer run with fresh context, so they do not inherit the implementer's blind spots. If a Large workflow ends with zero subagent calls, treat it as incomplete. Pattern: `Task(subagent_type="[type]", prompt="[task]", description="[brief]")`.
+Why subagents at Large: tester and reviewer run with fresh context, so they do not inherit the implementer's blind spots. If a Large workflow ends with zero subagent calls, treat it as incomplete. Pattern: `Agent(subagent_type="[type]", prompt="[task]", description="[brief]")`.
 
 ## Multi-Machine Plans
 

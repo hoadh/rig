@@ -1,5 +1,7 @@
 # UI Fix Workflow
 
+> Tasks API is optional (off by default): create tasks only if `TaskCreate` is available; otherwise track steps in the phase files. The `TaskCreate`/`TaskUpdate` calls below apply only when it is available.
+
 For fixing visual/UI issues. Requires design skills. Uses native Claude Tasks for phase tracking.
 
 ## Required Skills (activate in order)
