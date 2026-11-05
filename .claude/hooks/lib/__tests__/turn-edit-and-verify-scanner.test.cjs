@@ -58,6 +58,8 @@ test('editing agents count as edits; tester agent verifies', () => {
   assert.strictEqual(scan([P(), F.agent('researcher')]).hasEdit, false);
   assert.strictEqual(scan([P(), F.agent('implementer'), F.agent('tester')]).verified, true);
   assert.strictEqual(scan([P(), F.agent('tester'), F.agent('implementer')]).verified, false);
+  assert.strictEqual(scan([P(), F.agent('implementer'), F.agent('rig:tester')]).verified, true);
+  assert.strictEqual(scan([P(), F.agent('RIG:Implementer')]).hasEdit, true);
 });
 
 test('injected entries between edit and stop do not start a new turn', () => {

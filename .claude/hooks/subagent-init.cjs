@@ -28,6 +28,7 @@ try {
   const { resolveSkillsVenv } = require('./lib/context-builder.cjs');
   const { createHookTimer, logHookCrash } = require('./lib/hook-logger.cjs');
   const { yieldsToProjectCopy } = require('./lib/global-hook-yields-to-project-copy.cjs');
+  const { normalizeAgentType, sanitizeForFilename } = require('./lib/agent-type-normalizer.cjs');
 
   // Early exit if hook disabled in config
   if (!isHookEnabled('subagent-init')) {
@@ -38,7 +39,7 @@ try {
  * Get agent-specific context from config
  */
 function getAgentContext(agentType, config) {
-  const agentConfig = config.subagent?.agents?.[agentType];
+  const agentConfig = config.subagent?.agents?.[normalizeAgentType(agentType)];
   if (!agentConfig?.contextPrefix) return null;
   return agentConfig.contextPrefix;
 }
@@ -54,7 +55,7 @@ const PLAN_AWARE_AGENTS = new Set([
  * Status lives in plan.md itself; agents edit it directly in the canonical format
  */
 function buildPlanStatusSection(agentType) {
-  if (!PLAN_AWARE_AGENTS.has(agentType)) return [];
+  if (!PLAN_AWARE_AGENTS.has(normalizeAgentType(agentType))) return [];
   return [
     ``,
     `## Plan Status Updates`,
@@ -167,7 +168,7 @@ async function main() {
     // Naming templates (computed directly for reliable injection)
     lines.push(``);
     lines.push(`## Naming`);
-    lines.push(`- Report: ${path.join(reportsPath, `${agentType}-${namePattern}.md`)}`);
+    lines.push(`- Report: ${path.join(reportsPath, `${sanitizeForFilename(normalizeAgentType(agentType))}-${namePattern}.md`)}`);
     lines.push(`- Plan dir: ${path.join(plansPath, namePattern)}/`);
 
     // Plan status update guidance for plan-aware agents (Issue #540)

@@ -39,6 +39,16 @@ t.test('M1: new denylist entries (any dir) need explicit owns', () => {
   t.eq(G.evaluateChanges([ch('README.md')], ['**']), []);
 });
 
+t.test('plugin packaging paths are denylisted; lookalikes are not', () => {
+  const hit = ['plugins/rig/hooks/x.cjs', 'plugins/rig/hooks/sub/y.sh', 'plugins/rig/bin/rig', '.claude-plugin/plugin.json',
+    'plugins/rig/.claude-plugin/plugin.json', 'hooks/hooks.json', 'plugins/rig/hooks/hooks.json', '.worktreeinclude', 'a/b/.worktreeinclude',
+    'plugins/rig/scripts/x.cjs', 'plugins/rig/skills/remote/scripts/lib/g.cjs', 'plugins/rig/settings.json', 'plugins/hooks/x.cjs'];
+  for (const p of hit) t.eq(G.evaluateChanges([ch(p)], ['**']).map((v) => v.rule), ['denylisted'], p);
+  const miss = ['plugins/readme.md', 'src/hooks/handler.js', 'src/bin/tool.js', 'docs/worktreeinclude.md', 'src/plugins/rig/x.cjs'];
+  for (const p of miss) t.eq(G.evaluateChanges([ch(p)], ['**']), [], p);
+  t.eq(G.evaluateChanges([ch('plugins/rig/bin/rig')], ['plugins/rig/bin/**']), []);
+});
+
 t.test('M1: repeated ** does not backtrack catastrophically', () => {
   const start = Date.now();
   const g = '**/**/**/**/**/**/**/**/x';

@@ -14,6 +14,7 @@
  */
 const crypto = require('crypto');
 const fs = require('fs');
+const { normalizeAgentType } = require('./agent-type-normalizer.cjs');
 const { detectVerifyCommand } = require('./verify-command-detector.cjs');
 
 const TAIL_BYTES = 4 * 1024 * 1024;
@@ -135,8 +136,7 @@ function isCodeEdit(block) {
 }
 
 function agentType(block) {
-  const t = block.input && typeof block.input.subagent_type === 'string' ? block.input.subagent_type : '';
-  return t.split(':').pop().trim();
+  return normalizeAgentType(block.input && block.input.subagent_type);
 }
 
 /**

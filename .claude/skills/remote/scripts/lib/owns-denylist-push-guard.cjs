@@ -17,6 +17,9 @@ const DENYLIST = [
   '.husky/**', '.githooks/**', '.pre-commit-config.yaml', 'lefthook.yml', '.gitattributes', '.gitmodules',
   // agent / editor / tool configs that execute or steer code when a human or agent opens the repo
   '**/.mcp.json', '**/CLAUDE.md', '**/.vscode/**', '**/.cursor/**', '**/.envrc', '**/.npmrc', '**/.yarnrc*',
+  // plugin packaging: the whole plugin tree (hooks, bin, scripts, skills, agents, settings) runs or steers
+  // code like .claude/** does; manifests and worktree seeding run code on install/open
+  'plugins/*/**', '**/.claude-plugin/**', '**/hooks/hooks.json', '**/.worktreeinclude',
 ];
 const SPECIAL_MODES = new Set(['120000', '160000']);
 

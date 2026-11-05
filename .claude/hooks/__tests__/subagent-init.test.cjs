@@ -169,6 +169,27 @@ describe('subagent-init.cjs', () => {
       }
     });
 
+    it('treats plugin-prefixed agent types (rig:planner) like bare names and keeps filenames safe', async () => {
+      const result = await runHook({ agent_type: 'rig:planner', agent_id: 'test-prefix', cwd: process.cwd() });
+      const context = result.output?.hookSpecificOutput?.additionalContext || '';
+      assert.ok(context.includes('## Plan Status Updates'), 'rig:planner should be plan-aware');
+      assert.ok(context.includes('## Subagent: rig:planner'), 'raw type kept for display');
+      assert.ok(!/rig:planner-/.test(context), 'report filename must not contain the raw prefixed type');
+      assert.ok(/planner-[^\s]*\.md/.test(context), 'report filename uses the bare name');
+
+      const reportOf = (ctx) => ((ctx.match(/- Report: (.*)/) || [])[1] || '').trim();
+      const plannerReport = reportOf(context);
+      assert.ok(plannerReport, 'planner report path present');
+      // path.join alone would collapse x/../y; the report must stay a single file in the same reports dir
+      for (const hostileType of ['rig:x/../y', 'rig:a:b', 'rig:..\\..\\evil']) {
+        const hostile = await runHook({ agent_type: hostileType, agent_id: 'test-hostile', cwd: process.cwd() });
+        const report = reportOf(hostile.output?.hookSpecificOutput?.additionalContext || '');
+        assert.ok(report, `report path present for ${hostileType}`);
+        assert.strictEqual(path.dirname(report), path.dirname(plannerReport), `${hostileType}: ${report}`);
+        assert.ok(!/[:\\/]|\.\./.test(path.basename(report).replace(/^[A-Za-z]:/, '')), `${hostileType}: ${report}`);
+      }
+    });
+
     it('does NOT inject plan status section for non-plan agents', async () => {
       const nonPlanTypes = ['tester', 'debugger', 'researcher', 'git-operator', 'test-agent'];
 
