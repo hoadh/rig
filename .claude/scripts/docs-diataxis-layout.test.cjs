@@ -54,7 +54,7 @@ test('findMarkdownFilesRecursive recurses and skips devlog, legacy journals and 
   write(docs, 'journals/j.md');
   write(docs, '.hidden/h.md');
   write(docs, 'reference/not-md.txt');
-  const names = layout.findMarkdownFilesRecursive(docs).map(f => path.relative(docs, f)).sort();
+  const names = layout.findMarkdownFilesRecursive(docs).map(f => path.relative(docs, f).split(path.sep).join('/')).sort();
   assert.deepStrictEqual(names, ['README.md', 'explanation/decisions/b.md', 'reference/a.md']);
 });
 

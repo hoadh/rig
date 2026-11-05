@@ -25,7 +25,8 @@ const {
 
 // Real path of the temp dir: on macOS os.tmpdir() is under /var, a symlink to /private/var,
 // while git reports the resolved path.
-const TMP = fs.realpathSync(os.tmpdir());
+// .native expands Windows 8.3 short names (RUNNER~1) the way git reports paths
+const TMP = fs.realpathSync.native(os.tmpdir());
 // Platform-neutral fixture root (a POSIX '/home/user/project' is not absolute on Windows)
 const PROJECT_DIR = path.join(TMP, 'home', 'user', 'project');
 const SUBFOLDER_DIR = path.join(TMP, 'project', 'subfolder');

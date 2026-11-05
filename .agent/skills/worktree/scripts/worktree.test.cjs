@@ -7,6 +7,16 @@
 const { execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
+
+// Portable fixtures (no /tmp or /etc/passwd literals): a plain file and a non-git dir.
+const FIXTURE_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'worktree-test-'));
+const A_FILE = path.join(FIXTURE_DIR, 'not-a-dir.txt');
+fs.writeFileSync(A_FILE, 'x');
+const NON_GIT_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'worktree-test-nongit-'));
+process.on('exit', () => {
+  for (const d of [FIXTURE_DIR, NON_GIT_DIR]) { try { fs.rmSync(d, { recursive: true, force: true }); } catch { /* best effort */ } }
+});
 
 const SCRIPT_PATH = path.join(__dirname, 'worktree.cjs');
 const STANDALONE_DIR = path.dirname(path.dirname(__dirname)); // worktree dir
@@ -320,11 +330,11 @@ test('info shows worktreeRoot and worktreeRootSource', () => {
 });
 
 test('create --worktree-root overrides default location', () => {
-  const customRoot = '/tmp/test-worktrees';
+  const customRoot = path.join(FIXTURE_DIR, 'test-worktrees');
   const result = run(`create test-custom-root --prefix feat --dry-run --json --worktree-root "${customRoot}"`);
   assert(result.success, 'Should succeed with custom root');
   const json = assertJSON(result.output);
-  assert(json.wouldCreate.worktreePath.startsWith(customRoot), 'Path should use custom root');
+  assert(json.wouldCreate.worktreePath.startsWith(path.resolve(customRoot)), 'Path should use custom root');
   assert(json.wouldCreate.worktreeRootSource === '--worktree-root flag', 'Source should be flag');
 });
 
@@ -370,11 +380,12 @@ test('WORKTREE_ROOT env var overrides detection', () => {
 });
 
 test('invalid WORKTREE_ROOT env var fails safely', () => {
-  const invalidRoot = '/etc/passwd';
+  const invalidRoot = A_FILE;
   try {
-    execSync(`WORKTREE_ROOT="${invalidRoot}" node "${SCRIPT_PATH}" info --json`, {
+    execSync(`node "${SCRIPT_PATH}" info --json`, {
       encoding: 'utf-8',
       cwd: STANDALONE_DIR,
+      env: { ...process.env, WORKTREE_ROOT: invalidRoot },
       stdio: ['pipe', 'pipe', 'pipe']
     });
     assert(false, 'Should fail with invalid WORKTREE_ROOT');
@@ -429,7 +440,7 @@ test('error commands return exit code 1', () => {
 });
 
 test('non-git directory returns error', () => {
-  const result = run('info --json', { cwd: '/tmp' });
+  const result = run('info --json', { cwd: NON_GIT_DIR });
   assert(!result.success, 'Should fail in non-git dir');
   const json = assertJSON(result.output);
   assert(json.error.code === 'NOT_GIT_REPO', 'Should have NOT_GIT_REPO error');
@@ -516,8 +527,8 @@ test('create handles home directory expansion', () => {
 });
 
 test('create validates file path as worktree root', () => {
-  // /etc/passwd exists but is a file, not directory
-  const result = run('create test-file --prefix feat --json --worktree-root "/etc/passwd"');
+  // A_FILE exists but is a file, not a directory
+  const result = run(`create test-file --prefix feat --json --worktree-root "${A_FILE}"`);
   assert(!result.success, 'Should fail when path is file');
   const json = assertJSON(result.output);
   assert(json.error.code === 'INVALID_WORKTREE_ROOT', 'Should have INVALID_WORKTREE_ROOT');

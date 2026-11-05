@@ -62,6 +62,16 @@ function test(name, fn) {
   }
 }
 
+// Fake `git` slower than RIG_GIT_TIMEOUT_MS. execSync runs through a shell, so cmd.exe
+// finds git.cmd via PATHEXT on Windows; POSIX shells need an executable `git` script.
+const FAKE_GIT_NAME = process.platform === 'win32' ? 'git.cmd' : 'git';
+function writeSlowFakeGit(file) {
+  const body = process.platform === 'win32'
+    ? '@ping -n 2 127.0.0.1 >nul\r\n@echo.\r\n'
+    : '#!/bin/sh\nsleep 0.2\necho ""\n';
+  fs.writeFileSync(file, body, { mode: 0o755 });
+}
+
 function assertEquals(actual, expected, msg = '') {
   if (actual !== expected) {
     throw new Error(`${msg}\n  Expected: ${JSON.stringify(expected)}\n  Actual: ${JSON.stringify(actual)}`);
@@ -742,22 +752,18 @@ test('processEntry hydrates native task id from TaskCreate tool_result', () => {
 test('getGitInfo timeout does not cache null result', () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'git-timeout-no-cache-'));
   const fakeBinDir = fs.mkdtempSync(path.join(os.tmpdir(), 'fake-git-bin-'));
-  const fakeGit = path.join(fakeBinDir, 'git');
+  const fakeGit = path.join(fakeBinDir, FAKE_GIT_NAME);
   const hash = crypto.createHash('md5').update(tmpDir).digest('hex').slice(0, 8);
   const cachePath = path.join(os.tmpdir(), `rig-git-cache-${hash}.json`);
   const originalPath = process.env.PATH;
   const originalTimeout = process.env.RIG_GIT_TIMEOUT_MS;
 
-  fs.writeFileSync(
-    fakeGit,
-    '#!/bin/sh\nsleep 0.2\necho ""\n',
-    { mode: 0o755 }
-  );
+  writeSlowFakeGit(fakeGit);
 
   try {
     try { fs.unlinkSync(cachePath); } catch {}
     invalidateCache(tmpDir);
-    process.env.PATH = `${fakeBinDir}:${originalPath || ''}`;
+    process.env.PATH = `${fakeBinDir}${path.delimiter}${originalPath || ''}`;
     process.env.RIG_GIT_TIMEOUT_MS = '50';
 
     const result = getGitInfo(tmpDir);
@@ -778,25 +784,21 @@ test('getGitInfo timeout does not cache null result', () => {
 test('getGitInfo timeout reuses stale cache when available', () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'git-timeout-stale-'));
   const fakeBinDir = fs.mkdtempSync(path.join(os.tmpdir(), 'fake-git-bin-'));
-  const fakeGit = path.join(fakeBinDir, 'git');
+  const fakeGit = path.join(fakeBinDir, FAKE_GIT_NAME);
   const hash = crypto.createHash('md5').update(tmpDir).digest('hex').slice(0, 8);
   const cachePath = path.join(os.tmpdir(), `rig-git-cache-${hash}.json`);
   const originalPath = process.env.PATH;
   const originalTimeout = process.env.RIG_GIT_TIMEOUT_MS;
   const staleData = { branch: 'stale', unstaged: 1, staged: 2, ahead: 0, behind: 0 };
 
-  fs.writeFileSync(
-    fakeGit,
-    '#!/bin/sh\nsleep 0.2\necho ""\n',
-    { mode: 0o755 }
-  );
+  writeSlowFakeGit(fakeGit);
 
   try {
     fs.writeFileSync(
       cachePath,
       JSON.stringify({ timestamp: Date.now() - 120000, data: staleData })
     );
-    process.env.PATH = `${fakeBinDir}:${originalPath || ''}`;
+    process.env.PATH = `${fakeBinDir}${path.delimiter}${originalPath || ''}`;
     process.env.RIG_GIT_TIMEOUT_MS = '50';
 
     const result = getGitInfo(tmpDir);
