@@ -47,7 +47,8 @@ function readFrontmatterText(file) {
   return out;
 }
 
-const bytes = (file) => Buffer.byteLength(fs.readFileSync(file));
+// Count LF bytes: a Windows CRLF checkout adds a \r per line that is not in the repo content.
+const bytes = (file) => Buffer.byteLength(fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n'));
 
 describe('always-loaded context budget', () => {
 
