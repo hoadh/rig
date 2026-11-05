@@ -44,7 +44,9 @@
 * **install:** `install.sh` on Windows redirects to `install.ps1`. The kit installer's `--install-skills` runs `install.ps1` on win32.
 * **line endings:** `.gitattributes` pins LF for `*.sh` and `ui-design` data. This fixes `validate_data.py` on Windows clones.
 * **docs:** agent and skill instructions give Windows-safe commands.
-* **tests:** hook and remote suites pass on Windows.
+* **rig:remote:** a valid `.rig/<dir>` worktree was rejected as "exists but is not a worktree" on Windows when the repo path held an 8.3 short name (`RUNNER~1`). Paths are now compared with `fs.realpathSync.native`.
+* **hooks:** the Bash tokenizer resolves an absolute `cd` target the same way as a relative one (native form on Windows).
+* **tests:** all node suites pass in CI on Ubuntu, macOS and Windows (first full run: 1 macOS and 11 Windows files failed). Fixes cover tmp-path realpath (`/private/var`, 8.3 names), CRLF checkouts, path separators, a `git.cmd` fake git, and `/tmp` and `/etc/passwd` literals. The `rig:remote` test harness prints full assertion diffs.
 
 ## 1.0.0 (2026-10-17)
 
