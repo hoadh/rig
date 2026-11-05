@@ -11,6 +11,12 @@ Devlog of shipped work, decisions, failures and lessons learned. Newest first.
   - Rest were POSIX-only test assumptions (tmp realpath, CRLF, separators, `/etc/passwd`, sh fake git)
   - Lesson: build expected paths like the code does; rerun base branch before blaming a branch (2 flaky remote tests)
 
+- **261104-claude-code-native-alignment-plan.md**
+  - Planned, not started: 1.1 cleanup (plan 1530) then 2.0 plugin packaging (plan 1426), from the Claude Code changelog review
+  - Found broken: `team` (TeamCreate removed), Tasks API hydration silently skipped, double-loaded rules on global+project installs
+  - Red team: 15 findings (7 Critical), all accepted; release split after red team; 1427 P4/P5 cancelled
+  - Lesson: link overlapping plans across sessions and worktrees in both directions straight away
+
 - **261104-self-assessment-fixes-shipped.md**
   - Shipped on `feat/self-assessment-fixes`, merged to `main`: CI runs lint and all suites, 381 lint errors fixed, secret-file Bash read rule, size tiers (always-loaded rules 25.6KB → 13.0KB), 36-run benchmark
   - Benchmark: Rig 18/18 vs vanilla 17/18 hidden tests, Rig ~1.5x cost ($14.23 total); no quality gain shown, tasks too easy
