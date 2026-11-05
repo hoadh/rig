@@ -1,5 +1,5 @@
 ---
-description: "Track progress, update plan statuses, manage Claude Tasks, generate reports, coordinate docs updates. Use for project oversight, status checks, plan completion, task hydration, cross-session continuity."
+description: "Track progress, update plan statuses, manage Claude Tasks, report status. Use for status checks, plan completion, task hydration."
 ---
 
 Read `.agent/skills/progress/SKILL.md` and follow it.

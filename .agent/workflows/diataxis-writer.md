@@ -1,5 +1,5 @@
 ---
-description: "Write, restructure, classify, and review documentation with the Diataxis framework. Use when the user asks to create, improve, audit, or reorganize documentation of any kind: knowledge bases, help centers, onboarding guides, process docs,..."
+description: "Write, restructure or audit documentation with the Diataxis framework (tutorials, how-to, reference, explanation), or rewrite to Simplified Technical English. Use for docs of any kind."
 ---
 
 Read `.agent/skills/diataxis-writer/SKILL.md` and follow it.

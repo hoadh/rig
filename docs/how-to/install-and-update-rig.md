@@ -46,7 +46,7 @@ git pull
 node scripts/install-kit-from-local-repo.cjs --global   # or the same --dir command you used
 ```
 
-Re-install deletes the retired kit files listed in `scripts/install-kit/retired-kit-hooks-and-files-cleanup.cjs` (`RETIRED_KIT_HOOKS`, `RETIRED_KIT_FILES`; empty in 1.0.0). Other files removed from the kit are not deleted from the target; delete them by hand if needed.
+Re-install deletes the retired kit files listed in `scripts/install-kit/retired-kit-hooks-and-files-cleanup.cjs` (`RETIRED_KIT_HOOKS`, `RETIRED_KIT_FILES`). In 1.1 this removes the old rule files `development-rules.md`, `documentation-management.md`, `orchestration-protocol.md`, `primary-workflow.md` and `team-coordination-rules.md` from `.claude/rules/`; each is first copied to `<name>.md.bak` in the same folder so your edits are not lost. Their content moved into `core-rules.md` and skill references (see the codebase summary). Other files removed from the kit are not deleted from the target; delete them by hand if needed.
 
 ## Custom blocked directories
 

@@ -1,5 +1,5 @@
 ---
-description: "Run unit, integration, e2e, and UI tests. Use for test execution, coverage analysis, build verification, visual regression, and QA reports."
+description: "Run unit, integration, e2e and UI tests. Use for test execution, coverage analysis, build verification, QA reports."
 ---
 
 Read `.agent/skills/test/SKILL.md` and follow it.

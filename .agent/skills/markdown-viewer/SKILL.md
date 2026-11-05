@@ -1,6 +1,6 @@
 ---
 name: markdown-viewer
-description: View markdown files with calm, book-like reading experience via HTTP server. Use for long-form content, documentation preview, novel reading, report viewing, distraction-free reading.
+description: "View markdown files in a calm, book-like reader over a local HTTP server. Use for long documents, doc preview, reports."
 argument-hint: "[file-or-directory]"
 metadata:
   author: rig

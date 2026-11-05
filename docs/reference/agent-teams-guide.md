@@ -459,8 +459,8 @@ All hooks follow fail-open design (exit 0 always) and are gated by `isHookEnable
 |------|---------|
 | `.claude/skills/team/SKILL.md` | Skill definition with imperative templates (v2.1.0) |
 | `.claude/skills/team/references/` | Official docs reference (hooks, memory, restrictions) |
-| `.claude/rules/team-coordination-rules.md` | Teammate behavior rules + Rig conventions |
-| `.claude/rules/orchestration-protocol.md` | Decision matrix, file ownership rules |
+| `.claude/skills/team/references/team-coordination.md` | Teammate behavior rules + Rig conventions |
+| `.claude/skills/implement/references/orchestration-protocol.md` | Decision matrix, file ownership rules |
 | `.claude/hooks/team-context-inject.cjs` | Team + Rig context injection (SubagentStart) |
 | `.claude/hooks/session-init.cjs` | Session and Rig path env injection |
 

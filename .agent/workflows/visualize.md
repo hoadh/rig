@@ -1,5 +1,5 @@
 ---
-description: "View files/directories OR generate visual explanations, slides, diagrams (Markdown or self-contained HTML)."
+description: "View files or directories, or generate visual explanations, slides and diagrams (Markdown or HTML). Use when asked to explain visually."
 ---
 
 Read `.agent/skills/visualize/SKILL.md` and follow it.

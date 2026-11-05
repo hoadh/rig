@@ -411,4 +411,28 @@ describe('session-init.cjs', () => {
     });
   });
 
+  describe('Static paths and reminder reset', () => {
+
+    it('prints the static Paths section once at session start', async () => {
+      const result = await runHook({ source: 'startup' });
+      assert.ok(result.stdout.includes('## Paths'), result.stdout);
+      assert.ok(/Plans: .*\/ \| Docs: /.test(result.stdout), 'Paths line carries plans and docs');
+    });
+
+    it('clears the per-prompt reminder state of the session', async () => {
+      const { getReminderStatePath } = require('../lib/context-builder.cjs');
+      const sessionId = `init-reset-${process.pid}`;
+      const statePath = getReminderStatePath(sessionId);
+      fs.writeFileSync(statePath, JSON.stringify({ signature: 'stale' }));
+      try {
+        await runHook({ source: 'compact', session_id: sessionId });
+        assert.ok(!fs.existsSync(statePath), 'reminder state removed so the next prompt emits');
+      } finally {
+        fs.rmSync(statePath, { force: true });
+        fs.rmSync(path.join(os.tmpdir(), `rig-session-${sessionId}.json`), { force: true });
+      }
+    });
+
+  });
+
 });

@@ -1,6 +1,6 @@
 ---
 name: rig:test
-description: "Run unit, integration, e2e, and UI tests. Use for test execution, coverage analysis, build verification, visual regression, and QA reports."
+description: "Run unit, integration, e2e and UI tests. Use for test execution, coverage analysis, build verification, QA reports."
 argument-hint: "[context] OR ui [url]"
 metadata:
   author: rig

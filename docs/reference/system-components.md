@@ -286,7 +286,7 @@ All hooks located in `.claude/hooks/` with consistent patterns - fail-safe exit 
 **Native features instead of hooks**:
 
 - Sensitive files and heavy directories: `permissions.ask` / `permissions.deny` in `.claude/settings.json`
-- File naming: rule in `.claude/rules/development-rules.md`
+- File naming: rule in `.claude/rules/core-rules.md`
 - Context usage: statusline reads `rate_limits` from stdin
 
 **1. Session-Init Hook** (`session-init.cjs`)

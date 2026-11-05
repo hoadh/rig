@@ -34,7 +34,7 @@ FUNCTION detectMode(input):
   IF count(features) >= 3 OR keywords contains "parallel":
     RETURN "parallel"
 
-  # Default: tier-driven (tiers defined in .agent/rules/primary-workflow.md)
+  # Default: tier-driven (tiers defined in .agent/skills/implement/references/orchestration-protocol.md)
   tier = classifyTier(input)  # risk signals (auth, data, infra, public API) force Large
   IF tier == "Trivial": RETURN "none"  # do it directly, no workflow
   IF tier == "Standard": RETURN "fast"

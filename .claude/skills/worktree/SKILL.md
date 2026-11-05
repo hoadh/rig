@@ -1,6 +1,6 @@
 ---
 name: rig:worktree
-description: "Create isolated git worktree for parallel development in monorepos."
+description: "Create an isolated git worktree for parallel development. Use when starting a feature that must not touch the current checkout."
 argument-hint: "[feature-description] OR [project] [feature]"
 metadata:
   author: rig

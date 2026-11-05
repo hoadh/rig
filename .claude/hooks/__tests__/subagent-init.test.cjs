@@ -669,6 +669,68 @@ describe('subagent-init.cjs', () => {
 
   });
 
+  describe('Core Rules Injection (subagent.injectCoreRules)', () => {
+
+    const corePath = path.join(__dirname, '..', '..', 'rules', 'core-rules.md');
+
+    /** Run the hook from a temp project whose .claude/.rig.json holds `rigConfig`. */
+    async function runWithConfig(rigConfig, hookPath = HOOK_PATH) {
+      const root = fs.mkdtempSync(path.join(os.tmpdir(), 'subagent-init-cfg-'));
+      try {
+        if (rigConfig) {
+          fs.mkdirSync(path.join(root, '.claude'), { recursive: true });
+          fs.writeFileSync(path.join(root, '.claude', '.rig.json'), JSON.stringify(rigConfig));
+        }
+        const proc = spawn('node', [hookPath], {
+          cwd: root,
+          env: { ...process.env, CLAUDE_ENV_FILE: '', RIG_SESSION_ID: '', HOME: root, USERPROFILE: root }
+        });
+        let stdout = '';
+        proc.stdout.on('data', (d) => { stdout += d.toString(); });
+        proc.stdin.write(JSON.stringify({ agent_type: 'tester', agent_id: 'x', cwd: root }));
+        proc.stdin.end();
+        const code = await new Promise((resolve) => proc.on('close', resolve));
+        assert.strictEqual(code, 0);
+        return JSON.parse(stdout).hookSpecificOutput.additionalContext;
+      } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+      }
+    }
+
+    it('does not inject core rules by default (native rules already reach subagents)', async () => {
+      const context = await runWithConfig(null);
+      assert.ok(context.includes('## Subagent:'));
+      assert.ok(!context.includes('## Core Rules'));
+    });
+
+    it('injects the core-rules.md body when injectCoreRules is true', async () => {
+      const context = await runWithConfig({ subagent: { injectCoreRules: true } });
+      assert.ok(context.includes('## Core Rules'), 'Should have Core Rules section');
+      for (const line of ['ssh -G', 'Never commit secrets', 'Verify before claiming done', '**Status:** DONE']) {
+        assert.ok(context.includes(line), `Core rules should carry "${line}"`);
+      }
+      const body = fs.readFileSync(corePath, 'utf8').replace(/^#[^\n]*\n+/, '').trim();
+      assert.ok(context.includes(body), 'Injected text must equal the core-rules file body');
+    });
+
+    it('fails open when enabled but core-rules.md is missing from the hook install', async () => {
+      const root = fs.mkdtempSync(path.join(os.tmpdir(), 'subagent-init-norules-'));
+      try {
+        const hooksDir = path.join(root, '.claude', 'hooks');
+        fs.cpSync(path.join(__dirname, '..'), hooksDir, {
+          recursive: true,
+          filter: (src) => !src.includes('__tests__')
+        });
+        const context = await runWithConfig({ subagent: { injectCoreRules: true } }, path.join(hooksDir, 'subagent-init.cjs'));
+        assert.ok(context.includes('## Subagent:'), 'Rest of the context still injected');
+        assert.ok(!context.includes('## Core Rules'), 'No core rules section without the file');
+      } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+      }
+    });
+
+  });
+
   describe('Error Handling', () => {
 
     it('exits 0 on JSON parse error (fail-open)', async () => {

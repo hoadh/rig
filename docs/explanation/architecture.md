@@ -196,7 +196,7 @@ Agents keep no state outside the file system ([ADR 0001](decisions/0001-agent-st
 
 ### Parallel Work Isolation
 
-`/rig:team` gives each implementation dev its own git worktree (`isolation: "worktree"`) and assigns file ownership by glob, so parallel agents in one session do not edit the same files. The lead merges the worktree branches at the end. Rules: `.claude/rules/team-coordination-rules.md`.
+`/rig:team` gives each implementation dev its own git worktree (`isolation: "worktree"`) and assigns file ownership by glob, so parallel agents in one session do not edit the same files. The lead merges the worktree branches at the end. Rules: `.claude/skills/team/references/team-coordination.md`.
 
 ### Multi-Machine Execution (rig:remote)
 

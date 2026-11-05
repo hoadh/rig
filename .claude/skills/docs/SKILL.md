@@ -1,6 +1,6 @@
 ---
 name: rig:docs
-description: "Analyze codebase and manage project documentation — init, update, summarize, restructure (reorganize non-standard docs into the Diataxis layout)."
+description: "Analyze the codebase and manage project docs: init, update, summarize, restructure into the Diataxis layout. Use for documentation upkeep."
 argument-hint: "init|update|summarize|restructure"
 metadata:
   author: rig

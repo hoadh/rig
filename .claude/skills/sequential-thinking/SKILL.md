@@ -1,6 +1,6 @@
 ---
 name: rig:sequential-thinking
-description: Apply step-by-step analysis for complex problems with revision capability. Use for multi-step reasoning, hypothesis verification, adaptive planning, problem decomposition, course correction.
+description: "Apply step-by-step analysis with revision for complex problems. Use for multi-step reasoning, hypothesis checks, problem decomposition."
 license: MIT
 argument-hint: "[problem to analyze step-by-step]"
 metadata:

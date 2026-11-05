@@ -157,6 +157,18 @@
       },
       "additionalProperties": false
     },
+    "subagent": {
+      "type": "object",
+      "description": "SubagentStart hook options",
+      "properties": {
+        "injectCoreRules": {
+          "type": "boolean",
+          "default": false,
+          "description": "Append .claude/rules/core-rules.md to every subagent's context. Off by default because Claude Code already loads .claude/rules/*.md into subagents; turn on for installs without rules files (plugin)."
+        }
+      },
+      "additionalProperties": true
+    },
     "locale": {
       "type": "object",
       "description": "Language and locale settings",

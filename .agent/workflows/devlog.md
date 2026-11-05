@@ -1,5 +1,5 @@
 ---
-description: "Write devlog entries on recent changes: shipped work, decisions, impact and lessons."
+description: "Write devlog entries on recent changes: shipped work, decisions, impact, lessons. Use after finishing a feature or fix."
 ---
 
 Read `.agent/skills/devlog/SKILL.md` and follow it.

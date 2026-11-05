@@ -102,7 +102,7 @@ The `debugger` agent writes `## Confirmed` (each item with its evidence) and `##
 
 ## Remote hosts, production and privileged steps
 
-Rules in `.claude/rules/development-rules.md`:
+Rules in `.claude/rules/core-rules.md` (detail in `.claude/skills/remote/SKILL.md` and `.claude/skills/implement/references/orchestration-protocol.md`):
 
 - Resolve user and host with `ssh -G <host>`. If no user is configured, Claude asks once and offers to add a `Host <alias>` entry (`HostName`, `User`) to `~/.ssh/config`. It never guesses from history or `known_hosts`.
 - Production hosts are read-only: inspection commands only, anything state-changing needs your explicit approval.

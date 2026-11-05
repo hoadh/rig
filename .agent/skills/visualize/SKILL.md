@@ -1,6 +1,6 @@
 ---
 name: visualize
-description: "View files/directories OR generate visual explanations, slides, diagrams (Markdown or self-contained HTML)."
+description: "View files or directories, or generate visual explanations, slides and diagrams (Markdown or HTML). Use when asked to explain visually."
 argument-hint: "[path] OR [--html] --explain|--slides|--diagram|--ascii [topic] OR --html --diff|--plan-review|--recap"
 metadata:
   author: rig

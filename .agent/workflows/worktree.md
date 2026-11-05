@@ -1,5 +1,5 @@
 ---
-description: "Create isolated git worktree for parallel development in monorepos."
+description: "Create an isolated git worktree for parallel development. Use when starting a feature that must not touch the current checkout."
 ---
 
 Read `.agent/skills/worktree/SKILL.md` and follow it.

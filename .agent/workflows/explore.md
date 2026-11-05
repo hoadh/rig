@@ -1,5 +1,5 @@
 ---
-description: "Explore the codebase fast with parallel agents. Use for file discovery, task context gathering, quick searches across directories. Supports internal (Explore) and external (Gemini CLI) agents."
+description: "Explore the codebase fast with parallel agents. Use for file discovery, gathering task context, quick searches across directories."
 ---
 
 Read `.agent/skills/explore/SKILL.md` and follow it.

@@ -1,15 +1,6 @@
 ---
 name: diataxis-writer
-description: >-
-  Write, restructure, classify, and review documentation with the Diataxis
-  framework. Use when the user asks to create, improve, audit, or reorganize
-  documentation of any kind: knowledge bases, help centers, onboarding guides,
-  process docs, manuals, runbooks, product or API docs, tutorials, how-to
-  guides, references, explanations. Also use when the user mentions Diataxis,
-  docs taxonomy, or documentation architecture, or asks why a document feels
-  confusing. Also use for Simplified Technical English (ASD-STE100) or
-  controlled-language rewrites of English technical docs. Not for marketing, legal, sales, press, or fiction writing unless
-  the user wants a Diataxis-style analysis.
+description: "Write, restructure or audit documentation with the Diataxis framework (tutorials, how-to, reference, explanation), or rewrite to Simplified Technical English. Use for docs of any kind."
 ---
 
 # Diataxis Writer

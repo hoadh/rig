@@ -518,6 +518,8 @@ function loadConfig(options = {}) {
     result.skills = merged.skills || DEFAULT_CONFIG.skills;
     // Hooks configuration
     result.hooks = merged.hooks || DEFAULT_CONFIG.hooks;
+    // SubagentStart options (injectCoreRules, per-agent contextPrefix)
+    result.subagent = merged.subagent || {};
     // Statusline mode
     result.statusline = merged.statusline || 'full';
     result.statuslineColors = merged.statuslineColors ?? true;

@@ -1,5 +1,5 @@
 ---
-description: "Style UIs with shadcn/ui components (Radix UI + Tailwind CSS). Use for accessible components, themes, dark mode, responsive layouts, design systems, color customization."
+description: "Style UIs with shadcn/ui (Radix UI + Tailwind CSS). Use for accessible components, themes, dark mode, responsive layouts."
 ---
 
 Read `.agent/skills/ui-styling/SKILL.md` and follow it.

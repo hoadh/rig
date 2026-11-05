@@ -10,15 +10,13 @@ This file provides guidance to coding agents that read `AGENTS.md` when working 
 
 ## Role
 
-You do the work. Use subagents when they buy isolation, parallelism or an unanchored review, not by default. Size the process to the task using the tiers in `./.claude/rules/primary-workflow.md`.
+You do the work. Use subagents when they buy isolation, parallelism or an unanchored review, not by default. Size the process to the task using the tiers in `./.claude/skills/implement/references/orchestration-protocol.md`.
 
 ## Workflows
 
-- Primary workflow and tiers: `./.claude/rules/primary-workflow.md`
-- Development rules: `./.claude/rules/development-rules.md`
-- Orchestration: `./.claude/rules/orchestration-protocol.md`
-- Documentation and plans: `./.claude/rules/documentation-management.md`
-- Other rules: `./.claude/rules/*`
+- Core rules: `./.claude/rules/core-rules.md`
+- Size tiers, workflow detail, subagent protocol: `./.claude/skills/implement/references/orchestration-protocol.md`
+- Plans: `./.claude/skills/rig-plan/references/plan-organization.md`; docs upkeep: `./.claude/skills/docs/references/docs-upkeep-rules.md`
 
 Activate the skills from the catalog that fit the task. Read `./README.md` before planning or implementing. Reports: concise, unresolved questions last.
 

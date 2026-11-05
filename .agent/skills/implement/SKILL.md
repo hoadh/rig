@@ -1,6 +1,6 @@
 ---
 name: implement
-description: "Implement a feature or plan end-to-end: plan, code, test, review. Use for Standard and Large tasks (multi-file, planned or risky work). Trivial one-file fixes are done directly without this skill (tiers in .agent/rules/primary-workflow.md)."
+description: "Implement a feature or plan end-to-end: plan, code, test, review. Use for Standard and Large tasks; Trivial one-file fixes are done directly."
 argument-hint: "[task|plan-path] [--interactive|--fast|--full|--parallel|--auto|--no-test]"
 metadata:
   author: rig
@@ -37,7 +37,7 @@ If no flag is provided, the mode follows the task tier (see Size Tiers): Standar
 
 ## Size Tiers
 
-Tier definitions live in `.agent/rules/primary-workflow.md` (Trivial / Standard / Large); this skill covers Standard and Large. Misjudged scope is the usual failure, so classify first and say the tier in one line.
+Tier definitions live in `.agent/skills/implement/references/orchestration-protocol.md` (Trivial / Standard / Large); this skill covers Standard and Large. Misjudged scope is the usual failure, so classify first and say the tier in one line.
 
 - **Standard:** a short plan (chat or `--fast` plan file) must exist before code; implement in the main session; tester/reviewer gates below are lighter.
 - **Large:** a reviewed plan must exist before code (`/plan`), full gates below.

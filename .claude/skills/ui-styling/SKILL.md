@@ -1,6 +1,6 @@
 ---
 name: rig:ui-styling
-description: Style UIs with shadcn/ui components (Radix UI + Tailwind CSS). Use for accessible components, themes, dark mode, responsive layouts, design systems, color customization.
+description: "Style UIs with shadcn/ui (Radix UI + Tailwind CSS). Use for accessible components, themes, dark mode, responsive layouts."
 license: MIT
 argument-hint: "[component or layout]"
 metadata:

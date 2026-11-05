@@ -71,8 +71,17 @@ const RETIRED_KIT_FILES = [
   'hooks/__tests__/teammate-idle-handler.test.cjs',
   // scout-block config (no shipped consumer left)
   '.rigignore',
+  // 1.1: always-loaded rules split into core-rules.md + skill references (context reduction)
+  'rules/development-rules.md',
+  'rules/documentation-management.md',
+  'rules/orchestration-protocol.md',
+  'rules/primary-workflow.md',
+  'rules/team-coordination-rules.md',
   // NOT listed: session-state/ (runtime dir of the retired hook, no shipped file); remove manually
 ];
+
+// Retired files that are backed up to `<file>.bak` before deletion (rule files only: users edit them)
+const BACKUP_BEFORE_DELETE = /^rules\/.+\.md$/;
 
 /**
  * Builds the cleanup functions for a set of retired hooks and files.
@@ -183,7 +192,11 @@ function createRetiredKitCleanup({ hooks: retiredHooks = [], files: retiredFiles
         continue;
       }
       if (!stat.isFile() && !stat.isSymbolicLink()) continue;
-      if (!dryRun) fs.unlinkSync(file);
+      if (!dryRun) {
+        // Rule files may carry user edits: keep a copy next to the original before deleting it
+        if (stat.isFile() && BACKUP_BEFORE_DELETE.test(rel)) fs.copyFileSync(file, `${file}.bak`);
+        fs.unlinkSync(file);
+      }
       deleted.push(rel);
       for (let dir = path.dirname(file); dir.startsWith(root + path.sep); dir = path.dirname(dir)) parents.add(dir);
     }

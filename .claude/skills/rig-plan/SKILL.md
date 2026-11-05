@@ -1,6 +1,6 @@
 ---
 name: rig:plan
-description: "Plan implementations, design architectures, create technical roadmaps with detailed phases. Use for feature planning, system design, solution architecture, implementation strategy, phase documentation."
+description: "Plan implementations and architectures with detailed phases. Use for feature planning, system design, implementation strategy, roadmaps."
 argument-hint: "[task] OR [archive|red-team|validate]"
 license: MIT
 metadata:
@@ -148,7 +148,7 @@ flowchart TD
 - Respond with plan file path and summary
 - Ensure self-contained plans with necessary context
 - Include code snippets/pseudocode when clarifying
-- Fully respect the `./docs/development-rules.md` file
+- Fully respect the `.claude/rules/core-rules.md` file
 
 ## Task Management
 

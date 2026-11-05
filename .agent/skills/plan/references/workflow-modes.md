@@ -13,7 +13,7 @@ When no flag specified, analyze task and pick mode:
 
 Use `AskUserQuestion` if detection is uncertain.
 
-Mode choice follows the size tiers in `.agent/rules/primary-workflow.md`: Standard tasks map to `--fast`; Large or risky work (auth, data, infra) maps to `--hard`/`--parallel`/`--two`. Trivial tasks need no plan.
+Mode choice follows the size tiers in `.agent/skills/implement/references/orchestration-protocol.md`: Standard tasks map to `--fast`; Large or risky work (auth, data, infra) maps to `--hard`/`--parallel`/`--two`. Trivial tasks need no plan.
 
 ## Scope Challenge Integration
 

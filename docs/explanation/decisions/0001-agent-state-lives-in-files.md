@@ -6,7 +6,7 @@
 
 ## Context
 
-Each agent invocation in Claude Code starts with a fresh context. Subagents get only the prompt the main agent writes ([orchestration protocol](../../../.claude/rules/orchestration-protocol.md)), and a session ends when the user closes it or the context is compacted. Something has to carry work across those boundaries: which plan is active, which phases are done, what a researcher found.
+Each agent invocation in Claude Code starts with a fresh context. Subagents get only the prompt the main agent writes ([orchestration protocol](../../../.claude/skills/implement/references/orchestration-protocol.md)), and a session ends when the user closes it or the context is compacted. Something has to carry work across those boundaries: which plan is active, which phases are done, what a researcher found.
 
 The open question was whether agents should keep state somewhere other than the file system: a database, a background service, an MCP memory server, or a vector store.
 
@@ -43,7 +43,7 @@ Agent state stays in files. No database, daemon, or memory server is added.
 **Costs**
 
 - No queries across plans; finding work means scanning directories (`plans/` frontmatter, `blockedBy`/`blocks`).
-- No locking. Two sessions editing the same plan file can overwrite each other; worktree isolation and file ownership rules in `team-coordination-rules.md` are the only guard.
+- No locking. Two sessions editing the same plan file can overwrite each other; worktree isolation and file ownership rules in `.claude/skills/team/references/team-coordination.md` are the only guard.
 - Free-form markdown can drift from the format hooks expect; validators (`validate-docs.cjs`, plan format checks) catch part of it.
 - Temp-dir state is per machine and is cleared by the OS; that is accepted because it holds nothing durable.
 

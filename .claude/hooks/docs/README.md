@@ -12,7 +12,7 @@ This directory contains hooks for Claude Code sessions.
 | **Team Context** | `team-context-inject.cjs` | Agent team context injection (SubagentStart) |
 | **Dev Rules** | `dev-rules-reminder.cjs` | Dynamic session facts: date, paths, plan context, naming (UserPromptSubmit) |
 
-Access control and file naming are no longer hooks. See [Permission Rules](#permission-rules) and `.claude/rules/development-rules.md`.
+Access control and file naming are no longer hooks. See [Permission Rules](#permission-rules) and `.claude/rules/core-rules.md`.
 
 ## Notifications
 

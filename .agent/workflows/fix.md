@@ -1,5 +1,5 @@
 ---
-description: "Fix a bug end-to-end: explore, diagnose, apply fix, verify, review. ALWAYS activate this skill before fixing ANY bug, error, test failure, CI/CD issue, type error, lint, log error, UI issue, code problem. For investigation and root-cause analysis..."
+description: "Fix a bug end-to-end: explore, diagnose, fix, verify, review. Use for any bug, error, failing test, CI failure, type or lint error. For root-cause analysis only, use /debug."
 ---
 
 Read `.agent/skills/fix/SKILL.md` and follow it.

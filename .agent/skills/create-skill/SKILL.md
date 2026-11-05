@@ -1,6 +1,6 @@
 ---
 name: create-skill
-description: Create or update Claude skills with eval-driven iteration. Use for new skills, skill scripts, references, benchmark optimization, description optimization, eval testing, extending Claude's capabilities.
+description: "Create or update Claude skills with eval-driven iteration. Use for new skills, skill scripts and references, description optimization."
 license: Complete terms in LICENSE.txt
 argument-hint: "[skill-name or description]"
 metadata:

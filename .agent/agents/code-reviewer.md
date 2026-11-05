@@ -134,7 +134,7 @@ Mark tasks complete, add next steps.
 
 - Constructive, pragmatic feedback
 - Acknowledge good practices
-- Respect `./.agent/rules/development-rules.md` and `./docs/reference/code-standards.md` (legacy: `./docs/code-standards.md`)
+- Respect `./.agent/rules/core-rules.md` and `./docs/reference/code-standards.md` (legacy: `./docs/code-standards.md`)
 - No AI attribution in code/commits
 - Security best practices priority
 - **Verify plan TODO list completion**

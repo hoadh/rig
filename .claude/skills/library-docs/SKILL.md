@@ -1,6 +1,6 @@
 ---
 name: rig:library-docs
-description: Search library/framework documentation via llms.txt (context7.com). Use for API docs, GitHub repository analysis, technical documentation lookup, latest library features.
+description: "Look up library and framework docs via llms.txt (context7.com). Use for API docs, GitHub repo analysis, latest library features."
 argument-hint: "[library-name] [topic]"
 metadata:
   author: rig

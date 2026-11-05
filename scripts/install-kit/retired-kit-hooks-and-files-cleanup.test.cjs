@@ -169,3 +169,21 @@ test('keeps a retired hook file that a non-kit-form registration still runs', ()
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('retired rule files are backed up to .bak before deletion; other retired files are not', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'retired-kit-bak-'));
+  try {
+    fs.mkdirSync(path.join(dir, 'rules'), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'rules', 'development-rules.md'), 'my edited rules');
+    fs.writeFileSync(path.join(dir, 'rules', 'core-rules.md'), 'keep');
+    fs.writeFileSync(path.join(dir, '.rigignore'), 'x');
+    const { deleted } = shipped.deleteRetiredKitFiles({ claudeDir: dir, fs });
+    assert.ok(deleted.includes('rules/development-rules.md'));
+    assert.ok(!fs.existsSync(path.join(dir, 'rules', 'development-rules.md')));
+    assert.strictEqual(fs.readFileSync(path.join(dir, 'rules', 'development-rules.md.bak'), 'utf8'), 'my edited rules');
+    assert.ok(fs.existsSync(path.join(dir, 'rules', 'core-rules.md')), 'live rule kept');
+    assert.ok(!fs.existsSync(path.join(dir, '.rigignore.bak')), 'no backup for non-rule files');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

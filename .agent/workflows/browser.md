@@ -1,5 +1,5 @@
 ---
-description: "Automate browsers with Puppeteer CLI scripts and persistent sessions. Use for screenshots, performance analysis, network monitoring, web scraping, form automation, JavaScript debugging."
+description: "Automate browsers with Puppeteer CLI scripts. Use for screenshots, web scraping, form automation, network monitoring, JavaScript debugging."
 ---
 
 Read `.agent/skills/browser/SKILL.md` and follow it.

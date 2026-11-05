@@ -2,7 +2,7 @@
 
 **Status**: Accepted
 **Date**: 2026-11-04
-**Relates to**: [ADR 0001](./0001-agent-state-lives-in-files.md) (plans and reports stay in files). Tier rules live in [primary workflow](../../../.claude/rules/primary-workflow.md); this ADR records why.
+**Relates to**: [ADR 0001](./0001-agent-state-lives-in-files.md) (plans and reports stay in files). Tier rules live in [orchestration protocol](../../../.claude/skills/implement/references/orchestration-protocol.md) (moved out of `primary-workflow.md` in 1.1); this ADR records why.
 
 ## Context
 
@@ -30,7 +30,7 @@ Rules that go with the table:
 - **The main agent does the work.** Subagents are used for context isolation, parallelism, or a review that is not anchored on the agent's own reasoning. They are not the default.
 - **Hard limits do not change with the tier.** Failing tests are never skipped or weakened, and secrets are never committed.
 
-The tier table is defined once, in `primary-workflow.md`. `CLAUDE.md`, `AGENTS.md` and the implement skill point to it.
+The tier table is defined once, in `.claude/skills/implement/references/orchestration-protocol.md` (it was `primary-workflow.md` until 1.1; `core-rules.md` carries a one-line form). `CLAUDE.md`, `AGENTS.md` and the implement skill point to it.
 
 ## Why small work runs without subagents
 

@@ -1,6 +1,6 @@
 ---
 name: docs-maintainer
-description: Use this agent when you need to manage technical documentation, establish implementation standards, analyze and update existing documentation based on code changes, write or update Product Development Requirements (PDRs), organize documentation for developer productivity, or produce documentation summary reports. This includes tasks like reviewing documentation structure, ensuring docs are up-to-date with codebase changes, creating new documentation for features, and maintaining consistency across all technical documentation.
+description: "Maintain technical docs in ./docs: update them after code changes, write PDRs, organize structure, keep standards consistent. Use after features or API changes, or to audit documentation."
 model: haiku
 tools: Glob, Grep, Read, Edit, MultiEdit, Write, NotebookEdit, Bash, WebFetch, WebSearch, TaskCreate, TaskGet, TaskUpdate, TaskList, SendMessage, Task(Explore)
 ---

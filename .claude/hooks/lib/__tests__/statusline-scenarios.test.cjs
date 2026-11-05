@@ -315,7 +315,8 @@ async function main() {
         '{"model":{"display_name":"Claude"}',
         ',"workspace":{"current_dir":"/tmp/slow-input-timeout"},"context_window":{"context_window_size":200000}}'
       ],
-      delaysMs: [400, 0],
+      // 2s gap: the 100ms timer starts only after process startup, which can exceed 400ms under load
+      delaysMs: [2000, 0],
       env: { RIG_STATUSLINE_STDIN_TIMEOUT_MS: '100' }
     });
     assertTrue(result.status === 0, 'Timeout fallback path should still exit successfully');

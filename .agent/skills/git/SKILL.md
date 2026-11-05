@@ -1,6 +1,6 @@
 ---
 name: git
-description: "Git operations with conventional commits. Use for staging, committing, pushing, merges. For pull requests use `/pr`. Auto-splits commits by type/scope. Security scans for secrets."
+description: "Git operations with conventional commits: stage, commit, push, merge; splits commits by type and scans for secrets. Use when asked to commit, push or merge. Pull requests: /pr."
 argument-hint: "cm|cp|merge [args]"
 metadata:
   author: rig

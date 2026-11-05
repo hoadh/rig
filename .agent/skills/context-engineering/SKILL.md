@@ -1,8 +1,6 @@
 ---
 name: context-engineering
-description: >-
-  Check context usage limits, monitor time remaining, optimize token consumption, debug context failures.
-  Use when asking about context percentage, rate limits, usage warnings, context optimization, agent architectures, memory systems.
+description: "Check context usage, rate limits and time remaining; optimize token use, debug context failures. Use when asked about context percentage or usage warnings."
 argument-hint: "[topic or question]"
 metadata:
   author: rig

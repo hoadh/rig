@@ -13,7 +13,7 @@
 ### Essential Documentation Review
 ALWAYS read these files first:
 
-1. **`./docs/development-rules.md`** (IMPORTANT)
+1. **`.agent/rules/core-rules.md`** (IMPORTANT)
    - File Name Conventions
    - File Size Management
    - Development rules and best practices

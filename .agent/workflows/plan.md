@@ -1,5 +1,5 @@
 ---
-description: "Plan implementations, design architectures, create technical roadmaps with detailed phases. Use for feature planning, system design, solution architecture, implementation strategy, phase documentation."
+description: "Plan implementations and architectures with detailed phases. Use for feature planning, system design, implementation strategy, roadmaps."
 ---
 
 Read `.agent/skills/plan/SKILL.md` and follow it.

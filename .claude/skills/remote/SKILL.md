@@ -1,6 +1,6 @@
 ---
 name: rig:remote
-description: "Run commands and plan phases on other machines (Mac, Linux, Windows) over ssh: dispatch a phase to a worker agent, track it, review, collect and merge. Use for multi-machine plans or running tests on another OS."
+description: "Run commands and plan phases on other machines (Mac, Linux, Windows) over ssh: dispatch, track, review, collect. Use for multi-machine plans or testing on another OS."
 argument-hint: "register|setup|doctor|run|dispatch|status|cancel|collect|takeover|review [args]"
 metadata:
   author: rig
@@ -76,6 +76,15 @@ Full loop in `references/remote-implement-workflow.md`: doctor, push own work, p
 ## Windows workers
 
 Scheduled tasks default to `taskMode: headless` (S4U logon): no desktop, started immediately via `schtasks /Run` (the 1-minute time trigger is only a fallback if `/Run` fails), https credential-manager access under S4U is unverified (doctor warns; prefer ssh/token remotes or a PAT in the service user's environment). Use `taskMode: interactive` only for GUI work; it needs a logged-on user and fails with `not-started` otherwise. Requires an absolute `node` path in the registry.
+
+## SSH host resolution and production hosts
+
+Moved from the former `development-rules.md`; the one-line core rule is in `.claude/rules/core-rules.md`.
+
+- Resolve user/host with `ssh -G <host>` (reads `~/.ssh/config`; check the `user` and `hostname` lines). A `user` equal to the local login with no matching `Host` block means not configured.
+- No User configured: ask the user once, then offer to add a `Host <alias>` entry (`HostName`, `User`) to `~/.ssh/config` so it is not asked again. Write it only if the user agrees; never put keys or passwords there.
+- Never infer users or hosts from shell history, known_hosts or other projects; guesses connect to the wrong machine.
+- Production hosts are read-only: inspection only (`tail`, `cat`, `grep`, `journalctl`, `ls`, `df`, `ps`, `systemctl status`). Any state change (writes, restarts, deploys, installs) needs explicit user approval, because production outages are costly and hard to undo.
 
 ## References
 

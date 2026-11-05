@@ -1,5 +1,5 @@
 ---
-description: "Brainstorm solutions with trade-off analysis and brutal honesty. Use for ideation, architecture decisions, technical debates, feature exploration, feasibility assessment, design discussions."
+description: "Brainstorm solutions with trade-off analysis and honest critique. Use for ideation, architecture decisions, technical debates, feasibility checks."
 ---
 
 Read `.agent/skills/brainstorm/SKILL.md` and follow it.

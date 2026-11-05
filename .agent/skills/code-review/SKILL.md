@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: "Review code quality with adversarial rigor. Supports input modes: pending changes, PR number, commit hash, codebase scan. Always-on red-team analysis finds security holes, false assumptions, and failure modes."
+description: "Review code with adversarial rigor: pending changes, PR number, commit or codebase scan; red-team for security holes and failure modes. Use before merging."
 argument-hint: "[#PR | COMMIT | --pending | codebase [parallel]]"
 metadata:
   author: rig

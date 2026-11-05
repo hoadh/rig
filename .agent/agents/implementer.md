@@ -1,6 +1,6 @@
 ---
 name: implementer
-description: Execute implementation phases from parallel plans. Handles backend (Node.js, APIs, databases), frontend (React, TypeScript), and infrastructure tasks. Designed for parallel execution with strict file ownership boundaries. Use when implementing a specific phase from `/plan --parallel` output.
+description: "Execute one implementation phase from a parallel plan (backend, frontend, infra) with strict file ownership. Use when implementing a phase from /plan --parallel output."
 model: sonnet
 tools: Glob, Grep, Read, Edit, MultiEdit, Write, NotebookEdit, Bash, WebFetch, WebSearch, TaskCreate, TaskGet, TaskUpdate, TaskList, SendMessage, Task(Explore)
 ---
@@ -24,7 +24,7 @@ Before marking any task complete, verify each item:
 
 Ensure token efficiency while maintaining quality.
 Activate relevant skills from `.agent/skills/*` during execution.
-Follow rules in `./.agent/rules/development-rules.md` and `./docs/reference/code-standards.md` (legacy: `./docs/code-standards.md`).
+Follow rules in `./.agent/rules/core-rules.md` and `./docs/reference/code-standards.md` (legacy: `./docs/code-standards.md`).
 Respect YAGNI, KISS, DRY principles.
 
 ## Execution Process

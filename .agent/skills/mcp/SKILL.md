@@ -1,6 +1,6 @@
 ---
 name: mcp
-description: Manage MCP servers - discover, analyze, execute tools/prompts/resources. Use for MCP integrations, intelligent tool selection, multi-server management, context-efficient capability discovery.
+description: "Manage MCP servers: discover, analyze and run tools, prompts and resources. Use for MCP integrations and multi-server tool selection."
 argument-hint: "[task or server-name]"
 metadata:
   author: rig

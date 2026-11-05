@@ -132,33 +132,18 @@ Supporting modules in `.claude/hooks/lib/`: `bash-command-segment-tokenizer.cjs`
 
 **Native replacements:**
 - Sensitive files and heavy directories: `permissions.ask` / `permissions.deny` in `.claude/settings.json`
-- File naming: `.claude/rules/development-rules.md`
+- File naming: `.claude/rules/core-rules.md`
 - Context usage: statusline reads `rate_limits` from stdin
 
 ### 5. Workflows
 
-**Primary Workflows** (`.claude/rules/`):
-1. **primary-workflow.md**: Core development cycle
-   - Code implementation
-   - Testing
-   - Code quality
-   - Integration
-   - Debugging
-
-2. **orchestration-protocol.md**: Agent coordination patterns
-   - Sequential chaining
-   - Parallel execution
-
-3. **development-rules.md**: Development standards
-   - File size management (<500 lines)
-   - YAGNI, KISS, DRY principles
-   - Code quality guidelines
-   - Pre-commit/push rules
-
-4. **documentation-management.md**: Doc maintenance
-   - Roadmap and changelog updates
-   - Automatic update triggers
-   - Documentation protocols
+**Rules and workflow detail:**
+1. **`.claude/rules/core-rules.md`** (<=1.5 KB, loaded natively and injected into subagents): principles, naming, secrets, verification, language, size tiers (one line)
+2. **`.claude/skills/implement/references/orchestration-protocol.md`**: full size tiers, workflow detail, subagent status protocol
+3. **`.claude/skills/rig-plan/references/plan-organization.md`**: plan layout, phase file sections, Pending Live Verification
+4. **`.claude/skills/docs/references/docs-upkeep-rules.md`**: roadmap and changelog upkeep
+5. **`.claude/skills/team/references/team-coordination.md`**: Agent Teams behavior
+6. **`.claude/skills/remote/SKILL.md`**: SSH host resolution and production read-only rules
 
 ## Entry Points
 
@@ -173,7 +158,7 @@ Supporting modules in `.claude/hooks/lib/`: `bash-command-segment-tokenizer.cjs`
 
 ### For Agents
 - **CLAUDE.md**: Primary agent instructions
-- **.claude/rules/**: Development rules and protocols
+- **.claude/rules/core-rules.md**: Core rules (task-specific rules live in skill references)
 
 ## Development Principles
 
@@ -294,10 +279,8 @@ Features: Fails when `.agent/` or `GEMINI.md` drift from `.claude/`
 - `guide/SKILLS.md` - Skills reference
 
 ### Workflows
-- `.claude/rules/primary-workflow.md`
-- `.claude/rules/development-rules.md`
-- `.claude/rules/orchestration-protocol.md`
-- `.claude/rules/documentation-management.md`
+- `.claude/rules/core-rules.md`
+- `.claude/skills/implement/references/orchestration-protocol.md`
 
 ## Version History
 

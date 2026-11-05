@@ -1,6 +1,6 @@
 ---
 name: rig:team
-description: "Orchestrate Agent Teams for parallel multi-session collaboration. Use for research, implementation, review, and debug workflows requiring independent teammates."
+description: "Orchestrate Agent Teams for parallel multi-session work. Use for research, implementation, review or debug workflows needing independent teammates."
 argument-hint: "<template> <context> [--devs|--researchers|--reviewers N] [--delegate]"
 metadata:
   author: rig
@@ -108,6 +108,7 @@ Rig Context:
 - Active plan: {RIG_ACTIVE_PLAN or "none"}
 - Commits: conventional (feat:, fix:, docs:, refactor:, test:, chore:)
 - Refer to teammates by NAME, not agent ID
+- Read `.claude/skills/team/references/team-coordination.md` first: exclusive file ownership, `TaskUpdate` before reporting, reply to `shutdown_request` with `shutdown_response` + `requestId`
 ```
 
 ---
@@ -356,4 +357,4 @@ If unresponsive: close terminal or kill session. Clean orphaned configs at `~/.c
 
 ## Rules Reference
 
-See `.claude/rules/team-coordination-rules.md` for teammate behavior rules.
+See `.claude/skills/team/references/team-coordination.md` for teammate behavior rules.

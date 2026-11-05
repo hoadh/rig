@@ -2,9 +2,11 @@
 /**
  * context-builder.cjs - Per-prompt context for the dev-rules-reminder hook
  *
- * Only dynamic facts go here: date/time, resolved paths, plan context and the
- * naming pattern. Static guidance (YAGNI/KISS/DRY, modularization, report style)
- * lives in .claude/rules/*.md and CLAUDE.md, which Claude Code loads natively.
+ * Only dynamic facts go here: date/time, plan context and the naming pattern. The hook
+ * emits them only when the plan context or git branch changed since the last emit
+ * (see shouldEmitReminder). The static Paths section is printed once by session-init.
+ * Static guidance (YAGNI/KISS/DRY, modularization, report style) lives in
+ * .claude/rules/*.md and CLAUDE.md, which Claude Code loads natively.
  *
  * @module context-builder
  */
@@ -18,6 +20,7 @@ const {
   resolvePlanPath,
   getReportsPath,
   resolveNamingPattern,
+  formatDate,
   normalizePath
 } = require('./rig-config-utils.cjs');
 
@@ -68,6 +71,17 @@ function resolveSkillsVenv(configDirName = '.claude') {
 }
 
 /**
+ * The one line emitted on every prompt: current stamp in the plan dateFormat
+ * (default YYMMDD-HHmm, the stamp Naming uses) plus the time zone.
+ * @param {string} [dateFormat='YYMMDD-HHmm']
+ * @returns {string}
+ */
+function buildNowLine(dateFormat) {
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return `- Now: ${formatDate(dateFormat || 'YYMMDD-HHmm')} (${timezone})`;
+}
+
+/**
  * Build plan context from config and git info
  * @param {string|null} sessionId - Session ID
  * @param {Object} config - Loaded config
@@ -78,7 +92,10 @@ function buildPlanContext(sessionId, config) {
   const gitBranch = execSafe('git branch --show-current');
   const resolved = resolvePlanPath(sessionId, config);
   const reportsPath = getReportsPath(resolved.path, resolved.resolvedBy, plan, paths);
-  const namePattern = resolveNamingPattern(plan, gitBranch);
+  // The stamp is left as the literal {now}: the reminder emits the full block only on change,
+  // so a baked timestamp would go stale. The Now line (every prompt) carries the live value.
+  const namePattern = resolveNamingPattern({ ...plan, dateFormat: '{now}' }, gitBranch);
+  const nowLine = buildNowLine(plan.dateFormat);
 
   const planLine = resolved.resolvedBy === 'session'
     ? `- Plan: ${resolved.path}`
@@ -91,7 +108,7 @@ function buildPlanContext(sessionId, config) {
   const validationMin = validation.minQuestions || 3;
   const validationMax = validation.maxQuestions || 8;
 
-  return { reportsPath, gitBranch, planLine, namePattern, validationMode, validationMin, validationMax };
+  return { reportsPath, gitBranch, planLine, namePattern, nowLine, validationMode, validationMin, validationMax };
 }
 
 /**
@@ -107,6 +124,62 @@ function wasRecentlyInjected(transcriptPath) {
   } catch (e) {
     return false;
   }
+}
+
+/**
+ * Per-session file remembering what the reminder last emitted.
+ * Session ids come from Claude Code; anything outside [A-Za-z0-9_-] is replaced so the
+ * id can never escape the temp dir.
+ * @param {string} sessionId
+ * @returns {string}
+ */
+function getReminderStatePath(sessionId) {
+  return path.join(os.tmpdir(), `rig-reminder-${String(sessionId).replace(/[^A-Za-z0-9_-]/g, '_')}.json`);
+}
+
+/**
+ * Decide whether the reminder must be emitted, and remember the signature when it is.
+ * Emits on the first prompt of a session (no state), when the signature (plan context
+ * + git branch) differs from the last emit, and always when there is no session id or
+ * the state file cannot be read or written (fail open: a repeated reminder is cheaper
+ * than a missing one).
+ * @param {string|null} sessionId
+ * @param {string} signature - Current plan-context/branch signature
+ * @returns {boolean}
+ */
+function shouldEmitReminder(sessionId, signature) {
+  if (!sessionId) return true;
+  const statePath = getReminderStatePath(sessionId);
+  try {
+    // Never trust a symlink planted at the state path (shared temp dir)
+    if (!fs.lstatSync(statePath).isSymbolicLink()
+      && JSON.parse(fs.readFileSync(statePath, 'utf8')).signature === signature) {
+      return false;
+    }
+  } catch (e) {
+    // missing or unreadable state: treat as changed
+  }
+  // Write to a fresh private temp name (exclusive create, 0600), then rename over the state path:
+  // rename replaces a symlink instead of following it
+  const tmpFile = `${statePath}.${process.pid}.${Math.random().toString(36).slice(2)}`;
+  try {
+    fs.writeFileSync(tmpFile, JSON.stringify({ signature }), { flag: 'wx', mode: 0o600 });
+    fs.renameSync(tmpFile, statePath);
+  } catch (e) {
+    // cannot persist: the next prompt emits again, which is the safe direction
+    try { fs.unlinkSync(tmpFile); } catch (_) { /* nothing to remove */ }
+  }
+  return true;
+}
+
+/**
+ * Forget the last-emitted signature so the next prompt emits the reminder again
+ * (session-init calls this on start, resume, clear and compact: the context was reset).
+ * @param {string|null} sessionId
+ */
+function clearReminderState(sessionId) {
+  if (!sessionId) return;
+  try { fs.unlinkSync(getReminderStatePath(sessionId)); } catch (e) { /* none to clear */ }
 }
 
 /**
@@ -129,15 +202,11 @@ function toAbsolute(baseDir, p) {
  * Response language is left to Claude Code's native `language` setting.
  * @param {Object} params
  * @param {string} [params.thinkingLanguage] - Language for reasoning
- * @param {Object} [params.staticEnv] - Pre-computed static environment info
+ * @param {string} [params.nowLine] - Pre-built `- Now: ...` line
  * @returns {string[]} Lines for session section
  */
-function buildSessionSection({ thinkingLanguage, staticEnv = {} } = {}) {
-  const timezone = staticEnv.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const lines = [
-    REMINDER_MARKER,
-    `- DateTime: ${new Date().toLocaleString()} (${timezone})`
-  ];
+function buildSessionSection({ thinkingLanguage, nowLine } = {}) {
+  const lines = [REMINDER_MARKER, nowLine || buildNowLine()];
   if (thinkingLanguage) {
     lines.push(`- Thinking language: ${thinkingLanguage}`);
   }
@@ -201,7 +270,7 @@ function buildNamingSection({ reportsPath, plansPath, namePattern }) {
     `## Naming`,
     `- Report: \`${reportsPath}{type}-${namePattern}.md\``,
     `- Plan dir: \`${plansPath}/${namePattern}/\``,
-    `- \`{type}\`: agent name or report type; \`{slug}\`: descriptive-kebab-slug`
+    `- \`{type}\`: agent name or report type; \`{slug}\`: descriptive-kebab-slug; \`{now}\`: the stamp from the latest \`Now:\` line`
   ];
 }
 
@@ -215,12 +284,11 @@ function buildNamingSection({ reportsPath, plansPath, namePattern }) {
  * @param {Object} [params]
  * @param {string} [params.sessionId] - Session ID
  * @param {Object} [params.config] - Rig config (auto-loaded if not provided)
- * @param {Object} [params.staticEnv] - Pre-computed static environment info
  * @param {string} [params.configDirName='.claude'] - Config directory name
  * @param {string} [params.baseDir] - Project directory; paths become absolute against it
- * @returns {{ content: string, lines: string[], sections: Object }}
+ * @returns {{ content: string, lines: string[], sections: Object, signature: string, nowLine: string }}
  */
-function buildReminderContext({ sessionId, config, staticEnv, configDirName = '.claude', baseDir } = {}) {
+function buildReminderContext({ sessionId, config, configDirName = '.claude', baseDir } = {}) {
   const cfg = config || loadConfig({ includeProject: false, includeAssertions: false });
   const planCtx = buildPlanContext(sessionId, cfg);
 
@@ -229,7 +297,7 @@ function buildReminderContext({ sessionId, config, staticEnv, configDirName = '.
   const reportsPath = toAbsolute(baseDir, planCtx.reportsPath);
 
   const sections = {
-    session: buildSessionSection({ thinkingLanguage: cfg.locale?.thinkingLanguage, staticEnv }),
+    session: buildSessionSection({ thinkingLanguage: cfg.locale?.thinkingLanguage, nowLine: planCtx.nowLine }),
     paths: buildPathsSection({
       reportsPath,
       plansPath,
@@ -242,7 +310,9 @@ function buildReminderContext({ sessionId, config, staticEnv, configDirName = '.
   };
 
   const lines = [...sections.session, ...sections.paths, ...sections.planContext, ...sections.naming];
-  return { content: lines.join('\n'), lines, sections };
+  // What makes a re-emit worthwhile: the plan context line and the git branch
+  const signature = JSON.stringify([planCtx.planLine, planCtx.gitBranch || '']);
+  return { content: lines.join('\n'), lines, sections, signature, nowLine: planCtx.nowLine };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -252,6 +322,9 @@ function buildReminderContext({ sessionId, config, staticEnv, configDirName = '.
 module.exports = {
   REMINDER_MARKER,
   buildReminderContext,
+  shouldEmitReminder,
+  clearReminderState,
+  getReminderStatePath,
 
   // Section builders
   buildSessionSection,
@@ -263,6 +336,7 @@ module.exports = {
   execSafe,
   resolveSkillsVenv,
   buildPlanContext,
+  buildNowLine,
   wasRecentlyInjected,
   toAbsolute
 };

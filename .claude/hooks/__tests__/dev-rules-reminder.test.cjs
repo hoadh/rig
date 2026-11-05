@@ -78,6 +78,10 @@ function getGitRoot(cwd = process.cwd()) {
   }
 }
 
+const NOW_LINE = /^- Now: \d{6}-\d{4} \(.+\)$/;
+/** True when stdout is exactly the one-line Now stamp (no block). */
+const isNowOnly = (stdout) => NOW_LINE.test(stdout.trim()) && !stdout.includes('##');
+
 describe('dev-rules-reminder.cjs', () => {
   const gitRoot = getGitRoot();
   // Pin the project dir so the outer Claude Code session's env cannot leak in
@@ -100,12 +104,12 @@ describe('dev-rules-reminder.cjs', () => {
 
   describe('Output Sections', () => {
 
-    it('emits session, paths, plan context and naming only', async () => {
+    it('emits session, plan context and naming only (paths moved to session-init)', async () => {
       const result = await runHook({ user_prompt: 'test' }, { env: projectEnv });
-      for (const header of ['## Rig Session', '## Paths', '## Plan Context', '## Naming']) {
+      for (const header of ['## Rig Session', '## Plan Context', '## Naming']) {
         assert.ok(result.stdout.includes(header), `Should include ${header}`);
       }
-      for (const removed of ['## Rules', 'Modularization', 'YAGNI', 'Memory usage', '## Usage']) {
+      for (const removed of ['## Paths', '## Rules', 'Modularization', 'YAGNI', 'Memory usage', '## Usage']) {
         assert.ok(!result.stdout.includes(removed), `Should not include ${removed}`);
       }
     });
@@ -122,15 +126,15 @@ describe('dev-rules-reminder.cjs', () => {
     it('uses absolute paths under the project dir', async () => {
       if (!gitRoot) return;
       const result = await runHook({ user_prompt: 'test' }, { cwd: gitRoot, env: projectEnv });
-      assert.ok(result.stdout.includes(`Reports: ${path.join(gitRoot, 'plans', 'reports')}`), result.stdout);
-      assert.ok(result.stdout.includes(`Plans: ${path.join(gitRoot, 'plans')}/`), result.stdout);
+      assert.ok(result.stdout.includes(`Report: \`${path.join(gitRoot, 'plans', 'reports')}`), result.stdout);
+      assert.ok(result.stdout.includes(`Plan dir: \`${path.join(gitRoot, 'plans')}/`), result.stdout);
     });
 
     it('anchors paths to CLAUDE_PROJECT_DIR when the CWD is a subdirectory', async () => {
       if (!gitRoot) return;
       const subdir = path.join(gitRoot, '.claude', 'hooks');
       const result = await runHook({ user_prompt: 'test' }, { cwd: subdir, env: projectEnv });
-      assert.ok(result.stdout.includes(`Plans: ${path.join(gitRoot, 'plans')}/`), result.stdout);
+      assert.ok(result.stdout.includes(`Plan dir: \`${path.join(gitRoot, 'plans')}/`), result.stdout);
       assert.ok(!result.stdout.includes(path.join(subdir, 'plans')), 'Must not resolve plans under the subdirectory');
     });
 
@@ -146,9 +150,136 @@ describe('dev-rules-reminder.cjs', () => {
       const tempDir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'dev-rules-cwd-')));
       try {
         const result = await runHook({ user_prompt: 'test' }, { cwd: tempDir, env: { CLAUDE_PROJECT_DIR: '' } });
-        assert.ok(result.stdout.includes(`Plans: ${path.join(tempDir, 'plans')}/`), result.stdout);
+        assert.ok(result.stdout.includes(`Plan dir: \`${path.join(tempDir, 'plans')}/`), result.stdout);
       } finally {
         fs.rmSync(tempDir, { recursive: true, force: true });
+      }
+    });
+
+  });
+
+  describe('Delta mode (emit only on plan/branch change)', () => {
+
+    const { getReminderStatePath } = require('../lib/context-builder.cjs');
+    const sessionId = `delta-test-${process.pid}-${Date.now()}`;
+    const statePath = getReminderStatePath(sessionId);
+    const sessionStatePath = path.join(os.tmpdir(), `rig-session-${sessionId}.json`);
+    const cleanup = () => {
+      for (const f of [statePath, sessionStatePath]) fs.rmSync(f, { force: true });
+    };
+
+    /** Temp git repo on `branch`, optionally with a plans dir, to vary the branch signature. */
+    function makeRepo(branch) {
+      const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'dev-rules-delta-')));
+      execSync(`git init -q -b ${branch}`, { cwd: dir });
+      return dir;
+    }
+
+    it('emits on the first prompt, then stays silent while nothing changed', async () => {
+      cleanup();
+      const dir = makeRepo('main');
+      try {
+        const env = { CLAUDE_PROJECT_DIR: dir };
+        const first = await runHook({ session_id: sessionId }, { cwd: dir, env });
+        assert.ok(first.stdout.includes('## Rig Session'), 'first prompt emits');
+        const second = await runHook({ session_id: sessionId }, { cwd: dir, env });
+        assert.ok(isNowOnly(second.stdout), `unchanged context emits only the Now line: ${second.stdout}`);
+        const third = await runHook({ session_id: sessionId }, { cwd: dir, env });
+        assert.ok(isNowOnly(third.stdout));
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+        cleanup();
+      }
+    });
+
+    it('emits again when the git branch changes', async () => {
+      cleanup();
+      const dir = makeRepo('main');
+      try {
+        const env = { CLAUDE_PROJECT_DIR: dir };
+        await runHook({ session_id: sessionId }, { cwd: dir, env });
+        execSync('git checkout -q -b feat/other', { cwd: dir });
+        const after = await runHook({ session_id: sessionId }, { cwd: dir, env });
+        assert.ok(after.stdout.includes('Branch: feat/other'), after.stdout);
+        const again = await runHook({ session_id: sessionId }, { cwd: dir, env });
+        assert.ok(isNowOnly(again.stdout), 'Now line only after the changed context was emitted');
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+        cleanup();
+      }
+    });
+
+    it('emits again when a plan is activated for the session', async () => {
+      cleanup();
+      const dir = makeRepo('main');
+      try {
+        const env = { CLAUDE_PROJECT_DIR: dir };
+        await runHook({ session_id: sessionId }, { cwd: dir, env });
+        const planDir = path.join(dir, 'plans', '261106-0900-demo');
+        fs.mkdirSync(planDir, { recursive: true });
+        fs.writeFileSync(sessionStatePath, JSON.stringify({ sessionOrigin: dir, activePlan: planDir }));
+        const after = await runHook({ session_id: sessionId }, { cwd: dir, env });
+        assert.ok(after.stdout.includes(`- Plan: ${planDir}`), after.stdout);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+        cleanup();
+      }
+    });
+
+    it('session start clears the state so the next prompt emits again', async () => {
+      cleanup();
+      const dir = makeRepo('main');
+      try {
+        const env = { CLAUDE_PROJECT_DIR: dir };
+        await runHook({ session_id: sessionId }, { cwd: dir, env });
+        assert.ok(fs.existsSync(statePath), 'state written on emit');
+        require('../lib/context-builder.cjs').clearReminderState(sessionId);
+        const after = await runHook({ session_id: sessionId }, { cwd: dir, env });
+        assert.ok(after.stdout.includes('## Rig Session'));
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+        cleanup();
+      }
+    });
+
+    it('Naming keeps a {now} placeholder instead of a baked timestamp', async () => {
+      const dir = makeRepo('main');
+      try {
+        const result = await runHook({ user_prompt: 'x' }, { cwd: dir, env: { CLAUDE_PROJECT_DIR: dir } });
+        assert.ok(result.stdout.includes('{now}-{slug}'), result.stdout);
+        assert.ok(!/\d{6}-\d{4}-\{slug\}/.test(result.stdout), 'no baked stamp in Naming');
+        assert.ok(/^- Now: \d{6}-\d{4}/m.test(result.stdout), 'Now line carries the live stamp');
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it('writes the state file with mode 0600 and replaces a planted symlink', async () => {
+      cleanup();
+      const dir = makeRepo('main');
+      const victim = path.join(dir, 'victim.txt');
+      fs.writeFileSync(victim, 'keep');
+      try {
+        if (process.platform !== 'win32') fs.symlinkSync(victim, statePath);
+        await runHook({ session_id: sessionId }, { cwd: dir, env: { CLAUDE_PROJECT_DIR: dir } });
+        assert.strictEqual(fs.readFileSync(victim, 'utf8'), 'keep', 'symlink target untouched');
+        assert.ok(!fs.lstatSync(statePath).isSymbolicLink(), 'symlink replaced by a regular file');
+        if (process.platform !== 'win32') assert.strictEqual(fs.statSync(statePath).mode & 0o777, 0o600);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+        cleanup();
+      }
+    });
+
+    it('always emits when there is no session id (cannot track changes)', async () => {
+      const dir = makeRepo('main');
+      try {
+        const env = { CLAUDE_PROJECT_DIR: dir };
+        const one = await runHook({ user_prompt: 'x' }, { cwd: dir, env });
+        const two = await runHook({ user_prompt: 'x' }, { cwd: dir, env });
+        assert.ok(one.stdout.includes('## Rig Session') && two.stdout.includes('## Rig Session'));
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
       }
     });
 
@@ -169,7 +300,7 @@ describe('dev-rules-reminder.cjs', () => {
       await withTranscript(lines, async (transcriptPath) => {
         const result = await runHook({ user_prompt: 'test', transcript_path: transcriptPath }, { env: projectEnv });
         assert.strictEqual(result.exitCode, 0);
-        assert.strictEqual(result.stdout, '', 'Should not inject again');
+        assert.ok(isNowOnly(result.stdout), 'Should not inject the block again, only the Now line');
       });
     });
 

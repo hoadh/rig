@@ -4,7 +4,7 @@
 
 ### Plan Location
 
-Use `Plan dir:` from `## Naming` section injected by hooks. This is the full computed path.
+Save plans in `./plans/{timestamp}-{slug}/`. Use `Plan dir:` from `## Naming` section injected by hooks. This is the full computed path.
 
 **Example:** `plans/251101-1505-authentication/` or `ai_docs/feature/MRR-1453/`
 
@@ -121,8 +121,8 @@ Brief description of what this plan accomplishes.
 When phases run on other machines, plan.md gets `branch:` (`orchestrator:` is written later by `remote dispatch`, never by the planner); each remote phase gets `machine`, `owns` (required, disjoint between machines), optional `dependsOn`. Order phases so each machine's phases are contiguous and dependencies precede dependents. Success Criteria of a remote phase names that machine's test command. `reviewedSha`/`reviewScore` are set later by the orchestrator, never at planning time. Field reference: `output-standards.md` -> Multi-Machine Fields.
 
 ### Phase Files (phase-XX-name.md)
-Fully respect the `./docs/development-rules.md` file.
-Each phase file should contain:
+Follow the code standards in `./docs/reference/code-standards.md`.
+Each phase file should contain, in this order, so phases stay easy to scan and move:
 
 **Context Links**
 - Links to related reports, files, documentation

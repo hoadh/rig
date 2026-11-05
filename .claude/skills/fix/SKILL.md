@@ -1,6 +1,6 @@
 ---
 name: rig:fix
-description: "Fix a bug end-to-end: explore, diagnose, apply fix, verify, review. ALWAYS activate this skill before fixing ANY bug, error, test failure, CI/CD issue, type error, lint, log error, UI issue, code problem. For investigation and root-cause analysis only, use /rig:debug."
+description: "Fix a bug end-to-end: explore, diagnose, fix, verify, review. Use for any bug, error, failing test, CI failure, type or lint error. For root-cause analysis only, use /rig:debug."
 argument-hint: "[issue] --auto|--review|--quick|--parallel"
 metadata:
   author: rig

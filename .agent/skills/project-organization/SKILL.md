@@ -1,6 +1,6 @@
 ---
 name: project-organization
-description: Organize files, directories, and content structure in any project. Use when creating files, determining output paths, organizing existing assets, or standardizing project layout.
+description: "Organize files, directories and content structure. Use when creating files, choosing output paths or standardizing project layout."
 argument-hint: "[directories or files to organize]"
 metadata:
   author: rig
@@ -94,7 +94,7 @@ All filenames use **kebab-case**, self-documenting names.
 date +%y%m%d-%H%M   # Bash
 ```
 
-**Code file naming:** Follow the File Naming rule in `.agent/rules/development-rules.md` — kebab-case for JS/TS/Python/Shell, PascalCase for C#/Java/Swift, snake_case for Go/Rust.
+**Code file naming:** Follow the File Naming rule in `.agent/rules/core-rules.md` — kebab-case for JS/TS/Python/Shell, PascalCase for C#/Java/Swift, snake_case for Go/Rust.
 
 ### Rule 3 — Nesting Logic
 
@@ -214,7 +214,7 @@ Other skills reference it when determining output paths:
 - `ui-ux-designer` → assets/designs/
 - `media` → assets/generated/
 - `git` → respects all naming conventions
-- `development-rules.md` File Naming rule → code file naming (JS/TS/Python/Shell = kebab-case)
+- `core-rules.md` naming rule → code file naming (JS/TS/Python/Shell = kebab-case)
 
 ## Pre-Output Checklist
 

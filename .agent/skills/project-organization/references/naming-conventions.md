@@ -49,7 +49,7 @@ Use `$RIG_PLAN_DATE_FORMAT` env var if set, otherwise default to `YYMMDD-HHmm`.
 
 ## Code File Naming
 
-Language-specific conventions (same as the File Naming rule in `.agent/rules/development-rules.md`):
+Language-specific conventions (same as the File Naming rule in `.agent/rules/core-rules.md`):
 
 | Language | Convention | Example |
 |----------|-----------|---------|

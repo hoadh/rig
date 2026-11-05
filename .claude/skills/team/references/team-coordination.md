@@ -1,6 +1,6 @@
 # Team Coordination Rules
 
-Applies only to teammates inside an Agent Team; no effect on normal sessions or subagents.
+Moved from `.claude/rules/team-coordination-rules.md`. Applies only to teammates inside an Agent Team; no effect on normal sessions or subagents.
 
 ## File Ownership
 - Each teammate owns distinct files, defined by globs in the task (`File ownership: src/api/*`). Overlapping edits corrupt each other's work.

@@ -26,7 +26,7 @@ Rig is an orchestration framework for Claude Code: agents, skills, hooks and wor
 | Agents | 14 agent definitions (planner, tester, code-reviewer, docs-maintainer, debugger, and others) | `.claude/agents/` |
 | Skills | 32 skills: 27 `/rig:*` slash commands, 5 helpers with `user-invocable: false` | `.claude/skills/`, [catalog](../../guide/SKILLS.md) |
 | Hooks | `session-init`, `subagent-init`, `team-context-inject`, `dev-rules-reminder` inject dynamic facts only | `.claude/hooks/` |
-| Native guards | Sensitive files: `permissions.ask`. Heavy directories: `permissions.deny`. File naming: rule in `.claude/rules/development-rules.md`. Usage: statusline reads `rate_limits` from stdin | `.claude/settings.json`, `.claude/statusline.cjs` |
+| Native guards | Sensitive files: `permissions.ask`. Heavy directories: `permissions.deny`. File naming: rule in `.claude/rules/core-rules.md`. Usage: statusline reads `rate_limits` from stdin | `.claude/settings.json`, `.claude/statusline.cjs` |
 | Statusline | Cross-platform Node.js script with tests; modern 256-color layout: context, 5h/7d limits, time/tokens, git state, config, tools/agents/todos | `.claude/statusline.cjs`, `.claude/hooks/lib/__tests__/` |
 | Docs workflow | Diataxis layout; `/rig:docs restructure` (alias `refactor`) migrates non-standard layouts; layout-aware validator | `docs/README.md`, `/rig:docs` |
 | UI skills | ui-styling targets Tailwind CSS v4; ui-design ships style, palette and stack data | `.claude/skills/ui-styling/`, `.claude/skills/ui-design/` |

@@ -1,6 +1,6 @@
 ---
 name: debug
-description: "Investigate and find the root cause before any fix (use /fix for the full fix workflow). Use for bugs, test failures, unexpected behavior, performance issues, call stack tracing, multi-layer validation, log analysis, CI/CD failures, database diagnostics, system investigation."
+description: "Find the root cause before any fix (full fix workflow: /fix). Use for bugs, test failures, performance issues, logs, CI/CD failures, database diagnostics."
 languages: all
 argument-hint: "[error or issue description]"
 metadata:

@@ -1,5 +1,5 @@
 ---
-description: "UI/UX design intelligence for web, mobile, and desktop. This skill should be used when designing, building, reviewing, or fixing interfaces, including pages, components, design systems, accessibility, interaction, responsive layout, typography,..."
+description: "UI/UX design intelligence for web, mobile and desktop, with searchable styles, palettes, fonts and UX guidelines. Use when designing, building or reviewing interfaces."
 ---
 
 Read `.agent/skills/ui-design/SKILL.md` and follow it.

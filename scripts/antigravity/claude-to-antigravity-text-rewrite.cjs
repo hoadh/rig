@@ -9,13 +9,8 @@ const CLAUDE_ONLY_SKILL_DIRS = new Set(['remote', 'team']);
 // They are not copied, and lines naming them are dropped from the synced text.
 const CLAUDE_ONLY_SKILL_FILES = new Set(['rig-plan/references/multi-machine-planning.md']);
 
-// Rules copied into .agent/rules/. team-coordination-rules.md is Agent Teams only.
-const SYNCED_RULE_FILES = [
-  'development-rules.md',
-  'documentation-management.md',
-  'orchestration-protocol.md',
-  'primary-workflow.md',
-];
+// Rules copied into .agent/rules/. Task-specific rules live in skill references and ship with the skills.
+const SYNCED_RULE_FILES = ['core-rules.md'];
 
 const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 

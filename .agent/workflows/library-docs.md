@@ -1,5 +1,5 @@
 ---
-description: "Search library/framework documentation via llms.txt (context7.com). Use for API docs, GitHub repository analysis, technical documentation lookup, latest library features."
+description: "Look up library and framework docs via llms.txt (context7.com). Use for API docs, GitHub repo analysis, latest library features."
 ---
 
 Read `.agent/skills/library-docs/SKILL.md` and follow it.

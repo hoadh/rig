@@ -2,8 +2,11 @@
 /**
  * Development Rules Reminder - UserPromptSubmit Hook (Optimized)
  *
- * Injects dynamic context only: date/time, paths, Plan Context and naming.
- * Static guidance lives in .claude/rules/*.md, which Claude Code loads natively.
+ * Every prompt gets one `- Now: <stamp> (tz)` line (the timestamp Naming uses, so plan and
+ * report names are never stale). The full block (session, Plan Context, Naming) is emitted
+ * only when the plan context or git branch changed since the last emit in this session;
+ * the first prompt of a session always emits it. Static paths are printed once by
+ * session-init; static guidance lives in .claude/rules/*.md, loaded natively.
  *
  * Exit Codes:
  *   0 - Success (non-blocking, allows continuation)
@@ -20,6 +23,7 @@ try {
   // Import shared context building logic
   const {
     buildReminderContext,
+    shouldEmitReminder,
     wasRecentlyInjected
   } = require('./lib/context-builder.cjs');
   const { isHookEnabled } = require('./lib/rig-config-utils.cjs');
@@ -45,11 +49,6 @@ async function main() {
     const payload = JSON.parse(stdin);
     // Global copy exits when the project install runs this same hook.
     if (yieldsToProjectCopy(__filename, payload)) process.exit(0);
-    if (wasRecentlyInjected(payload.transcript_path)) {
-      timer.end({ status: 'skip', exit: 0, note: 'recently-injected' });
-      process.exit(0);
-    }
-
     // Get session ID from hook input or env var
     const sessionId = payload.session_id || process.env.RIG_SESSION_ID || null;
 
@@ -59,8 +58,17 @@ async function main() {
     const baseDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
 
     // Use shared context builder with baseDir for absolute paths
-    const { content } = buildReminderContext({ sessionId, baseDir });
+    const { sections, signature, nowLine } = buildReminderContext({ sessionId, baseDir });
 
+    // Recently injected (transcript marker) or unchanged plan/branch: only the Now line
+    if (wasRecentlyInjected(payload.transcript_path) || !shouldEmitReminder(sessionId, signature)) {
+      console.log(nowLine);
+      timer.end({ status: 'ok', exit: 0, note: 'now-only' });
+      process.exit(0);
+    }
+
+    // Paths are static: session-init prints them once
+    const content = [...sections.session, ...sections.planContext, ...sections.naming].join('\n');
     console.log(content);
     timer.end({ status: 'ok', exit: 0, note: 'context-injected' });
     process.exit(0);

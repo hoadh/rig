@@ -27,6 +27,7 @@ try {
     isHookEnabled
   } = require('./lib/rig-config-utils.cjs');
   const { createHookTimer, logHookCrash } = require('./lib/hook-logger.cjs');
+  const { buildReminderContext, clearReminderState } = require('./lib/context-builder.cjs');
   const { yieldsToProjectCopy } = require('./lib/global-hook-yields-to-project-copy.cjs');
 
   // Early exit if hook disabled in config
@@ -115,6 +116,8 @@ async function main() {
         timestamp: Date.now(),
         source
       });
+      // Context was (re)started: let the next prompt emit the plan/naming reminder again
+      clearReminderState(sessionId);
     }
 
     // Compute base directory for absolute paths (Issue #327: use CWD for subdirectory support)
@@ -161,6 +164,16 @@ async function main() {
     const teamInfo = detectAgentTeam();
 
     console.log(`Session ${source}. ${buildContextOutput(config, detections, resolved, gitRoot)}`);
+
+    // Static paths, printed once per session start (the per-prompt reminder no longer repeats them)
+    try {
+      const { sections } = buildReminderContext({
+        sessionId, config, baseDir: process.env.CLAUDE_PROJECT_DIR || process.cwd()
+      });
+      console.log(sections.paths.join('\n').trimEnd());
+    } catch (e) {
+      // paths are a convenience; never fail session start over them
+    }
 
     // Agent Teams: Show team context if running inside a team (uses cached result)
     if (teamInfo) {

@@ -64,6 +64,26 @@ function buildPlanStatusSection(agentType) {
 }
 
 /**
+ * Core rules for subagents, opt-in via `.rig.json` `subagent.injectCoreRules` (default false).
+ * With the kit installed as files, Claude Code already loads CLAUDE.md and .claude/rules/*.md into
+ * subagents, so injecting them again only costs tokens. Installs without rules files (plugin)
+ * turn this on. Read from the .claude dir this hook runs from (project or global install);
+ * fail open when missing or unreadable.
+ * @param {string} [rulesDir] - Directory holding core-rules.md (default: ../rules next to hooks/)
+ * @returns {string[]} Lines to append (empty when unavailable)
+ */
+function buildCoreRulesSection(rulesDir = path.join(__dirname, '..', 'rules')) {
+  try {
+    const text = fs.readFileSync(path.join(rulesDir, 'core-rules.md'), 'utf8')
+      .replace(/^#[^\n]*\n+/, '')
+      .trim();
+    return text ? [``, `## Core Rules`, text] : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+/**
  * Build trust verification section if enabled
  */
 function buildTrustVerification(config) {
@@ -176,6 +196,9 @@ async function main() {
 
     // Trust verification (if enabled)
     lines.push(...buildTrustVerification(config));
+
+    // Core rules only when enabled: native rule loading already reaches subagents in a files install
+    if (config.subagent?.injectCoreRules === true) lines.push(...buildCoreRulesSection());
 
     // Agent-specific context (if configured)
     const agentContext = getAgentContext(agentType, config);

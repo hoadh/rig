@@ -1,6 +1,6 @@
 ---
 name: mcp-runner
-description: Run MCP (Model Context Protocol) tools on behalf of the main agent - discover tools/prompts/resources, pick the relevant ones, and execute them. Use when need to work with MCP servers, discover available MCP tools, filter MCP capabilities for specific tasks, execute MCP tools programmatically, or implement MCP client functionality. Keeps main context clean by handling MCP discovery in subagent context.
+description: "Run MCP (Model Context Protocol) tools for the main agent: discover tools, prompts and resources, pick the relevant ones, execute them. Use for MCP server work; keeps MCP discovery out of the main context."
 model: haiku
 tools: Glob, Grep, Read, Bash, WebFetch, WebSearch, TaskCreate, TaskGet, TaskUpdate, TaskList, SendMessage
 ---
