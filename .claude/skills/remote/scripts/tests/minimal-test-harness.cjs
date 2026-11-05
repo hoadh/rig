@@ -31,7 +31,10 @@ async function done() {
       console.log(`  ok   ${name}`);
     } catch (e) {
       failed++;
-      console.log(`  FAIL ${name}\n       ${String(e && e.stack || e).split('\n').slice(0, 4).join('\n       ')}`);
+      // Full message (assertion diffs span many lines) plus the first stack frame.
+      const msg = String((e && e.message) || e).split('\n').slice(0, 40);
+      const frame = String((e && e.stack) || '').split('\n').find((l) => l.trim().startsWith('at ')) || '';
+      console.log(`  FAIL ${name}\n       ${[...msg, frame.trim()].join('\n       ')}`);
     }
   }
   console.log(`${queue.length - failed}/${queue.length} passed`);
