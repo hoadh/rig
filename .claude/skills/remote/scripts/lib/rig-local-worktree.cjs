@@ -54,7 +54,8 @@ function ensureLocalWorktree(repoRoot, dirName, branch, opts = {}) {
   if (fs.existsSync(dir)) {
     const top = git(dir, ['rev-parse', '--show-toplevel']);
     const head = git(dir, ['symbolic-ref', '--short', '-q', 'HEAD']);
-    if (top.status !== 0 || fs.realpathSync(top.stdout.trim()) !== fs.realpathSync(dir) || head.stdout.trim() !== branch) {
+    // .native: git prints long paths; the JS realpath keeps Windows 8.3 names (RUNNER~1)
+    if (top.status !== 0 || fs.realpathSync.native(top.stdout.trim()) !== fs.realpathSync.native(dir) || head.stdout.trim() !== branch) {
       throw new RemoteError(`${dir} exists but is not a worktree on ${branch}`, EXIT.ERROR, { class: 'worktree-mismatch', hint: `remove ${dir} (git worktree remove --force) and retry` });
     }
     if (gitOrThrow(dir, ['status', '--porcelain'])) {
