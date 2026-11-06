@@ -6,13 +6,18 @@ const path = require('path');
 const { PROTOCOL_VERSION } = require('../lib/rig-json-nonce-framing.cjs');
 const { selfMachineId } = require('../lib/machine-registry.cjs');
 
-/** Rig version from the plugin manifest (.claude-plugin/plugin.json), else "unknown". */
-function readRigVersion() {
-  const pluginRoot = path.resolve(__dirname, '..', '..', '..', '..'); // worker-commands -> scripts -> remote -> skills -> plugin root
-  try {
-    const v = JSON.parse(fs.readFileSync(path.join(pluginRoot, '.claude-plugin', 'plugin.json'), 'utf8')).version;
-    if (typeof v === 'string') return v;
-  } catch { /* no manifest next to the scripts */ }
+/**
+ * Rig version: the plugin manifest (<root>/.claude-plugin/plugin.json), else the metadata.json a file install
+ * writes next to the kit (<root>/metadata.json, same {name, version} shape), else "unknown".
+ * `root` is the plugin root, or the `.claude` dir in a file install.
+ */
+function readRigVersion(root = path.resolve(__dirname, '..', '..', '..', '..')) { // worker-commands -> scripts -> remote -> skills -> root
+  for (const file of [path.join(root, '.claude-plugin', 'plugin.json'), path.join(root, 'metadata.json')]) {
+    try {
+      const v = JSON.parse(fs.readFileSync(file, 'utf8')).version;
+      if (typeof v === 'string' && v !== '') return v;
+    } catch { /* try the next source */ }
+  }
   return 'unknown';
 }
 

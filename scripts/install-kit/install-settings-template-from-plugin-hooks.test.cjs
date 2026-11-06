@@ -76,3 +76,11 @@ describe('buildCopyPlan on this repo', () => {
     assert.ok(!plan.some((i) => /hooks\.json$|\.claude-plugin/.test(i.dest)), 'plugin-only files are not installed');
   });
 });
+
+describe('permissions template', () => {
+  it('matches the permissions of the repo dev settings (one list, two homes)', () => {
+    const template = JSON.parse(fs.readFileSync(path.join(KIT_ROOT, 'plugins/rig/file-install-settings-template.json'), 'utf8'));
+    const dev = JSON.parse(fs.readFileSync(path.join(KIT_ROOT, '.claude/settings.json'), 'utf8'));
+    assert.deepStrictEqual(dev.permissions, template.permissions);
+  });
+});

@@ -149,8 +149,27 @@ function loadSecretGlobs(settingsPath) {
   return [...new Set(globs)];
 }
 
+/**
+ * Settings files whose `permissions.ask` Read rules count: the one next to the hooks dir (1.x installs), the
+ * project's and the user's. A plugin has no settings.json of its own, so the user's and project's rules are
+ * what extends the built-in list there.
+ */
+function settingsFiles() {
+  const files = [path.join(__dirname, '..', '..', 'settings.json')];
+  const dirs = [process.env.CLAUDE_PROJECT_DIR, os.homedir()].filter(Boolean);
+  for (const dir of dirs) for (const name of ['settings.json', 'settings.local.json']) files.push(path.join(dir, '.claude', name));
+  return [...new Set(files.map((f) => path.resolve(f)))];
+}
+
+/** Union of the built-in list and the Read ask rules of every settings file (missing files add nothing). */
+function loadAllSecretGlobs() {
+  const globs = new Set(FALLBACK_GLOBS);
+  for (const file of settingsFiles()) for (const g of loadSecretGlobs(file)) globs.add(g);
+  return [...globs];
+}
+
 function matchers() {
-  if (!cachedMatchers) cachedMatchers = loadSecretGlobs().map(globToRegex);
+  if (!cachedMatchers) cachedMatchers = loadAllSecretGlobs().map(globToRegex);
   return cachedMatchers;
 }
 
@@ -418,6 +437,7 @@ function check(segment, ctx) {
 }
 
 module.exports = {
+  loadAllSecretGlobs,
   id: 'secret-file-read',
   configKey: 'secretFileRead',
   opaquePolicy: 'inspect',

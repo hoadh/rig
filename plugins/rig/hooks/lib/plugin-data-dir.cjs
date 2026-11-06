@@ -27,7 +27,11 @@ function ensureDir(dir) {
   return dir;
 }
 
-/** Directory for small per-session or per-project state files (counters, caches). */
+/**
+ * Directory for HOOK-PRIVATE state (counters, caches, reminder state). Never put a file here that a
+ * Bash-run script or the statusline reads or writes: those processes do not get CLAUDE_PLUGIN_DATA.
+ * Shared files (rig-session-<id>.json) stay in os.tmpdir(), as in 1.x.
+ */
 function stateDir() {
   const data = pluginDataDir();
   return data ? ensureDir(path.join(data, 'state')) : os.tmpdir();
@@ -39,4 +43,37 @@ function logDir(legacyDir) {
   return data ? path.join(data, 'logs') : legacyDir;
 }
 
-module.exports = { pluginDataDir, stateDir, logDir };
+const PRUNE_PREFIX = /^rig-/;
+
+/**
+ * Best-effort cleanup of hook-private state in the plugin data dir (the OS never cleans it).
+ * Deletes `rig-*` files not modified for `maxAgeMs`; looks at no more than `cap` matching files per call.
+ * @returns {number} files deleted
+ */
+function pruneStaleState(maxAgeMs = 7 * 24 * 60 * 60 * 1000, cap = 500) {
+  const data = pluginDataDir();
+  if (!data) return 0;
+  let deleted = 0;
+  try {
+    const dir = path.join(data, 'state');
+    const now = Date.now();
+    // Filter first, then cap: unrelated files must not starve the scan.
+    const names = fs.readdirSync(dir).filter((n) => PRUNE_PREFIX.test(n)).slice(0, cap);
+    for (const name of names) {
+      try {
+        const file = path.join(dir, name);
+        if (now - fs.statSync(file).mtimeMs > maxAgeMs) {
+          fs.unlinkSync(file);
+          deleted++;
+        }
+      } catch {
+        // raced with another hook or unreadable: skip
+      }
+    }
+  } catch {
+    // no state dir yet
+  }
+  return deleted;
+}
+
+module.exports = { pluginDataDir, stateDir, logDir, pruneStaleState };

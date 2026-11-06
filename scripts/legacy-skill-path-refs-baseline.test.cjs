@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Known debt, ratcheted: text under plugins/rig/ that still points at the 1.x file-install layout
- * (`.claude/skills/...`, `$HOME/.claude/skills/...`, or the old `skills/rig-plan|rig-debug` dirs).
+ * (`.claude/{skills,scripts,hooks,agents,statusline,rules}`, with or without `$HOME/` or `~/`, or the old `skills/rig-plan|rig-debug` dirs).
  * Phase 2 replaces them with bin/ entrypoints and ${CLAUDE_SKILL_DIR}; until then this test records
  * the count per file and fails when any file gains a reference or a new file adds one, so the debt can
  * only go down. When you remove references, lower the numbers:
@@ -18,7 +18,7 @@ const SCAN_ROOT = path.join(ROOT, 'plugins', 'rig');
 const BASELINE_FILE = path.join(__dirname, 'legacy-skill-path-refs-baseline.json');
 const SKIP_DIRS = new Set(['node_modules', '.venv', '__pycache__', '.logs', '__tests__', 'tests', 'fixtures']);
 const SKIP_FILES = /\.(test\.cjs|test\.js|test\.ts|png|jpe?g|gif|webp|ico|svg|woff2?|ttf|pdf|zip|csv)$/i;
-const PATTERN = /\.claude[\\/]skills|skills\/rig-(?:plan|debug)\b/g;
+const PATTERN = /\.claude[\\/](?:skills|scripts|hooks|agents|statusline|rules)|skills\/rig-(?:plan|debug)\b/g;
 
 function scan(dir, out = {}) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -51,6 +51,16 @@ describe('legacy .claude/skills path references (known debt, must not grow)', ()
   it('scans the plugin (guards against a wrong root making the check vacuous)', () => {
     assert.ok(fs.existsSync(path.join(SCAN_ROOT, '.claude-plugin', 'plugin.json')), 'plugin root exists');
     assert.ok(sum(baseline) > 0, 'baseline is not empty while the debt exists');
+  });
+
+  it('the pattern covers every dead 1.x form, including $HOME and ~ prefixes', () => {
+    for (const text of ['node .claude/scripts/set-active-plan.cjs', '$HOME/.claude/skills/x/SKILL.md', '~/.claude/hooks/a.cjs',
+      '.claude/agents/planner.md', 'node .claude/statusline.cjs', '.claude/rules/core-rules.md', 'skills/rig-plan/references/a.md']) {
+      assert.ok(text.match(PATTERN), text);
+    }
+    for (const text of ['.claude/settings.json', '~/.claude/teams/x', '.claude/.rig.json', 'skills/rig-planner/x']) {
+      assert.ok(!text.match(PATTERN), text);
+    }
   });
 
   it('no file has more legacy references than recorded, and no new file adds any', () => {

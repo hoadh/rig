@@ -9,7 +9,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { execFileSync, spawnSync } = require('child_process');
-const { decide, parseVersion, check } = require('./check-plugin-version-bump.cjs');
+const { decide, parseVersion, compareSemver, check } = require('./check-plugin-version-bump.cjs');
 
 describe('decide', () => {
   const f = 'plugins/rig/hooks/session-init.cjs';
@@ -19,7 +19,7 @@ describe('decide', () => {
   it('fails when plugins/rig changed and the version is the same', () => {
     const r = decide({ changedFiles: [f], baseVersion: '2.0.0', headVersion: '2.0.0' });
     assert.strictEqual(r.ok, false);
-    assert.match(r.reason, /bump the version/);
+    assert.match(r.reason, /must be greater/);
     assert.match(r.reason, /session-init\.cjs/);
   });
   it('passes when the version changed', () => {
@@ -33,6 +33,30 @@ describe('decide', () => {
   });
   it('ignores look-alike paths outside plugins/rig/', () => {
     assert.strictEqual(decide({ changedFiles: ['plugins/rig-other/x', 'docs/plugins/rig/x'], baseVersion: '1', headVersion: '1' }).ok, true);
+  });
+});
+
+describe('semver rule', () => {
+  const f = 'plugins/rig/x.cjs';
+  const ok = (base, head) => decide({ changedFiles: [f], baseVersion: base, headVersion: head }).ok;
+  it('rejects a downgrade and a whitespace-only change', () => {
+    assert.strictEqual(ok('2.0.0', '1.0.0'), false);
+    assert.strictEqual(ok('2.0.0', '2.0.0 '), false);
+    assert.strictEqual(ok('2.0.0', 'v2.0.1'), false);
+  });
+  it('orders prereleases per semver (beta.2 < beta.10 < release)', () => {
+    assert.strictEqual(ok('2.0.0-beta.2', '2.0.0-beta.10'), true);
+    assert.strictEqual(ok('2.0.0-beta.10', '2.0.0-beta.2'), false);
+    assert.strictEqual(ok('2.0.0-beta.1', '2.0.0'), true);
+    assert.strictEqual(ok('2.0.0', '2.0.1-alpha'), true);
+    assert.strictEqual(ok('2.0.0', '2.0.0-rc.1'), false);
+    assert.strictEqual(compareSemver('1.0.0-alpha', '1.0.0-alpha.1'), -1);
+    assert.strictEqual(compareSemver('1.0.0-1', '1.0.0-alpha'), -1);
+  });
+  it('requires the marketplace entry version, when present, to equal plugin.json', () => {
+    assert.strictEqual(decide({ changedFiles: [], baseVersion: '1.0.0', headVersion: '1.0.1', marketplaceVersion: '1.0.0' }).ok, false);
+    assert.strictEqual(decide({ changedFiles: [], baseVersion: '1.0.0', headVersion: '1.0.1', marketplaceVersion: '1.0.1' }).ok, true);
+    assert.strictEqual(decide({ changedFiles: [], baseVersion: '1.0.0', headVersion: '1.0.1' }).ok, true, 'no marketplace version: nothing to compare');
   });
 });
 
@@ -85,6 +109,16 @@ describe('check in a git repo', () => {
     write(dir, 'README.md', 'b');
     git(dir, 'commit', '-qam', 'docs only');
     assert.strictEqual(check(dir, 'main').ok, true);
+  });
+
+  it('fails when the committed marketplace entry version differs from plugin.json', () => {
+    const dir = repo();
+    write(dir, 'plugins/rig/.claude-plugin/plugin.json', manifest('1.0.0'));
+    write(dir, '.claude-plugin/marketplace.json', JSON.stringify({ plugins: [{ name: 'rig', version: '0.9.0' }] }));
+    git(dir, 'add', '-A'); git(dir, 'commit', '-qm', 'base');
+    const r = check(dir, 'main');
+    assert.strictEqual(r.ok, false);
+    assert.match(r.reason, /marketplace/);
   });
 
   it('CLI exits 2 when the base ref does not exist', () => {

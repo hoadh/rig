@@ -128,7 +128,7 @@ function runInstall(ctx) {
       stats.preserved.push(path.relative(ctx.targetRoot, item.dest));
       continue;
     }
-    let content = fs.readFileSync(item.src);
+    let content = item.content !== undefined ? Buffer.from(item.content) : fs.readFileSync(item.src);
     if (ctx.isGlobal && isTransformableFile(item.src)) {
       const result = rewriteContentForGlobalInstall(content.toString('utf8'));
       if (result.changes > 0) {

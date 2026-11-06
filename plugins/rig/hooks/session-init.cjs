@@ -27,8 +27,9 @@ try {
     isHookEnabled
   } = require('./lib/rig-config-utils.cjs');
   const { createHookTimer, logHookCrash } = require('./lib/hook-logger.cjs');
+  const { pruneStaleState } = require('./lib/plugin-data-dir.cjs');
   const { buildReminderContext, clearReminderState } = require('./lib/context-builder.cjs');
-  const { yieldsToProjectCopy, isPluginCopy } = require('./lib/global-hook-yields-to-project-copy.cjs');
+  const { yieldTarget, isPluginCopy } = require('./lib/global-hook-yields-to-project-copy.cjs');
 
   // Early exit if hook disabled in config
   if (!isHookEnabled('session-init')) {
@@ -76,8 +77,12 @@ function detectAgentTeam() {
   }
 }
 
+const GLOBAL_COPY_NOTICE = 'Rig plugin is installed but the 1.x Rig hooks in ~/.claude are still registered, so the 1.x hooks run and the plugin hooks yield. ' +
+  'Remove the 1.x global hooks or run the migrator when available.';
+
 // additionalContext is capped by Claude Code (10,000 characters); stay inside it.
 const CORE_RULES_MAX_CHARS = 10000;
+const CONTEXT_MAX_CHARS = 10000;
 
 /**
  * Reads plugins/rig/rules/core-rules.md when this hook runs from a plugin install.
@@ -102,7 +107,14 @@ async function main() {
     const stdin = fs.readFileSync(0, 'utf-8').trim();
     const data = stdin ? JSON.parse(stdin) : {};
     // Global copy exits when the project install runs this same hook.
-    if (yieldsToProjectCopy(__filename, data)) process.exit(0);
+    const yielded = yieldTarget(__filename, data);
+    if (yielded === 'global') {
+      // The plugin copy of every other hook yields silently too; say why once, at session start.
+      process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: GLOBAL_COPY_NOTICE } }));
+      process.exit(0);
+    }
+    if (yielded) process.exit(0);
+    pruneStaleState();
     const envFile = process.env.CLAUDE_ENV_FILE;
     const source = data.source || 'unknown';
     const sessionId = data.session_id || null;
@@ -230,8 +242,11 @@ async function main() {
     const coreRules = readPluginCoreRules();
     if (coreRules) out.push(`\n${coreRules}`);
 
+    // Hard cap on the whole context: the rules are already capped, so only an unusually long
+    // assertion list or path block can reach it; the tail (lowest priority) is what gets cut.
+    const context = out.join('\n');
     process.stdout.write(JSON.stringify({
-      hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: out.join('\n') }
+      hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: context.length > CONTEXT_MAX_CHARS ? context.slice(0, CONTEXT_MAX_CHARS) : context }
     }));
 
     timer.end({ status: 'ok', exit: 0, note: source || 'session-start' });

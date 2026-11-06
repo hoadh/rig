@@ -4,3 +4,6 @@ plugins/rig/hooks/**    @hoadh
 plugins/rig/bin/**      @hoadh
 plugins/rig/scripts/**  @hoadh
 .claude-plugin/**       @hoadh
+.github/workflows/**              @hoadh
+plugins/rig/statusline.cjs          @hoadh
+plugins/rig/skills/*/scripts/**     @hoadh

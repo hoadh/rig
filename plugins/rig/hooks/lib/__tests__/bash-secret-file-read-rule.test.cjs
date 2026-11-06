@@ -213,3 +213,49 @@ describe('secret glob loading', () => {
     assert.deepStrictEqual(rule.expandBraces('a{b'), ['a{b']);
   });
 });
+
+describe('plugin mode: user and project Read ask rules extend the built-in list', () => {
+  const { spawnSync } = require('child_process');
+  const rulePath = path.resolve(__dirname, '..', 'bash-secret-file-read-rule.cjs');
+  const enginePath = path.resolve(__dirname, '..', 'bash-safety-rule-engine.cjs');
+  const dirs = [];
+  require('node:test').after(() => dirs.forEach((d) => fs.rmSync(d, { recursive: true, force: true })));
+
+  /** Runs `command` through the rule in a fresh process with the given project and home settings. */
+  function decisionWith({ project, home }, command) {
+    const mk = (settings) => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rig-secret-rule-'));
+      dirs.push(dir);
+      if (settings) {
+        fs.mkdirSync(path.join(dir, '.claude'));
+        fs.writeFileSync(path.join(dir, '.claude', 'settings.json'), JSON.stringify(settings));
+      }
+      return dir;
+    };
+    const projectDir = mk(project);
+    const homeDir = mk(home);
+    const code = `const r=require(${JSON.stringify(rulePath)});const {evaluateCommand}=require(${JSON.stringify(enginePath)});
+      const x=evaluateCommand(${JSON.stringify(command)},{rules:[r],cwd:'/work/proj'}).result;console.log(x?x.decision:'none')`;
+    return spawnSync(process.execPath, ['-e', code], {
+      env: { ...process.env, CLAUDE_PROJECT_DIR: projectDir, HOME: homeDir, USERPROFILE: homeDir }, encoding: 'utf8',
+    }).stdout.trim();
+  }
+
+  it('asks for a file named by the project settings, not by the built-in list', () => {
+    assert.strictEqual(decisionWith({}, 'cat prod.tfvars'), 'none');
+    assert.strictEqual(decisionWith({ project: { permissions: { ask: ['Read(**/prod.tfvars)'] } } }, 'cat prod.tfvars'), 'ask');
+  });
+
+  it('asks for a file named by the user settings (~/.claude/settings.json)', () => {
+    assert.strictEqual(decisionWith({ home: { permissions: { ask: ['Read(**/vault.token)'] } } }, 'cat vault.token'), 'ask');
+  });
+
+  it('does not leak one project\'s rules into another (fresh process per project)', () => {
+    assert.strictEqual(decisionWith({ project: { permissions: { ask: ['Read(**/prod.tfvars)'] } } }, 'cat prod.tfvars'), 'ask');
+    assert.strictEqual(decisionWith({ project: { permissions: { ask: ['Read(**/other.secret)'] } } }, 'cat prod.tfvars'), 'none');
+  });
+
+  it('the built-in list alone still covers the old shipped Read rules', () => {
+    for (const f of ['.env.qa', '.env.stage', 'cert.pfx', 'secret.yaml']) assert.strictEqual(decisionWith({}, `cat ${f}`), 'ask', f);
+  });
+});

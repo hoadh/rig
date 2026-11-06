@@ -4,8 +4,10 @@
  *   global → ~/.claude/** (contents of .claude/) and ~/.claude/CLAUDE.md
  * Sources (since 2.0): the kit lives in plugins/rig/ and installs to `.claude/<same path>`; the plugin-only
  * files (.claude-plugin/, hooks/hooks.json) stay out; the repo's own `.claude/` supplies the user-config files
- * (.rig.json, .env.example, .mcp.json.example, .gitignore). settings.json is generated from the plugin's hooks.json
- * (install-settings-template-from-plugin-hooks.cjs), because the repo's `.claude/settings.json` is dev-only.
+ * (an explicit allowlist: .rig.json, .env.example, .mcp.json.example; never settings.json or anything else dev-only).
+ * settings.json is generated from the plugin's hooks.json plus file-install-settings-template.json
+ * (install-settings-template-from-plugin-hooks.cjs). Skill names get their `rig:` prefix back (the plugin namespace
+ * adds it for plugin installs; file installs have no namespace), and `.claude/metadata.json` records the plugin version.
  * Source files come from git (tracked + untracked-not-ignored), so ignored runtime state
  * (.env, hook logs, session state, venvs, caches) never leaves the repo.
  */
@@ -15,7 +17,10 @@ const { buildInstallSettingsTemplate } = require('./install-settings-template-fr
 
 const PLUGIN_PREFIX = 'plugins/rig/';
 // Plugin files with no meaning in a file install
-const PLUGIN_ONLY = [/^plugins\/rig\/\.claude-plugin\//, /^plugins\/rig\/hooks\/hooks\.json$/];
+const PLUGIN_ONLY = [/^plugins\/rig\/\.claude-plugin\//, /^plugins\/rig\/hooks\/hooks\.json$/, /^plugins\/rig\/file-install-settings-template\.json$/];
+// The repo's own `.claude/` is Rig-development config. Only these template files ship to users.
+const REPO_CLAUDE_ALLOWLIST = new Set(['.env.example', '.mcp.json.example', '.rig.json']);
+const SKILL_MD = /^plugins\/rig\/skills\/[^/]+\/SKILL\.md$/;
 
 // Never copied: secrets, VCS/dependency dirs, OS junk, logs and per-machine state
 const NEVER_COPY = [
@@ -51,7 +56,10 @@ function listRepoFiles(kitRoot) {
  */
 function installRelFor(relPath, isGlobal) {
   if (relPath.startsWith(PLUGIN_PREFIX)) return PLUGIN_ONLY.some((re) => re.test(relPath)) ? null : relPath.slice(PLUGIN_PREFIX.length);
-  if (relPath.startsWith('.claude/')) return relPath.slice('.claude/'.length);
+  if (relPath.startsWith('.claude/')) {
+    const inner = relPath.slice('.claude/'.length);
+    return REPO_CLAUDE_ALLOWLIST.has(inner) ? inner : null;
+  }
   if (isGlobal) return relPath === 'CLAUDE.md' ? relPath : null;
   return LOCAL_ROOT_FILES.includes(relPath) ? relPath : null;
 }
@@ -76,15 +84,39 @@ function buildCopyPlan({ kitRoot, targetRoot, isGlobal, fs }) {
       claudeFiles.add(installRel);
     }
     const dest = path.join(targetRoot, destRel);
-    const isSettings = !isRootFile && installRel === 'settings.json';
+    const isSettings = false; // settings.json is generated below, never copied from a source file
     // Only top-level user config is protected (project root or .claude/), not files nested in skills
     const isTopLevel = !installRel.includes('/');
     const kind = isSettings ? 'settings' : isTopLevel && PRESERVE_IF_EXISTS.has(path.basename(rel)) ? 'preserve' : 'copy';
     const item = { rel, src, dest, kind };
     if (isSettings) item.content = buildInstallSettingsTemplate({ kitRoot, fs });
+    else if (SKILL_MD.test(rel)) item.content = prefixSkillName(fs.readFileSync(src, 'utf8'));
     plan.push(item);
   }
+  plan.push(buildSettingsItem({ kitRoot, targetRoot, isGlobal, fs }));
+  plan.push(buildMetadataItem({ kitRoot, targetRoot, isGlobal, fs }));
   return plan;
 }
 
-module.exports = { buildCopyPlan, installRelFor };
+/** settings.json generated from hooks.json + the shipped permissions template (the repo's .claude/settings.json is dev-only). */
+function buildSettingsItem({ kitRoot, targetRoot, isGlobal, fs }) {
+  const src = path.join(kitRoot, 'plugins', 'rig', 'file-install-settings-template.json'); // mode source for the written file
+  const dest = path.join(targetRoot, isGlobal ? '' : '.claude', 'settings.json');
+  return { rel: 'plugins/rig/file-install-settings-template.json', src, dest, kind: 'settings', content: buildInstallSettingsTemplate({ kitRoot, fs }) };
+}
+
+/** `name: plan` -> `name: rig:plan` in the leading frontmatter only; already-prefixed names are kept. */
+function prefixSkillName(text) {
+  return text.replace(/^---\r?\n[\s\S]*?\r?\n---/, (fm) => fm.replace(/^name:[ \t]*(?!rig:)(\S+)[ \t]*$/m, 'name: rig:$1'));
+}
+
+/** `.claude/metadata.json` ({name, version} from plugin.json): what remote info/doctor read in a file install. */
+function buildMetadataItem({ kitRoot, targetRoot, isGlobal, fs }) {
+  const src = path.join(kitRoot, 'plugins', 'rig', '.claude-plugin', 'plugin.json');
+  const { name, version } = JSON.parse(fs.readFileSync(src, 'utf8'));
+  if (typeof name !== 'string' || typeof version !== 'string') throw new Error('plugin.json needs string name and version');
+  const dest = path.join(targetRoot, isGlobal ? '' : '.claude', 'metadata.json');
+  return { rel: 'plugins/rig/.claude-plugin/plugin.json', src, dest, kind: 'copy', content: `${JSON.stringify({ name, version }, null, 2)}\n` };
+}
+
+module.exports = { buildCopyPlan, installRelFor, prefixSkillName };

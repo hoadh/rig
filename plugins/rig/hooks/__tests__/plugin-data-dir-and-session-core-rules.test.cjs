@@ -37,10 +37,11 @@ function installPluginCopy({ coreRules, withManifest = true } = {}) {
 
 function runSessionInit(root, env = {}) {
   const project = mkTmp('rig-plugin-project-');
+  const home = mkTmp('rig-plugin-home-'); // a real ~/.claude with 1.x hooks would make the plugin copy yield
   const res = spawnSync(process.execPath, [path.join(root, 'hooks', 'session-init.cjs')], {
     input: JSON.stringify({ hook_event_name: 'SessionStart', source: 'startup', session_id: `t-${Date.now()}` }),
     cwd: project,
-    env: { ...process.env, CLAUDE_ENV_FILE: '', CLAUDE_PROJECT_DIR: project, CLAUDE_PLUGIN_DATA: '', ...env },
+    env: { ...process.env, HOME: home, USERPROFILE: home, CLAUDE_ENV_FILE: '', CLAUDE_PROJECT_DIR: project, CLAUDE_PLUGIN_DATA: '', ...env },
     encoding: 'utf8',
   });
   return { ...res, project };
@@ -105,7 +106,7 @@ describe('session-init core rules injection', () => {
     const ctx = additionalContext(runSessionInit(root));
     assert.ok(ctx.includes('START'));
     assert.ok(!ctx.includes('END-OF-FILE'), 'tail beyond the cap is dropped');
-    assert.ok(ctx.length < 10000 + 5000, `context stays bounded (${ctx.length})`);
+    assert.ok(ctx.length <= 10000, `whole additionalContext stays within the 10,000 cap (${ctx.length})`);
   });
 
   it('does not inject when the hook is not part of a plugin (no manifest): file installs load rules natively', () => {
@@ -121,5 +122,91 @@ describe('session-init core rules injection', () => {
     const res = runSessionInit(root);
     assert.strictEqual(res.status, 0, res.stderr);
     assert.ok(additionalContext(res).length > 0);
+  });
+});
+
+describe('shared session state across the hook / Bash boundary', () => {
+  const setActivePlan = path.join(PLUGIN_ROOT, 'scripts', 'set-active-plan.cjs');
+  const readPlan = path.join(PLUGIN_ROOT, 'hooks', 'lib', 'rig-config-utils.cjs');
+
+  it('set-active-plan (no CLAUDE_PLUGIN_DATA, like the Bash tool) is visible to a hook that has it', () => {
+    const data = mkTmp('rig-data-');
+    const project = mkTmp('rig-proj-');
+    const sid = `h1-${process.pid}-${Date.now()}`;
+    const env = { ...process.env, RIG_SESSION_ID: sid, CLAUDE_PROJECT_DIR: project };
+    delete env.CLAUDE_PLUGIN_DATA;
+    const set = spawnSync(process.execPath, [setActivePlan, path.join(project, 'plans', 'x')], { cwd: project, env, encoding: 'utf8' });
+    assert.strictEqual(set.status, 0, set.stderr);
+    try {
+      const read = spawnSync(process.execPath, ['-e',
+        `const {readSessionState}=require(${JSON.stringify(readPlan)});console.log(JSON.stringify(readSessionState(${JSON.stringify(sid)})))`],
+      { cwd: project, env: { ...env, CLAUDE_PLUGIN_DATA: data }, encoding: 'utf8' });
+      const state = JSON.parse(read.stdout.trim());
+      assert.ok(state && state.activePlan && state.activePlan.endsWith(path.join('plans', 'x')), read.stdout + read.stderr);
+      assert.ok(!fs.existsSync(path.join(data, 'state', `rig-session-${sid}.json`)), 'session state is not split into the data dir');
+    } finally {
+      fs.rmSync(path.join(os.tmpdir(), `rig-session-${sid}.json`), { force: true });
+    }
+  });
+});
+
+describe('state pruning', () => {
+  const lib = path.join(PLUGIN_ROOT, 'hooks', 'lib', 'plugin-data-dir.cjs');
+  const guardLib = path.join(PLUGIN_ROOT, 'hooks', 'lib', 'verify-guard-turn-counter.cjs');
+  const old = (file, days) => {
+    const t = new Date(Date.now() - days * 86400000);
+    fs.utimesSync(file, t, t);
+  };
+
+  it('pruneStaleState deletes rig-* files older than 7 days in the data dir and keeps fresh and foreign ones', () => {
+    const data = mkTmp('rig-data-');
+    const state = path.join(data, 'state');
+    fs.mkdirSync(state, { recursive: true });
+    for (const n of ['rig-reminder-old.json', 'rig-git-cache-old.json', 'rig-reminder-new.json', 'foreign-old.json']) fs.writeFileSync(path.join(state, n), '{}');
+    for (const n of ['rig-reminder-old.json', 'rig-git-cache-old.json', 'foreign-old.json']) old(path.join(state, n), 8);
+    const out = spawnSync(process.execPath, ['-e', `console.log(require(${JSON.stringify(lib)}).pruneStaleState())`], { env: { ...process.env, CLAUDE_PLUGIN_DATA: data }, encoding: 'utf8' });
+    assert.strictEqual(out.stdout.trim(), '2');
+    assert.deepStrictEqual(fs.readdirSync(state).sort(), ['foreign-old.json', 'rig-reminder-new.json']);
+  });
+
+  it('session-init triggers the prune', () => {
+    const root = installPluginCopy();
+    const data = mkTmp('rig-data-');
+    const state = path.join(data, 'state');
+    fs.mkdirSync(state, { recursive: true });
+    fs.writeFileSync(path.join(state, 'rig-session-stale.json'), '{}');
+    old(path.join(state, 'rig-session-stale.json'), 30);
+    fs.writeFileSync(path.join(state, 'rig-reminder-stale.json'), '{}');
+    old(path.join(state, 'rig-reminder-stale.json'), 30);
+    assert.strictEqual(runSessionInit(root, { CLAUDE_PLUGIN_DATA: data }).status, 0);
+    assert.ok(!fs.existsSync(path.join(state, 'rig-reminder-stale.json')));
+  });
+
+  it('the verify-guard prune filters by prefix before capping (600 foreign files do not hide stale counters)', () => {
+    const data = mkTmp('rig-data-');
+    const state = path.join(data, 'state');
+    fs.mkdirSync(state, { recursive: true });
+    // aaa-* sorts before rig-verify-guard-* and used to fill the 500-entry scan window
+    for (let i = 0; i < 600; i++) fs.writeFileSync(path.join(state, `aaa-${i}`), '');
+    const stale = path.join(state, 'rig-verify-guard-stale.json');
+    fs.writeFileSync(stale, '{}');
+    old(stale, 3);
+    spawnSync(process.execPath, ['-e', `require(${JSON.stringify(guardLib)}).pruneStaleStateFiles()`], { env: { ...process.env, CLAUDE_PLUGIN_DATA: data }, encoding: 'utf8' });
+    assert.ok(!fs.existsSync(stale), 'stale verify-guard file pruned');
+  });
+});
+
+describe('session-init whole-context cap', () => {
+  it('truncates additionalContext to 10,000 chars when assertions are huge', () => {
+    const root = installPluginCopy();
+    const project = mkTmp('rig-plugin-project-');
+    fs.mkdirSync(path.join(project, '.claude'));
+    fs.writeFileSync(path.join(project, '.claude', '.rig.json'), JSON.stringify({ assertions: ['y'.repeat(20000)] }));
+    const res = spawnSync(process.execPath, [path.join(root, 'hooks', 'session-init.cjs')], {
+      input: JSON.stringify({ hook_event_name: 'SessionStart', source: 'startup', session_id: 'cap-test' }),
+      cwd: project, env: { ...process.env, HOME: project, USERPROFILE: project, CLAUDE_ENV_FILE: '', CLAUDE_PROJECT_DIR: project, CLAUDE_PLUGIN_DATA: '' }, encoding: 'utf8',
+    });
+    assert.strictEqual(res.status, 0, res.stderr);
+    assert.ok(JSON.parse(res.stdout).hookSpecificOutput.additionalContext.length <= 10000);
   });
 });

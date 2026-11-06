@@ -1,8 +1,9 @@
 /**
  * Settings template for the file installer (`install-kit-from-local-repo.cjs`) until the plugin replaces it.
  *
- * Since Rig 2.0 the repo's `.claude/settings.json` holds Rig-development permissions only and the hooks
- * live in `plugins/rig/hooks/hooks.json` (exec form with ${CLAUDE_PLUGIN_ROOT}). A file install still
+ * Since Rig 2.0 the repo's `.claude/settings.json` holds Rig-development permissions only, the hooks
+ * live in `plugins/rig/hooks/hooks.json` (exec form with ${CLAUDE_PLUGIN_ROOT}) and the shipped permissions
+ * in `plugins/rig/file-install-settings-template.json`. A file install still
  * needs the 1.x shape: `node "$CLAUDE_PROJECT_DIR"/.claude/hooks/<x>.cjs` entries plus the statusline.
  * This builds that settings object from the two sources so the installer output stays what 1.x users
  * already have registered (the merge then sees duplicates, not new hooks).
@@ -42,16 +43,16 @@ function convertHooks(pluginHooks) {
  */
 function buildInstallSettingsTemplate({ kitRoot, fs }) {
   const read = (rel) => JSON.parse(fs.readFileSync(path.join(kitRoot, rel), 'utf8'));
-  const dev = read('.claude/settings.json');
+  // Permissions come from a shipped template, never from the repo's dev-only .claude/settings.json.
+  const template = read('plugins/rig/file-install-settings-template.json');
   const pluginHooks = read('plugins/rig/hooks/hooks.json').hooks;
-  const { $schema, attribution, permissions, ...rest } = dev;
+  const { $schema, attribution, permissions } = template;
   const settings = {
     ...($schema ? { $schema } : {}),
     ...(attribution ? { attribution } : {}),
     statusLine: { type: 'command', command: 'node "$CLAUDE_PROJECT_DIR"/.claude/statusline.cjs', padding: 0 },
     hooks: convertHooks(pluginHooks),
     ...(permissions ? { permissions } : {}),
-    ...rest,
   };
   return `${JSON.stringify(settings, null, 2)}\n`;
 }

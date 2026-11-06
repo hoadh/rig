@@ -220,3 +220,97 @@ test('end to end: the plugin hooks yield to a project copy and run without one',
   t.writeSettings({ UserPromptSubmit: [{ hooks: [{ type: 'command', command: PROJECT_CMD('dev-rules-reminder.cjs') }] }] });
   assert.strictEqual(run(), '', 'silent when the project copy runs');
 });
+
+// --- plugin copy vs a global 1.x install (~/.claude/settings.json -> ~/.claude/hooks/x.cjs) ---
+
+const GLOBAL_CMD = (file) => `node "$HOME/.claude/hooks/${file}"`;
+const writeHomeSettings = (t, hooks, name = 'settings.json') =>
+  fs.writeFileSync(path.join(t.home, '.claude', name), JSON.stringify({ hooks }));
+const { yieldTarget } = require('../lib/global-hook-yields-to-project-copy.cjs');
+const target = (t, input, hookPath) => withEnv({ HOME: t.home, USERPROFILE: t.home, CLAUDE_PROJECT_DIR: t.project }, () => yieldTarget(hookPath, input));
+
+test('plugin copy yields to a global 1.x copy registered in ~/.claude/settings.json', () => {
+  const t = setupPlugin();
+  writeHomeSettings(t, { PreToolUse: [{ matcher: 'Bash|Write', hooks: [{ type: 'command', command: GLOBAL_CMD('x.cjs') }] }] });
+  assert.strictEqual(check(t, preWrite, t.pluginHook), true);
+  assert.strictEqual(target(t, preWrite, t.pluginHook), 'global');
+});
+
+test('plugin copy yields to a global copy registered in settings.local.json, via ~ and absolute forms', () => {
+  const t = setupPlugin();
+  writeHomeSettings(t, { PreToolUse: [{ matcher: 'Write', hooks: [{ type: 'command', command: 'node ~/.claude/hooks/x.cjs' }] }] }, 'settings.local.json');
+  assert.strictEqual(check(t, preWrite, t.pluginHook), true, '~ form');
+  writeHomeSettings(t, { PreToolUse: [{ matcher: 'Write', hooks: [{ type: 'command', command: `node "${t.home}/.claude/hooks/x.cjs"` }] }] }, 'settings.local.json');
+  assert.strictEqual(check(t, preWrite, t.pluginHook), true, 'absolute form');
+});
+
+test('plugin copy keeps running when no global 1.x copy is registered (file absent, other event, other matcher)', () => {
+  const t = setupPlugin();
+  assert.strictEqual(target(t, preWrite, t.pluginHook), null, 'nothing registered');
+  writeHomeSettings(t, { PostToolUse: [{ matcher: 'Write', hooks: [{ type: 'command', command: GLOBAL_CMD('x.cjs') }] }] });
+  assert.strictEqual(target(t, preWrite, t.pluginHook), null, 'other event');
+  writeHomeSettings(t, { PreToolUse: [{ matcher: 'Edit', hooks: [{ type: 'command', command: GLOBAL_CMD('x.cjs') }] }] });
+  assert.strictEqual(target(t, preWrite, t.pluginHook), null, 'other matcher');
+  writeHomeSettings(t, { PreToolUse: [{ matcher: 'Write', hooks: [{ type: 'command', command: GLOBAL_CMD('x.cjs') }] }] });
+  fs.unlinkSync(path.join(t.home, '.claude', 'hooks', 'x.cjs'));
+  assert.strictEqual(target(t, preWrite, t.pluginHook), null, 'registered but the global file is gone');
+});
+
+test('a global "copy" that is a symlink to the plugin file never makes both sides yield', () => {
+  const t = setupPlugin();
+  const globalFile = path.join(t.home, '.claude', 'hooks', 'x.cjs');
+  fs.unlinkSync(globalFile);
+  fs.symlinkSync(t.pluginHook, globalFile);
+  writeHomeSettings(t, { PreToolUse: [{ matcher: 'Write', hooks: [{ type: 'command', command: GLOBAL_CMD('x.cjs') }] }] });
+  assert.strictEqual(target(t, preWrite, t.pluginHook), null);
+});
+
+test('global + plugin + project: the plugin yields to the project copy, not the global one', () => {
+  const t = setupPlugin();
+  writeHomeSettings(t, { PreToolUse: [{ matcher: 'Write', hooks: [{ type: 'command', command: GLOBAL_CMD('x.cjs') }] }] });
+  t.writeSettings({ PreToolUse: [{ matcher: 'Write', hooks: [{ type: 'command', command: PROJECT_CMD('x.cjs') }] }] });
+  assert.strictEqual(target(t, preWrite, t.pluginHook), 'project');
+});
+
+test('disableAllHooks in the home settings stops the plugin from yielding to the global copy', () => {
+  const t = setupPlugin();
+  fs.writeFileSync(path.join(t.home, '.claude', 'settings.json'), JSON.stringify({
+    disableAllHooks: true, hooks: { PreToolUse: [{ matcher: 'Write', hooks: [{ type: 'command', command: GLOBAL_CMD('x.cjs') }] }] },
+  }));
+  assert.strictEqual(target(t, preWrite, t.pluginHook), null);
+});
+
+test('the global 1.x copy itself never yields to the global registration (only plugin copies do)', () => {
+  const t = setupPlugin();
+  writeHomeSettings(t, { PreToolUse: [{ matcher: 'Write', hooks: [{ type: 'command', command: GLOBAL_CMD('x.cjs') }] }] });
+  assert.strictEqual(check(t, preWrite, t.globalHook), false);
+});
+
+test('end to end: with a global 1.x copy registered, the plugin session-init prints one migration notice and the other hooks stay silent', () => {
+  const t = setup();
+  const pluginRoot = path.join(t.root, 'plugin-cache', 'rig');
+  const skip = (src) => !/[\\/](__tests__|tests|\.logs)$/.test(src);
+  fs.cpSync(HOOKS_DIR, path.join(pluginRoot, 'hooks'), { recursive: true, filter: skip });
+  fs.cpSync(path.join(HOOKS_DIR, '..', '.claude-plugin'), path.join(pluginRoot, '.claude-plugin'), { recursive: true });
+  fs.cpSync(path.join(HOOKS_DIR, '..', 'rules'), path.join(pluginRoot, 'rules'), { recursive: true });
+  fs.cpSync(HOOKS_DIR, path.join(t.home, '.claude', 'hooks'), { recursive: true, filter: skip });
+  const env = { ...process.env, HOME: t.home, USERPROFILE: t.home, CLAUDE_PROJECT_DIR: t.project, RIG_SESSION_ID: '',
+    CLAUDE_PLUGIN_ROOT: pluginRoot, CLAUDE_PLUGIN_DATA: path.join(t.root, 'plugin-data') };
+  const run = (hook, input) => spawnSync(process.execPath, [path.join(pluginRoot, 'hooks', hook)], { input: JSON.stringify(input), cwd: t.project, env, encoding: 'utf8' }).stdout;
+  const sessionStart = { hook_event_name: 'SessionStart', source: 'startup', session_id: 'g1' };
+  const prompt = { hook_event_name: 'UserPromptSubmit', prompt: 'hi' };
+
+  // Not registered globally yet: both hooks run normally.
+  assert.match(run('session-init.cjs', sessionStart), /Session startup/);
+  assert.match(run('dev-rules-reminder.cjs', prompt), /## Rig Session/);
+
+  writeHomeSettings(t, {
+    SessionStart: [{ matcher: 'startup|resume|clear|compact', hooks: [{ type: 'command', command: GLOBAL_CMD('session-init.cjs') }] }],
+    UserPromptSubmit: [{ hooks: [{ type: 'command', command: GLOBAL_CMD('dev-rules-reminder.cjs') }] }],
+  });
+  const notice = JSON.parse(run('session-init.cjs', sessionStart)).hookSpecificOutput.additionalContext;
+  assert.match(notice, /1\.x Rig hooks in ~\/\.claude are still registered/);
+  assert.match(notice, /Remove the 1\.x global hooks or run the migrator when available/);
+  assert.ok(!notice.includes('Session startup'), 'one-line notice only, no duplicated session context');
+  assert.strictEqual(run('dev-rules-reminder.cjs', prompt), '', 'other hooks yield silently');
+});

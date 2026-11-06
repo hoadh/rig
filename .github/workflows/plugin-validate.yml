@@ -2,7 +2,7 @@ name: Plugin validate
 
 # Validates the Claude Code plugin (plugins/rig) and the marketplace manifest (.claude-plugin/marketplace.json)
 # with the real `claude plugin validate`, on the Claude Code floor Rig supports and on the latest release.
-# The version-bump job fails a PR that changes plugins/rig/** without a plugin.json version change.
+# The version-bump job fails a PR or main push that changes plugins/rig/** without a greater plugin.json version.
 # The node tests (hooks.json targets, bump logic) run in ci.yml on ubuntu, macOS and Windows.
 
 on:
@@ -24,6 +24,8 @@ jobs:
     name: validate (claude ${{ matrix.claude }})
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # The `latest` leg is informational: an upstream release must not block merges.
+    continue-on-error: ${{ matrix.claude == 'latest' }}
     strategy:
       fail-fast: false
       matrix:
@@ -47,7 +49,6 @@ jobs:
 
   version-bump:
     name: plugin version bump
-    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -57,5 +58,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
-      - name: Require a plugin.json version change when plugins/rig/** changed
-        run: node scripts/check-plugin-version-bump.cjs --base "origin/${{ github.base_ref }}"
+      # PR: compare with the target branch. Push to main: compare with the commit main pointed at before the
+      # push, so two PRs that bumped to the same version cannot both ship it (an all-zero `before` = new branch).
+      - name: Require a greater plugin.json version when plugins/rig/** changed
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          if [ -n "$BASE_REF" ]; then base="origin/$BASE_REF"
+          elif [ -n "$BEFORE_SHA" ] && [ "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]; then base="$BEFORE_SHA"
+          else base="HEAD^1"; fi
+          node scripts/check-plugin-version-bump.cjs --base "$base"

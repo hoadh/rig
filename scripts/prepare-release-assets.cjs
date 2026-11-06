@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+const { assertKitSourcePresent } = require('./release-kit-source-guard.cjs');
 
 /**
  * Bundle the release archive (dist/rig.zip) for a GitHub Release.
@@ -25,6 +26,7 @@ const { execSync } = require('child_process');
   const CRITICAL_TARGETS = ['.claude', '.agent', 'release-manifest.json'];
 
   try {
+    assertKitSourcePresent(projectRoot);
     if (!fs.existsSync(packageJsonPath)) {
       throw new Error('package.json not found');
     }

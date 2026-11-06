@@ -11,6 +11,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { execSync } = require('child_process');
+const { assertKitSourcePresent } = require('./release-kit-source-guard.cjs');
 
 // Directories to include in release
 const INCLUDE_DIRS = ['.claude', '.agent'];
@@ -111,6 +112,12 @@ function scanDirectory(dir, baseDir, visitedInodes = new Set()) {
 function main() {
   const version = process.argv[2] || process.env.npm_package_version || 'unknown';
   const projectRoot = process.cwd();
+  try {
+    assertKitSourcePresent(projectRoot);
+  } catch (err) {
+    console.error(`✗ ${err.message}`);
+    process.exit(1);
+  }
   const outputPath = path.join(projectRoot, 'release-manifest.json');
   const tempPath = path.join(projectRoot, 'release-manifest.json.tmp');
 

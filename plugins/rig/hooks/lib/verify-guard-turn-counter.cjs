@@ -88,8 +88,8 @@ function resetChain(sessionId) {
 function pruneStaleStateFiles(now = Date.now()) {
   try {
     const dir = stateDir();
-    for (const name of fs.readdirSync(dir).slice(0, MAX_PRUNE_SCAN)) {
-      if (!name.startsWith(PREFIX)) continue;
+    // Filter first, then cap: a busy tmp or data dir must not hide our files from the scan.
+    for (const name of fs.readdirSync(dir).filter((n) => n.startsWith(PREFIX)).slice(0, MAX_PRUNE_SCAN)) {
       const file = path.join(dir, name);
       try {
         if (now - fs.statSync(file).mtimeMs > STALE_MS) fs.rmSync(file, { force: true });
