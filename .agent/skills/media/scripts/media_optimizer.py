@@ -39,8 +39,8 @@ def load_env_files():
 
     # Determine base paths
     script_dir = Path(__file__).parent
-    skill_dir = script_dir.parent  # <kit>/skills/media
-    skills_dir = skill_dir.parent   # <kit>/skills
+    skill_dir = script_dir.parent  # .agent/skills/media
+    skills_dir = skill_dir.parent   # .agent/skills
     claude_dir = skills_dir.parent  # .claude
 
     # Priority 2: Skill-specific .env

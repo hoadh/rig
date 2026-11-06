@@ -18,7 +18,7 @@ Resolve the scripts dir once (works for the plugin and for file installs; script
 
 ```bash
 SKILL_DIR=".agent/skills/browser/scripts"
-# Run scripts with the full path: node "$SKILL_DIR/script.js" --args   (or: rig-browser <script> --args)
+# Run scripts with the full path: node "$SKILL_DIR/script.js" --args   (or: node .agent/skills/browser/scripts/<script>.js --args)
 ```
 
 ## Choosing Your Approach
@@ -121,7 +121,7 @@ node "$SKILL_DIR/select-ref.js" --ref e5 --action hover
 ### Store Snapshots
 
 Skills can exist in **project-scope** or **user-scope**. Priority: project-scope > user-scope.
-Store snapshots for analysis in `<project>/.claude/browser/snapshots/`:
+Store snapshots for analysis in `<project>/.agent/browser/snapshots/`:
 
 ```bash
 # Create snapshots directory
@@ -208,7 +208,7 @@ node "$SKILL_DIR/navigate.js" --url about:blank --close true
 ## Available Scripts
 
 Skills can exist in **project-scope** or **user-scope**. Priority: project-scope > user-scope.
-All in the browser skill's `scripts/` dir (`rig-browser --dir`):
+All in the browser skill's `scripts/` dir (`.agent/skills/browser/scripts`):
 
 | Script | Purpose |
 |--------|---------|
@@ -240,14 +240,14 @@ All in the browser skill's `scripts/` dir (`rig-browser --dir`):
 ## Writing Custom Test Scripts
 
 Skills can exist in **project-scope** or **user-scope**. Priority: project-scope > user-scope.
-For complex automation, write scripts to `<project>/.claude/browser/tmp/`:
+For complex automation, write scripts to `<project>/.agent/browser/tmp/`:
 
 ```bash
 # Create tmp directory for test scripts
-mkdir -p $SKILL_DIR/.claude/browser/tmp
+mkdir -p $SKILL_DIR/.agent/browser/tmp
 
 # Write a test script
-cat > $SKILL_DIR/.claude/browser/tmp/login-test.js << 'EOF'
+cat > $SKILL_DIR/.agent/browser/tmp/login-test.js << 'EOF'
 import { getBrowser, getPage, disconnectBrowser, outputJSON } from '../scripts/lib/browser.js';
 
 async function loginTest() {
@@ -273,7 +273,7 @@ loginTest();
 EOF
 
 # Run the test
-node $SKILL_DIR/.claude/browser/tmp/login-test.js
+node $SKILL_DIR/.agent/browser/tmp/login-test.js
 ```
 
 **Key principles for custom scripts**:
@@ -289,7 +289,7 @@ Skills can exist in **project-scope** or **user-scope**. Priority: project-scope
 
 **IMPORTANT:** Invoke "/project-organization" skill to organize the outputs.
 
-Store screenshots for analysis in `<project>/.claude/browser/screenshots/`:
+Store screenshots for analysis in `<project>/.agent/browser/screenshots/`:
 
 ```bash
 # Basic screenshot
@@ -317,7 +317,7 @@ node "$SKILL_DIR/screenshot.js" --url https://example.com --output ./.agent/brow
 node "$SKILL_DIR/screenshot.js" --url https://example.com --output ./.agent/browser/screenshots/page.png --no-compress
 ```
 
-Store screenshots for analysis in `<project>/.claude/browser/screenshots/`.
+Store screenshots for analysis in `<project>/.agent/browser/screenshots/`.
 
 ## Console Log Collection & Analysis
 
@@ -335,7 +335,7 @@ node "$SKILL_DIR/console.js" --url https://example.com --types error,warn --dura
 
 ### Session Storage Pattern
 
-Store logs for analysis in `<project>/.claude/browser/logs/<session>/`:
+Store logs for analysis in `<project>/.agent/browser/logs/<session>/`:
 
 ```bash
 # Create session directory

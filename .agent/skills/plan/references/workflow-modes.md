@@ -153,5 +153,5 @@ Check `## Plan Context` in injected context:
 - **"Suggested: {path}"** → Branch hint only, ask if activate or create new
 - **"Plan: none"** → Create new using `Plan dir:` from `## Naming`
 
-After creating: `rig-set-active-plan {plan-dir}`
+After creating: no command needed: Antigravity has no active-plan marker, keep the plan path in your notes
 Pass plan directory path to every subagent during the process.

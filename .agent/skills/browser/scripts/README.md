@@ -12,7 +12,7 @@ Resolve the scripts dir once (works for the plugin and for file installs; script
 
 ```bash
 SKILL_DIR=".agent/skills/browser/scripts"
-# Run scripts with the full path: node "$SKILL_DIR/script.js" --args   (or: rig-browser <script> --args)
+# Run scripts with the full path: node "$SKILL_DIR/script.js" --args   (or: node .agent/skills/browser/scripts/<script>.js --args)
 ```
 
 

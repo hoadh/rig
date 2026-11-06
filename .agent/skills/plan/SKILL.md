@@ -172,7 +172,7 @@ Check `## Plan Context` injected by hooks:
 - **"Suggested: {path}"** → Branch hint only. Ask if activate or create new.
 - **"Plan: none"** → Create new using `Plan dir:` from `## Naming`
 
-After creating plan: `rig-set-active-plan {plan-dir}`
+After creating plan: no command needed: Antigravity has no active-plan marker, keep the plan path in your notes
 Reports: Active plans → plan-specific path. Suggested → default path.
 
 ### Important

@@ -8,7 +8,7 @@ Aliases: `/docs restructure`, `/docs refactor`. An optional path after the subco
 
 1. Docs dir missing or holds no `.md` pages → stop and suggest `/docs init`.
 2. Run `git status --porcelain -- docs README.md`. Uncommitted changes → `AskUserQuestion` header "Dirty Tree": **Commit first (Recommended)** / **Continue anyway** / **Cancel**. Moves use `git mv`, so a clean tree keeps the result easy to review and revert.
-3. Run `rig-validate-docs docs/` and keep the Layout section. No layout warnings, no page over `docs.maxLoc` (session context, default 800), and `docs/README.md` exists → report "already Diataxis" and stop.
+3. Run `node .agent/scripts/validate-docs.cjs docs/` and keep the Layout section. No layout warnings, no page over `docs.maxLoc` (session context, default 800), and `docs/README.md` exists → report "already Diataxis" and stop.
 
 ## Phase 1: Inventory and Classification
 
@@ -27,7 +27,7 @@ Aliases: `/docs restructure`, `/docs refactor`. An optional path after the subco
 
 1. Write the plan to the reports path as `docs-restructure-{date}-{slug}.md`: a table `Page | LOC | Type | Action | Target`, then split details, merges, and the exact migrator command.
 2. Dry-run the moves (legacy moves are included automatically; add one `--map` per non-legacy move, paths relative to the docs dir):
-   `rig-migrate-docs docs/ --map setup.md=tutorials/getting-started.md --map guides=how-to`
+   `node .agent/scripts/migrate-docs-to-diataxis-layout.cjs docs/ --map setup.md=tutorials/getting-started.md --map guides=how-to`
    Fix any conflict or rejected `--map` before asking.
 3. `AskUserQuestion` header "Restructure", show the table: **Apply plan (Recommended)** / **Moves only, no splits** / **Cancel**. Do not touch files before the answer. No `AskUserQuestion` (headless run) and no approval in the request → print the table and the three options, then STOP. Never treat a missing answer as approval.
 
@@ -47,7 +47,7 @@ Aliases: `/docs restructure`, `/docs refactor`. An optional path after the subco
 
 ## Phase 5: Verify and Report
 
-1. `rig-validate-docs docs/` → 0 broken internal links, 0 layout warnings. Fix and re-run if not.
+1. `node .agent/scripts/validate-docs.cjs docs/` → 0 broken internal links, 0 layout warnings. Fix and re-run if not.
 2. Phase 1 LOC command → no page over `docs.maxLoc`.
 3. `git grep -n -F '<old path>'` for each moved page outside `docs/` (code comments, CI config, other markdown) → list hits; the migrator only rewrites docs and root files.
 4. Report: moves, splits, merges, remaining warnings, hits from step 3. Suggest two commits: renames first (`git commit` with only the staged moves), content second, so `git log --follow` keeps history. Do not commit unless asked.

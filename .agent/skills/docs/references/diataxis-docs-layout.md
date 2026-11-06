@@ -94,11 +94,11 @@ Agents and skills that read docs name both paths explicitly:
 ## Migration
 
 ```bash
-rig-migrate-docs docs/          # dry-run: prints planned moves
-rig-migrate-docs docs/ --apply  # git mv + rewrite links
-rig-validate-docs docs/                            # links + layout warnings
+node .agent/scripts/migrate-docs-to-diataxis-layout.cjs docs/          # dry-run: prints planned moves
+node .agent/scripts/migrate-docs-to-diataxis-layout.cjs docs/ --apply  # git mv + rewrite links
+node .agent/scripts/validate-docs.cjs docs/                            # links + layout warnings
 # pages outside the legacy map: one --map per move, paths relative to docs/
-rig-migrate-docs docs/ --map setup.md=tutorials/getting-started.md --map guides=how-to
+node .agent/scripts/migrate-docs-to-diataxis-layout.cjs docs/ --map setup.md=tutorials/getting-started.md --map guides=how-to
 ```
 
 The migrator never overwrites an existing target (reported as conflict), and does not write `docs/README.md` or split pages: docs-maintainer does that. For a project whose docs follow no standard at all (ad-hoc names, mixed pages), run `/docs restructure`: it classifies every page, builds the `--map` list, asks for approval, then moves, splits, and indexes.

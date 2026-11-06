@@ -129,7 +129,6 @@ def find_api_key():
 
             # Show hierarchy
             print_info("\nTo see where the key was found, run:")
-            print_info("rig-resolve-env GEMINI_API_KEY --skill media --verbose")
 
             return api_key
         else:
@@ -251,8 +250,6 @@ def provide_setup_instructions():
     print(f"   $ python {Path(__file__)}")
 
     print("\n4. Debug if needed:")
-    print(f"   $ rig-resolve-env --show-hierarchy --skill media")
-    print(f"   $ rig-resolve-env GEMINI_API_KEY --skill media --verbose")
 
 
 def main():
