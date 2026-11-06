@@ -5,6 +5,12 @@ Devlog of shipped work, decisions, failures and lessons learned. Newest first.
 
 ## November 2026
 
+- **261106-rig-2-plugin-beta-implemented.md**
+  - Rig 2.0 plugin packaging (plan 1426) implemented, draft PR #4, CI green on 3 OSes; beta tag and LIVE checks pending
+  - rig-init migrator: journaled moves into backups, resume, restore, terminal-only consent gate
+  - Reviews per phase found a never-accepting prompt and a one-command consent bypass; fixed with pty and ancestry tests
+  - Lesson: plugin bin/ is on the Bash tool PATH only; print absolute commands for the user's terminal
+
 - **261106-rig-1-1-context-reduction-shipped.md**
   - Rig 1.1 (plan 1530) implemented, PR #2, CI green on 3 OSes; released as v1.1.0
   - One budget-tested `core-rules.md`; task rules moved into skills; delta UserPromptSubmit
