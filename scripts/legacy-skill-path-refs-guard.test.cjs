@@ -26,7 +26,6 @@ const ENV_FILE_PATH = /\.claude[\\/]skills[\\/](?:[^\s/`'")]+[\\/])?\.env\b/g;
 
 const ALLOWED_FILES = {
   'plugins/rig/hooks/lib/global-hook-yields-to-project-copy.cjs': { count: 6, reason: 'detects the 1.x file install by the real hook path in project and ~/.claude settings' },
-  'plugins/rig/hooks/lib/context-builder.cjs': { count: 1, reason: 'finds the 1.x global venv of an old file install (~/.claude/skills/.venv)' },
   'plugins/rig/skills/create-skill/SKILL.md': { count: 2, reason: 'where a user creates their own project or user skills' },
   'plugins/rig/skills/create-skill/references/distribution-guide.md': { count: 1, reason: 'where a user places their own skills' },
   'plugins/rig/skills/create-skill/references/skill-anatomy-and-requirements.md': { count: 1, reason: 'layout of a user skills dir' },

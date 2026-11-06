@@ -66,7 +66,8 @@ function createTextRewriter(dirRenames, knownSkillNames) {
       .replace(/(^|[^\w/~.}-])\.claude\//gm, '$1.agent/');
     if (renamePattern) out = out.replace(renamePattern, (_, dir) => `skills/${dirRenames.get(dir)}`);
     out = out.replace(/\$\(rig-browser --dir\)/g, '.agent/skills/browser/scripts')
-      .replace(/\$\(rig-skill-dir ([a-z][a-z0-9-]*)\)/g, '.agent/skills/$1')
+      .replace(/(?<![\w./$-])rig-browser (?!--dir)([a-z][a-z-]*)(?![\w.-])/g, 'node .agent/skills/browser/scripts/$1.js')
+      .replace(/\$\(rig-skill-dir ([a-z][a-z0-9-]*)\)|(?<![\w./$-])rig-skill-dir ([a-z][a-z0-9-]*)(?![\w.-])/g, (_, a, b) => `.agent/skills/${a || b}`)
       .replace(BIN_COMMAND_PATTERN, (_, name) => BIN_COMMANDS_IN_SKILLS.get(name));
     return out.replace(/(?<![\w-])(\/?)rig:([a-z0-9-]+)/g, (whole, slash, name) => (knownSkillNames.has(name) ? `${slash}${name}` : whole));
   };

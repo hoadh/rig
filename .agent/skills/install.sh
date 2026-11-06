@@ -39,16 +39,8 @@ NC='\033[0m' # No Color
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Plugin installs (rig-python) point RIG_VENV_DIR at a writable dir outside the plugin cache
-# and keep the install state next to the venv instead of inside the skills dir.
-if [[ -n "${RIG_VENV_DIR:-}" ]]; then
-    VENV_DIR="$RIG_VENV_DIR"
-    STATE_DIR="$VENV_DIR.state"
-    mkdir -p "$STATE_DIR"
-else
-    VENV_DIR="$SCRIPT_DIR/.venv"
-    STATE_DIR="$SCRIPT_DIR"
-fi
+VENV_DIR="$SCRIPT_DIR/.venv"
+STATE_DIR="$SCRIPT_DIR"
 STATE_FILE="$STATE_DIR/.install-state.json"
 LOG_DIR="$VENV_DIR/logs"
 

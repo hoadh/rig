@@ -115,35 +115,43 @@ describe('context-builder.cjs', () => {
   });
 
   describe('resolveSkillsVenv()', () => {
+    const resolver = require('../../../scripts/rig-python-venv-resolver.cjs');
+    const PLUGIN_ROOT = path.resolve(__dirname, '..', '..', '..');
+    const makePython = (venvDir) => {
+      fs.mkdirSync(path.dirname(resolver.venvPythonPath(venvDir)), { recursive: true });
+      fs.writeFileSync(resolver.venvPythonPath(venvDir), '');
+    };
 
     it('returns null when no venv exists', () => {
       assert.strictEqual(contextBuilder.resolveSkillsVenv(), null);
     });
 
-    it('finds the Rig venv that rig-python builds in ~/.claude/rig/venv', () => {
-      const isWindows = process.platform === 'win32';
-      const bin = path.join(os.homedir(), '.claude', 'rig', 'venv', isWindows ? 'Scripts' : 'bin');
-      fs.mkdirSync(bin, { recursive: true });
-      fs.writeFileSync(path.join(bin, isWindows ? 'python.exe' : 'python3'), '');
+    it('plugin: reports the same venv the bins use, only once its ready marker matches', () => {
+      const venvDir = resolver.venvDirFor({ kitRoot: PLUGIN_ROOT });
+      assert.strictEqual(venvDir, path.join(os.homedir(), '.claude', 'rig', 'venv'));
+      makePython(venvDir);
       try {
-        assert.strictEqual(contextBuilder.resolveSkillsVenv(), isWindows ? '~\\.claude\\rig\\venv\\Scripts\\python.exe' : '~/.claude/rig/venv/bin/python3');
+        assert.strictEqual(contextBuilder.resolveSkillsVenv(), null, 'python without the marker = incomplete build, not advertised');
+        fs.writeFileSync(path.join(venvDir, resolver.READY_MARKER), `${resolver.requirementsHash(PLUGIN_ROOT)}\n`);
+        assert.strictEqual(contextBuilder.resolveSkillsVenv(), resolver.venvPythonPath(venvDir));
+        fs.writeFileSync(path.join(venvDir, resolver.READY_MARKER), 'stale-hash\n');
+        assert.strictEqual(contextBuilder.resolveSkillsVenv(), null, 'a different requirements hash is not ready');
       } finally {
         fs.rmSync(path.join(os.homedir(), '.claude', 'rig'), { recursive: true, force: true });
       }
     });
 
-    it('prefers the project venv', () => {
-      const isWindows = process.platform === 'win32';
-      const bin = path.join(projectDir, '.claude', 'skills', '.venv', isWindows ? 'Scripts' : 'bin');
-      fs.mkdirSync(bin, { recursive: true });
-      fs.writeFileSync(path.join(bin, isWindows ? 'python.exe' : 'python3'), '');
+    it('file install: reports <.claude>/skills/.venv, the 1.x installer venv, without needing a marker', () => {
+      const kit = path.join(projectDir, '.claude'); // no .claude-plugin: a file install
+      const venvDir = path.join(kit, 'skills', '.venv');
+      assert.strictEqual(resolver.venvDirFor({ kitRoot: kit }), venvDir);
+      makePython(venvDir);
       try {
-        assert.ok(contextBuilder.resolveSkillsVenv().startsWith('.claude'));
+        assert.strictEqual(contextBuilder.resolveSkillsVenv('.claude', kit), resolver.venvPythonPath(venvDir));
       } finally {
-        fs.rmSync(path.join(projectDir, '.claude'), { recursive: true, force: true });
+        fs.rmSync(kit, { recursive: true, force: true });
       }
     });
-
   });
 
   describe('wasRecentlyInjected()', () => {

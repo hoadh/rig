@@ -4,12 +4,14 @@ Scan the kit's skills directory (../skills next to this script) and extract skil
 """
 
 import re
+import sys
 from pathlib import Path
 from typing import Dict, List
 
-# Paths come from this file's location so the scan works for a plugin install and a file install alike.
-SCRIPTS_ROOT = Path(__file__).resolve().parent
-SKILLS_ROOT = SCRIPTS_ROOT.parent / 'skills'
+# Default scan root: the kit's own skills (next to this script; works for a plugin and a file install alike).
+# The plugin dir is a read-only cache that is replaced on update, so output never goes there:
+# pass --skills-dir to scan another dir (a project or user skills dir) and --output to choose the yaml path (default ./skills_data.yaml).
+SKILLS_ROOT = Path(__file__).resolve().parent.parent / 'skills'
 try:
     import yaml
 except ModuleNotFoundError:
@@ -105,7 +107,7 @@ def scan_skills(base_path: Path) -> List[Dict]:
 
             skill_entry = {
                 'name': skill_name,
-                'path': str(skill_file.relative_to(SKILLS_ROOT)),
+                'path': str(skill_file.relative_to(base_path)),
                 'description': description,
                 'category': category,
                 'has_scripts': (skill_dir / 'scripts').exists(),
@@ -181,7 +183,8 @@ def group_by_category(skills: List[Dict]) -> Dict[str, List[Dict]]:
 
 def main():
     """Main execution."""
-    base_path = SKILLS_ROOT
+    args = sys.argv[1:]
+    base_path = Path(args[args.index('--skills-dir') + 1]) if '--skills-dir' in args else SKILLS_ROOT
 
     if not base_path.exists():
         print(f"Error: {base_path} not found")
@@ -216,7 +219,7 @@ def main():
             print(f"  {scripts}{refs} {skill['name']:30} {skill['description'][:80]}")
 
     # Output YAML to scripts directory
-    output_path = SCRIPTS_ROOT / 'skills_data.yaml'
+    output_path = Path(args[args.index('--output') + 1]) if '--output' in args else Path.cwd() / 'skills_data.yaml'
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(yaml.dump(skills, allow_unicode=True, default_flow_style=False))
     print(f"\n✓ Saved metadata to {output_path}")

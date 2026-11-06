@@ -4,7 +4,7 @@
 
 **IMPORTANT:** Run server as Claude Code background task using `run_in_background: true` with the Bash tool.
 
-The skill dir is printed by `rig-skill-dir markdown-viewer`; start the server with `node .agent/skills/markdown-viewer/scripts/server.cjs`.
+The skill dir is printed by `.agent/skills/markdown-viewer`; start the server with `node .agent/skills/markdown-viewer/scripts/server.cjs`.
 
 ### Stop Server
 

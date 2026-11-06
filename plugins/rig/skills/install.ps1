@@ -19,16 +19,8 @@ param(
 
 # Configuration
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-# Plugin installs (rig-python) point RIG_VENV_DIR at a writable dir outside the plugin cache
-# and keep the install state next to the venv instead of inside the skills dir.
-if ($env:RIG_VENV_DIR) {
-    $VenvDir = $env:RIG_VENV_DIR
-    $StateDir = "$VenvDir.state"
-    New-Item -ItemType Directory -Force -Path $StateDir | Out-Null
-} else {
-    $VenvDir = Join-Path $ScriptDir ".venv"
-    $StateDir = $ScriptDir
-}
+$VenvDir = Join-Path $ScriptDir ".venv"
+$StateDir = $ScriptDir
 $StateFile = Join-Path $StateDir ".install-state.json"
 $LogDir = Join-Path $VenvDir "logs"
 $ErrorSummaryFile = Join-Path $StateDir ".install-error-summary.json"

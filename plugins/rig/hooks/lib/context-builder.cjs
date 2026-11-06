@@ -12,7 +12,6 @@
  */
 
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
 const { stateDir } = require('./plugin-data-dir.cjs');
 const { execSync } = require('child_process');
@@ -46,35 +45,20 @@ function execSafe(cmd) {
 }
 
 /**
- * Resolve the Python venv for skill scripts: the project's 1.x venv, the Rig venv `rig-python` builds
- * (`~/.claude/rig/venv`), or the 1.x global venv (file installs; the migrator removes it later).
- * @param {string} [configDirName='.claude'] - Config directory name
- * @returns {string|null} Resolved venv Python path or null
+ * The Python venv `rig-python` uses, when it is ready: the same function the bins use (`venvDirFor`), so the
+ * session context and the bins always name one venv (plugin: ~/.claude/rig/venv; file install: <.claude>/skills/.venv).
+ * @param {string} [_configDirName] - unused, kept for callers of the 1.x signature
+ * @param {string} [kitRoot] - kit root (default: the root this hook runs from)
+ * @returns {string|null} absolute venv python path, or null while the venv is missing or incomplete
  */
-function resolveSkillsVenv(configDirName = '.claude') {
-  const isWindows = process.platform === 'win32';
-  const venvBin = isWindows ? 'Scripts' : 'bin';
-  const pythonExe = isWindows ? 'python.exe' : 'python3';
-  const home = os.homedir();
-
-  const localVenv = path.join(process.cwd(), configDirName, 'skills', '.venv', venvBin, pythonExe);
-  const rigVenv = path.join(home, '.claude', 'rig', 'venv', venvBin, pythonExe);
-  const globalVenv = path.join(home, '.claude', 'skills', '.venv', venvBin, pythonExe);
-
-  if (fs.existsSync(localVenv)) {
-    return isWindows
-      ? `${configDirName}\\skills\\.venv\\Scripts\\python.exe`
-      : `${configDirName}/skills/.venv/bin/python3`;
+function resolveSkillsVenv(_configDirName, kitRoot = path.resolve(__dirname, '..', '..')) {
+  try {
+    const { venvDirFor, venvPythonPath, venvReady } = require('../../scripts/rig-python-venv-resolver.cjs');
+    const venvDir = venvDirFor({ kitRoot });
+    return venvReady({ kitRoot, venvDir }) ? venvPythonPath(venvDir) : null;
+  } catch {
+    return null;
   }
-  if (fs.existsSync(rigVenv)) {
-    return isWindows ? '~\\.claude\\rig\\venv\\Scripts\\python.exe' : '~/.claude/rig/venv/bin/python3';
-  }
-  if (fs.existsSync(globalVenv)) {
-    return isWindows
-      ? '~\\.claude\\skills\\.venv\\Scripts\\python.exe'
-      : '~/.claude/skills/.venv/bin/python3';
-  }
-  return null;
 }
 
 /**
