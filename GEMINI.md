@@ -27,14 +27,15 @@ You do the work. Use subagents when they buy isolation, parallelism or an unanch
 ### Project
 - Read `./README.md` before planning or implementing.
 - Activate the skills from the catalog that fit the task.
-- Edit skills in this repo's `.agent/skills/`, not in `~/.claude/skills`, unless asked.
+- The Rig plugin (skills, agents, hooks, bin, rules) is what users install. The rest of the repo root is dev-only and does not ship.
 - Reports: concise, grammar optional, unresolved questions last.
 - Commits touching `.agent/` do not use the `chore` or `docs` types.
 - Docs live in `./docs` (Diataxis; index in `docs/README.md`); standards in `docs/reference/code-standards.md`.
 - Plan layout and docs upkeep: `.agent/skills/plan/references/plan-organization.md`, `.agent/skills/docs/references/docs-upkeep-rules.md`.
+- Any change to the plugin needs a greater `version` in its manifest (CI checks it).
 
 ### Python scripts (skills)
-Run skill scripts with the skills venv (`.agent/skills/.venv/bin/python3`, Windows `.agent\skills\.venv\Scripts\python.exe`) so google-genai and pypdf are found. If a script fails, try to fix it instead of stopping.
+Run skill Python scripts through `.agent/skills/.venv/bin/python3 <script.py>`, which runs the Rig venv (built on first use) so google-genai and pypdf are found. If a script fails, try to fix it instead of stopping.
 
 ## Claude Code concepts
 

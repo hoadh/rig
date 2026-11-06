@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Test suite for worktree.cjs
- * Run: node plugins/rig/skills/worktree/scripts/worktree.test.cjs
+ * Run: node .agent/skills/worktree/scripts/worktree.test.cjs
  */
 
 const { execSync } = require('child_process');
