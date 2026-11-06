@@ -42,7 +42,7 @@ The plugin is per user and works in every project. There is no per-project copy 
 
 Run them in the order `--runtime`, `--permissions`, then `--deps` if you want it.
 
-> **Finding `rig-init` in a terminal.** Claude Code puts the plugin's `bin/` on the PATH of its own Bash tool, not on your shell's PATH. If `rig-init` is not found in your terminal, run `bin/rig-init` from the plugin's install directory with its full path. The exact location of that directory on each OS is confirmed at the 2.0.0 beta.
+> **Finding `rig-init` in a terminal.** Claude Code puts the plugin's `bin/` on the PATH of its own Bash tool, not on your shell's PATH. So in a terminal, run it through node with its absolute path, `node "<plugin dir>/bin/rig-init" <verb>`. You do not need to find that path yourself: `/rig:setup`, the 1.x migration notice and every `rig-init` refusal print the exact command for your install. The `rig-init` examples in this guide are short for that command.
 
 ## What the plugin does without any setup
 
