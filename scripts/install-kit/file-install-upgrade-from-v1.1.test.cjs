@@ -137,6 +137,7 @@ describe('the repo dev-only .claude/ never ships', () => {
     put('.claude/rules/dev-rule.md', 'dev rule');
     put('.claude/.rig.json', '{}');
     put('.claude/.env.example', 'A=');
+    put('.claude/.gitignore', '.env*\n!.env.example\n'); // same rules as the real one: templates stay tracked
     execFileSync('git', ['init', '-q'], { cwd: kit });
     return kit;
   }
@@ -146,7 +147,7 @@ describe('the repo dev-only .claude/ never ships', () => {
     const target = tmp('rig-fake-target-');
     const plan = buildCopyPlan({ kitRoot: kit, targetRoot: target, isGlobal: false, fs });
     const dests = plan.map((i) => path.relative(target, i.dest).split(path.sep).join('/')).sort();
-    assert.deepStrictEqual(dests, ['.claude/.env.example', '.claude/.rig.json', '.claude/hooks/s.cjs', '.claude/metadata.json', '.claude/settings.json', '.claude/skills/x/SKILL.md']);
+    assert.deepStrictEqual(dests, ['.claude/.env.example', '.claude/.gitignore', '.claude/.rig.json', '.claude/hooks/s.cjs', '.claude/metadata.json', '.claude/settings.json', '.claude/skills/x/SKILL.md']);
     const settings = JSON.parse(plan.find((i) => i.kind === 'settings').content);
     assert.deepStrictEqual(settings.permissions, { ask: ['Read(**/.env)'] });
     assert.strictEqual(settings.permissions.allow, undefined);

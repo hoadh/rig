@@ -4,7 +4,7 @@
  *   global → ~/.claude/** (contents of .claude/) and ~/.claude/CLAUDE.md
  * Sources (since 2.0): the kit lives in plugins/rig/ and installs to `.claude/<same path>`; the plugin-only
  * files (.claude-plugin/, hooks/hooks.json) stay out; the repo's own `.claude/` supplies the user-config files
- * (an explicit allowlist: .rig.json, .env.example, .mcp.json.example; never settings.json or anything else dev-only).
+ * (an explicit allowlist: .rig.json, .env.example, .mcp.json.example, and .gitignore, which keeps .env* and keys out of git; never settings.json or anything else dev-only).
  * settings.json is generated from the plugin's hooks.json plus file-install-settings-template.json
  * (install-settings-template-from-plugin-hooks.cjs). Skill names get their `rig:` prefix back (the plugin namespace
  * adds it for plugin installs; file installs have no namespace), and `.claude/metadata.json` records the plugin version.
@@ -19,7 +19,7 @@ const PLUGIN_PREFIX = 'plugins/rig/';
 // Plugin files with no meaning in a file install
 const PLUGIN_ONLY = [/^plugins\/rig\/\.claude-plugin\//, /^plugins\/rig\/hooks\/hooks\.json$/, /^plugins\/rig\/file-install-settings-template\.json$/];
 // The repo's own `.claude/` is Rig-development config. Only these template files ship to users.
-const REPO_CLAUDE_ALLOWLIST = new Set(['.env.example', '.mcp.json.example', '.rig.json']);
+const REPO_CLAUDE_ALLOWLIST = new Set(['.env.example', '.gitignore', '.mcp.json.example', '.rig.json']);
 const SKILL_MD = /^plugins\/rig\/skills\/[^/]+\/SKILL\.md$/;
 
 // Never copied: secrets, VCS/dependency dirs, OS junk, logs and per-machine state
