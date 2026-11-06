@@ -118,10 +118,18 @@ function createFixture(orchestrators = ['alpha', 'delta']) {
   const originHas = (branch) => { try { git(base.origin, 'rev-parse', '--verify', `refs/heads/${branch}`); return true; } catch { return false; } };
   const originHead = (branch) => git(base.origin, 'rev-parse', `refs/heads/${branch}`);
 
-  /** Make the bare origin reject every push (pre-receive) until allowPush(). Message matches REJECT_RE. */
-  function rejectPushes() {
+  /**
+   * Make the bare origin reject pushes (pre-receive) until allowPush(). Message matches REJECT_RE.
+   * With `branch`, only pushes updating refs/heads/<branch> are declined, so the hook can be armed
+   * before dispatch (which itself pushes coordination refs) and the worker can never push first.
+   */
+  function rejectPushes(branch) {
     const hook = path.join(base.origin, 'hooks', 'pre-receive');
-    fs.writeFileSync(hook, `#!/bin/sh\n[ -f ${JSON.stringify(flagFile)} ] && { echo "pre-receive hook declined (e2e)" >&2; exit 1; }\nexit 0\n`, { mode: 0o755 });
+    const decline = 'echo "pre-receive hook declined (e2e)" >&2; exit 1';
+    const body = branch
+      ? `while read -r _old _new ref; do [ "$ref" = ${JSON.stringify(`refs/heads/${branch}`)} ] && { ${decline}; }; done\n`
+      : `${decline}\n`;
+    fs.writeFileSync(hook, `#!/bin/sh\n[ -f ${JSON.stringify(flagFile)} ] || exit 0\n${body}exit 0\n`, { mode: 0o755 });
     fs.writeFileSync(flagFile, '1');
   }
   const allowPush = () => fs.rmSync(flagFile, { force: true });

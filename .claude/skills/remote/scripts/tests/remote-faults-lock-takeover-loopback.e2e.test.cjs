@@ -29,9 +29,10 @@ t.test('push rejected by origin -> failed:push', () => {
   fx.setMode('pf', { files: { 'src/pf/a.js': '1\n' } });
   const ph = phaseFor('pf', ['src/pf/**']);
   const dir = fx.writePlan('push-plan', [ph], { orchestrator: 'alpha' });
-  t.eq(fx.cli('alpha', ['dispatch', dir, ph.file]).code, 0);
-  fx.rejectPushes();
+  // Arm before dispatch: the stub agent finishes in milliseconds, so arming afterwards races the worker's push.
+  fx.rejectPushes('rig/pf/push-plan');
   try {
+    t.eq(fx.cli('alpha', ['dispatch', dir, ph.file]).code, 0);
     const st = fx.cli('alpha', ['status', dir, '--wait']);
     t.eq(st.code, 1, st.out);
     t.ok(/failed:push/.test(st.out), st.out);
