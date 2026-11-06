@@ -13,7 +13,7 @@
  * - Terminal width layout behavior
  *
  * Run:
- *   node .claude/hooks/lib/__tests__/statusline-scenarios.test.cjs
+ *   node plugins/rig/hooks/lib/__tests__/statusline-scenarios.test.cjs
  */
 
 const fs = require('fs');

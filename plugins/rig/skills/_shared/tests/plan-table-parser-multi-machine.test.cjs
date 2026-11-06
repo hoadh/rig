@@ -4,7 +4,7 @@
  * (orchestrator: in plan.md, machine/owns/dependsOn/reviewedSha/reviewScore in
  * phase frontmatter), in LF and CRLF variants. Behavior must match a plan
  * without those fields.
- * Run: node .claude/skills/_shared/tests/plan-table-parser-multi-machine.test.cjs
+ * Run: node plugins/rig/skills/_shared/tests/plan-table-parser-multi-machine.test.cjs
  */
 'use strict';
 

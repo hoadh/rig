@@ -14,15 +14,15 @@ Comprehensive tests for `.claude/statusline.cjs` and supporting libraries.
 
 ```bash
 # From repository root
-node .claude/hooks/lib/__tests__/statusline-suite.cjs
+node plugins/rig/hooks/lib/__tests__/statusline-suite.cjs
 ```
 
 Run individual suites when debugging:
 
 ```bash
-node .claude/hooks/lib/__tests__/statusline.test.cjs
-node .claude/hooks/lib/__tests__/statusline-integration.test.cjs
-node .claude/hooks/lib/__tests__/statusline-scenarios.test.cjs
+node plugins/rig/hooks/lib/__tests__/statusline.test.cjs
+node plugins/rig/hooks/lib/__tests__/statusline-integration.test.cjs
+node plugins/rig/hooks/lib/__tests__/statusline-scenarios.test.cjs
 ```
 
 ## Current Coverage Scope
@@ -66,17 +66,17 @@ When changing statusline logic:
 1. Update/add tests in the relevant suite.
 2. Run the aggregate suite:
    ```bash
-   node .claude/hooks/lib/__tests__/statusline-suite.cjs
+   node plugins/rig/hooks/lib/__tests__/statusline-suite.cjs
    ```
 3. Keep this README counts and scope notes in sync with test changes.
 
 ## Related Files
 
 - `/.claude/statusline.cjs`
-- `/.claude/hooks/lib/colors.cjs`
-- `/.claude/hooks/lib/transcript-parser.cjs`
-- `/.claude/hooks/lib/config-counter.cjs`
-- `/.claude/hooks/lib/git-info-cache.cjs`
+- `hooks/lib/colors.cjs`
+- `hooks/lib/transcript-parser.cjs`
+- `hooks/lib/config-counter.cjs`
+- `hooks/lib/git-info-cache.cjs`
 
 **Last Updated:** 2026-02-26
 **Status:** passing

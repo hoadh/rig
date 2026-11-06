@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Tests for plan-table-parser shared module
- * Run: node .claude/skills/_shared/tests/plan-table-parser.test.cjs
+ * Run: node plugins/rig/skills/_shared/tests/plan-table-parser.test.cjs
  */
 
 'use strict';
@@ -269,7 +269,7 @@ test('Mixed alphanumeric + pure numeric IDs in same table', () => {
 });
 
 // ============================================================
-// M8: Tests merged from unit test file (.claude/skills/_shared/lib/__tests__/plan-table-parser.test.cjs)
+// M8: Tests merged from unit test file (plugins/rig/skills/_shared/lib/__tests__/plan-table-parser.test.cjs)
 // These cover cases not already present in this integration suite.
 
 console.log('\n--- normalizeStatus (unit) ---');

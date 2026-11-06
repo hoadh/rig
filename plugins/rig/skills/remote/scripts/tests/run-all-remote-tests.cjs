@@ -6,7 +6,7 @@
  * that guard multi-machine plan frontmatter (plan hooks + _shared parser).
  * Exit 1 if any file fails. Opt-in scenarios print SKIP lines
  * (RIG_E2E_CLAUDE=1 real claude, RIG_E2E_SSH=1 real ssh).
- *   node .claude/skills/remote/scripts/tests/run-all-remote-tests.cjs [name-filter]
+ *   node plugins/rig/skills/remote/scripts/tests/run-all-remote-tests.cjs [name-filter]
  */
 const { spawnSync } = require('child_process');
 const fs = require('fs');
