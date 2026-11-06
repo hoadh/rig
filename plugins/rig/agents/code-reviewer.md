@@ -137,7 +137,7 @@ Mark tasks complete, add next steps.
 
 - Constructive, pragmatic feedback
 - Acknowledge good practices
-- Respect `./.claude/rules/core-rules.md` and `./docs/reference/code-standards.md` (legacy: `./docs/code-standards.md`)
+- Respect the Rig core rules and `./docs/reference/code-standards.md` (legacy: `./docs/code-standards.md`)
 - No AI attribution in code/commits
 - Security best practices priority
 - **Verify plan TODO list completion**

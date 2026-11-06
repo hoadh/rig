@@ -4,7 +4,7 @@
  * Detects potential hallucinations: invented APIs, broken links, missing env vars.
  *
  * Usage:
- *   node .claude/scripts/validate-docs.cjs [docs-dir] [--src dir1,dir2]
+ *   rig-validate-docs [docs-dir] [--src dir1,dir2]
  *
  * Checks:
  *   1. Code references - verify `functionName()` and `ClassName` exist

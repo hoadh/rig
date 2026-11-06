@@ -75,7 +75,7 @@ IMAGEN_MODELS = {
 def find_api_key() -> Optional[str]:
     """Find Gemini API key using centralized resolver or fallback.
 
-    Uses ~/.claude/scripts/resolve_env.py for consistent resolution across all skills.
+    Uses rig-resolve-env (scripts/resolve_env.py) for consistent resolution across all skills.
     Falls back to local resolution if centralized resolver not available.
 
     Priority order (highest to lowest):
@@ -737,9 +737,9 @@ def batch_process(
         print("Error: GEMINI_API_KEY not found")
         print("\nSetup options:")
         print("1. Run setup checker: python scripts/check_setup.py")
-        print("2. Show hierarchy: python ~/.claude/scripts/resolve_env.py --show-hierarchy --skill media")
+        print("2. Show hierarchy: rig-resolve-env --show-hierarchy --skill media")
         print("3. Quick setup: export GEMINI_API_KEY='your-key'")
-        print("4. Create .env: cd ~/.claude/skills/media && cp .env.example .env")
+        print("4. Create .env: copy skills/.env.example to ~/.claude/skills/.env and set GEMINI_API_KEY")
         print("\nFor key rotation, add multiple keys:")
         print("   GEMINI_API_KEY=key1")
         print("   GEMINI_API_KEY_2=key2")

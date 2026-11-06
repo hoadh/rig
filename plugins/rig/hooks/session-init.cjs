@@ -253,8 +253,8 @@ async function main() {
       });
     }
 
-    // Plugin mode only: a plugin cannot ship .claude/rules, so inject the core rules here.
-    // File installs (1.x) get them natively from .claude/rules/.
+    // Plugin mode only: a plugin cannot ship rules files, so inject the core rules here.
+    // File installs (1.x) get them natively from their rules dir.
     const coreRules = readPluginCoreRules();
     if (coreRules) out.push(`\n${coreRules}`);
 

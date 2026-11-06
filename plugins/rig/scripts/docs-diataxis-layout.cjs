@@ -100,7 +100,7 @@ function findUnclassifiedTopDirs(docsDir) {
 function checkLayout(docsDir) {
   const warnings = [];
   for (const { from, to } of detectLegacyLayout(docsDir)) {
-    warnings.push(`legacy layout: docs/${from} should be docs/${to} (run: /rig:docs restructure, or node .claude/scripts/migrate-docs-to-diataxis-layout.cjs)`);
+    warnings.push(`legacy layout: docs/${from} should be docs/${to} (run: /rig:docs restructure, or rig-migrate-docs)`);
   }
   for (const name of findUnclassifiedRootDocs(docsDir)) {
     warnings.push(`unclassified root doc: docs/${name} (file under tutorials/, how-to/, reference/, explanation/ or project/; run: /rig:docs restructure)`);

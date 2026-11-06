@@ -6,7 +6,7 @@
  * emits them only when the plan context or git branch changed since the last emit
  * (see shouldEmitReminder). The static Paths section is printed once by session-init.
  * Static guidance (YAGNI/KISS/DRY, modularization, report style) lives in
- * .claude/rules/*.md and CLAUDE.md, which Claude Code loads natively.
+ * the rules files and CLAUDE.md, which Claude Code loads natively (the plugin injects them at session start).
  *
  * @module context-builder
  */
@@ -46,7 +46,8 @@ function execSafe(cmd) {
 }
 
 /**
- * Resolve skills venv Python path (local or global)
+ * Resolve the Python venv for skill scripts: the project's 1.x venv, the Rig venv `rig-python` builds
+ * (`~/.claude/rig/venv`), or the 1.x global venv (file installs; the migrator removes it later).
  * @param {string} [configDirName='.claude'] - Config directory name
  * @returns {string|null} Resolved venv Python path or null
  */
@@ -54,14 +55,19 @@ function resolveSkillsVenv(configDirName = '.claude') {
   const isWindows = process.platform === 'win32';
   const venvBin = isWindows ? 'Scripts' : 'bin';
   const pythonExe = isWindows ? 'python.exe' : 'python3';
+  const home = os.homedir();
 
   const localVenv = path.join(process.cwd(), configDirName, 'skills', '.venv', venvBin, pythonExe);
-  const globalVenv = path.join(os.homedir(), '.claude', 'skills', '.venv', venvBin, pythonExe);
+  const rigVenv = path.join(home, '.claude', 'rig', 'venv', venvBin, pythonExe);
+  const globalVenv = path.join(home, '.claude', 'skills', '.venv', venvBin, pythonExe);
 
   if (fs.existsSync(localVenv)) {
     return isWindows
       ? `${configDirName}\\skills\\.venv\\Scripts\\python.exe`
       : `${configDirName}/skills/.venv/bin/python3`;
+  }
+  if (fs.existsSync(rigVenv)) {
+    return isWindows ? '~\\.claude\\rig\\venv\\Scripts\\python.exe' : '~/.claude/rig/venv/bin/python3';
   }
   if (fs.existsSync(globalVenv)) {
     return isWindows

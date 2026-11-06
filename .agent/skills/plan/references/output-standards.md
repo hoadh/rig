@@ -84,7 +84,7 @@ List affected files with:
 - Action type (modify/create/delete)
 - Brief change description
 - Dependencies on other changes
-- Fully respect the `.agent/rules/core-rules.md` file.
+- Fully respect the Rig core rules.
 
 ## Workflow Process
 
@@ -103,7 +103,7 @@ List affected files with:
 - Self-contained plans with necessary context
 - Code snippets/pseudocode when clarifying
 - Multiple options with trade-offs when appropriate
-- Fully respect the `.agent/rules/core-rules.md` file.
+- Fully respect the Rig core rules.
 
 ### Writing Style
 **IMPORTANT:** Sacrifice grammar for concision
@@ -134,7 +134,7 @@ Revise the plan and phases based on the answers.
 - Design for future modifications
 - Document decision rationale
 - Avoid over-engineering
-- Fully respect the `.agent/rules/core-rules.md` file.
+- Fully respect the Rig core rules.
 
 ### Research Depth
 - When uncertain, research more

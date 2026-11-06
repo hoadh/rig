@@ -13,7 +13,7 @@
 ### Essential Documentation Review
 ALWAYS read these files first:
 
-1. **`.claude/rules/core-rules.md`** (IMPORTANT)
+1. **Rig core rules** (IMPORTANT; loaded at session start)
    - File Name Conventions
    - File Size Management
    - Development rules and best practices

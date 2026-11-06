@@ -5,7 +5,7 @@
  * Venv location: `$CLAUDE_PLUGIN_DATA/venv` when Claude Code gave us a data dir (hooks only; the Bash tool
  * does not export it), else `~/.claude/rig/venv`. It is built by the skills installer (`skills/install.sh`
  * or `install.ps1`, pointed at the target with RIG_VENV_DIR) so plugin updates never wipe it and nothing is
- * written into the read-only plugin cache. The 1.x venv (`~/.claude/skills/.venv`) is left alone for the migrator.
+ * written into the read-only plugin cache. The 1.x venv (the `.venv` inside the 1.x skills dir) is left alone for the migrator.
  */
 const fs = require('fs');
 const os = require('os');

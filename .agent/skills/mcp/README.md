@@ -19,7 +19,7 @@ This skill enables Claude to discover, analyze, and execute MCP server capabilit
 ### 1. Install Dependencies
 
 ```bash
-cd .agent/skills/mcp/scripts
+cd ".agent/skills/mcp/scripts"
 npm install
 ```
 
@@ -47,7 +47,7 @@ See `.agent/.mcp.json.example` for more examples.
 ### 3. Test Connection
 
 ```bash
-cd .agent/skills/mcp/scripts
+cd ".agent/skills/mcp/scripts"
 npx ts-node cli.ts list-tools
 ```
 
@@ -178,7 +178,7 @@ Install with `npx`:
 
 ## Integration with mcp-runner Agent
 
-The `mcp-runner` agent (`.agent/agents/mcp-runner.md`) uses this skill to:
+The `mcp-runner` agent uses this skill to:
 
 1. **Discover**: Connect to MCP servers, list capabilities
 2. **Analyze**: Filter relevant tools for tasks

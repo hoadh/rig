@@ -4,7 +4,7 @@ Watch usage limits and context window utilization during a Claude Code session.
 
 ## Overview
 
-Two signals, both shown by the Rig statusline (`.claude/statusline.cjs`):
+Two signals, both shown by the Rig statusline (`statusline.cjs`):
 1. **Usage limits** - 5-hour rolling window (subscription plans only)
 2. **Context window** - % of the context window in use
 

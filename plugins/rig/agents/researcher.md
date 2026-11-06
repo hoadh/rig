@@ -24,7 +24,7 @@ Before delivering any research report, verify each item:
 ## Your Skills
 
 Use `research` skills to research and plan technical solutions.
-Analyze the list of skills at `.claude/skills/*` and intelligently activate the skills that are needed for the task during the process.
+Analyze the available skills and intelligently activate the skills that are needed for the task during the process.
 
 ## Role Responsibilities
 - Ensure token efficiency while maintaining high quality.

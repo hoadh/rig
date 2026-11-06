@@ -16,10 +16,10 @@ Activate skills in this order:
 
 **Before any design work**, run `ui-design` searches:
 ```bash
-python .claude/skills/ui-design/scripts/search.py "<product-type>" --domain product
-python .claude/skills/ui-design/scripts/search.py "<style-keywords>" --domain style
-python .claude/skills/ui-design/scripts/search.py "<mood>" --domain typography
-python .claude/skills/ui-design/scripts/search.py "<industry>" --domain color
+rig-ui-search "<product-type>" --domain product
+rig-ui-search "<style-keywords>" --domain style
+rig-ui-search "<mood>" --domain typography
+rig-ui-search "<industry>" --domain color
 ```
 If `python` is not found, try `python3`, then `py -3`.
 
@@ -87,7 +87,7 @@ Analyze the skills catalog and activate the skills that are needed for the task 
 
 ## Core Responsibilities
 
-Respect the rules in `.claude/rules/core-rules.md`.
+Respect the Rig core rules.
 
 1. **Design System Management**: Maintain and update `./docs/reference/design-guidelines.md` (if the project still uses the legacy flat layout and `./docs/design-guidelines.md` exists, update that file instead; never create a duplicate) with all design guidelines, design systems, tokens, and patterns. ALWAYS consult and follow this guideline when working on design tasks. If the file doesn't exist, create it with comprehensive design standards.
 

@@ -2,6 +2,10 @@
 
 This guide explains how to install dependencies for Claude Code skills.
 
+## Where is `<kit>`?
+
+`<kit>` is the Rig install directory: the plugin root of the Rig plugin (`rig-skill-dir <skill>` prints a skill dir inside it), or the `.claude` dir of a file install. With the plugin you normally do nothing here: `rig-python` builds the Python venv (`~/.claude/rig/venv`) on first use by running the installer below.
+
 ## Overview
 
 Skills are organized into groups with Python utility scripts. Each skill's scripts directory contains a `requirements.txt` file listing dependencies.
@@ -13,7 +17,7 @@ Use the provided installation scripts for automated setup:
 ### Linux/macOS
 
 ```bash
-cd .agent/skills
+cd <kit>/skills
 chmod +x install.sh
 ./install.sh
 ```
@@ -33,7 +37,7 @@ The script will:
 Run as Administrator:
 
 ```powershell
-cd .claude\skills
+cd <kit>\skills
 Set-ExecutionPolicy Bypass -Scope Process -Force
 .\install.ps1
 ```
@@ -58,7 +62,7 @@ The script will:
 From Git Bash/MSYS/Cygwin, `install.sh` exits with a hint; run the installer from PowerShell instead:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .claude\skills\install.ps1
+powershell -ExecutionPolicy Bypass -File <kit>\skills\install.ps1
 ```
 
 On Windows use `python` (not `python3`, which is a Microsoft Store stub) and `.venv\Scripts\python.exe` (not `.venv/bin/python3`).
@@ -94,7 +98,7 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 # If `python3` is not found, try `python`, then `py -3`.
 
 # Install all skill dependencies
-pip install -r .agent/skills/media/scripts/requirements.txt
+pip install -r <kit>/skills/media/scripts/requirements.txt
 
 # Install test dependencies for development
 pip install pytest pytest-cov pytest-mock
@@ -105,7 +109,7 @@ pip install pytest pytest-cov pytest-mock
 Navigate to specific skill and install:
 
 ```bash
-cd .agent/skills/media/scripts
+cd <kit>/skills/media/scripts
 pip install -r requirements.txt
 ```
 
@@ -115,7 +119,7 @@ pip install -r requirements.txt
 
 Most skills use only Python standard library. Only **media** requires external packages:
 
-**media** (`.agent/skills/media/scripts/requirements.txt`):
+**media** (`scripts/requirements.txt` of the `media` skill):
 - `google-genai>=0.1.0` - Google Gemini API
 - `pypdf>=4.0.0` - PDF processing
 - `python-docx>=1.0.0` - DOCX conversion
@@ -156,7 +160,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 
 # Python packages (media only)
-cd .agent/skills/media/scripts
+cd <kit>/skills/media/scripts
 pip install -r requirements.txt
 
 # System tools
@@ -177,7 +181,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 
 # Python packages (media only)
-cd .agent/skills/media/scripts
+cd <kit>/skills/media/scripts
 pip install -r requirements.txt
 
 # System tools via Homebrew
@@ -196,7 +200,7 @@ python -m venv .venv
 .venv\Scripts\activate
 
 # Python packages (media only)
-cd .claude\skills\media\scripts
+cd <kit>\skills\media\scripts
 pip install -r requirements.txt
 
 # System tools via Chocolatey
@@ -219,7 +223,7 @@ pytest-mock>=3.12.0
 To run tests for a skill:
 
 ```bash
-cd .agent/skills/{skill-name}/scripts
+cd <kit>/skills/{skill-name}/scripts
 python -m pytest tests/ -v --cov=. --cov-report=term-missing
 ```
 
@@ -271,7 +275,7 @@ node --version
 On Linux/macOS, you may need to make scripts executable:
 
 ```bash
-chmod +x .agent/skills/*/scripts/*.py
+chmod +x <kit>/skills/*/scripts/*.py
 ```
 
 ## Minimal Installation
@@ -310,10 +314,10 @@ pip install pytest pytest-cov pytest-mock
 pre-commit install
 
 # Run all tests
-pytest .agent/skills/*/scripts/tests/ -v
+pytest <kit>/skills/*/scripts/tests/ -v
 
 # Check coverage across all skills
-pytest .agent/skills/*/scripts/tests/ --cov=.agent/skills --cov-report=html
+pytest <kit>/skills/*/scripts/tests/ --cov=<kit>/skills --cov-report=html
 ```
 
 ## Skill-Specific Notes

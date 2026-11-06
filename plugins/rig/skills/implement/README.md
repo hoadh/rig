@@ -4,10 +4,7 @@ End-to-end feature implementation with smart intent detection.
 
 ## Installation
 
-Copy the `implement/` folder to your Claude skills directory:
-```bash
-cp -r implement ~/.claude/skills/
-```
+The skill ships with the Rig plugin (`/rig:implement`). To use it standalone, copy the `implement/` folder into one of your Claude Code skills directories.
 
 ## Usage
 

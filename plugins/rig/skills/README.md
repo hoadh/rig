@@ -21,13 +21,13 @@ Some skills require external dependencies (FFmpeg, ImageMagick, Node.js packages
 
 **Linux/macOS:**
 ```bash
-cd .claude/skills
+cd <kit>/skills
 ./install.sh
 ```
 
 **Windows (PowerShell as Administrator):**
 ```powershell
-cd .claude\skills
+cd <kit>\skills
 .\install.ps1
 ```
 

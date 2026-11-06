@@ -14,17 +14,11 @@ Browser automation via Puppeteer scripts with persistent sessions. All scripts o
 
 ## Skill Location
 
-Skills can exist in **project-scope** or **user-scope**. Priority: project-scope > user-scope.
+Resolve the scripts dir once (works for the plugin and for file installs; scripts use `__dirname` for their own paths):
 
 ```bash
-# Detect skill location (no cd needed - scripts use __dirname for paths)
-SKILL_DIR=""
-if [ -d ".claude/skills/browser/scripts" ]; then
-  SKILL_DIR=".claude/skills/browser/scripts"
-elif [ -d "$HOME/.claude/skills/browser/scripts" ]; then
-  SKILL_DIR="$HOME/.claude/skills/browser/scripts"
-fi
-# Run scripts with full path: node "$SKILL_DIR/script.js" --args
+SKILL_DIR="$(rig-browser --dir)"
+# Run scripts with the full path: node "$SKILL_DIR/script.js" --args   (or: rig-browser <script> --args)
 ```
 
 ## Choosing Your Approach
@@ -214,7 +208,7 @@ node "$SKILL_DIR/navigate.js" --url about:blank --close true
 ## Available Scripts
 
 Skills can exist in **project-scope** or **user-scope**. Priority: project-scope > user-scope.
-All in `.claude/skills/browser/scripts/`:
+All in the browser skill's `scripts/` dir (`rig-browser --dir`):
 
 | Script | Purpose |
 |--------|---------|
@@ -392,7 +386,7 @@ If script fails:
 
 ```bash
 # 1. Capture current state (without navigating to preserve state)
-node "$SKILL_DIR/screenshot.js" --output ./.claude/skills/browser/screenshots/debug.png
+node "$SKILL_DIR/screenshot.js" --output ./.claude/browser/screenshots/debug.png
 
 # 2. Get console errors
 node "$SKILL_DIR/console.js" --url about:blank --types error --duration 1000

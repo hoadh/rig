@@ -2,7 +2,7 @@
 
 ## Phase 0: Legacy Layout Detection
 
-1. Run `node .agent/scripts/migrate-docs-to-diataxis-layout.cjs docs/` (dry-run, changes nothing)
+1. Run `rig-migrate-docs docs/` (dry-run, changes nothing)
 2. No moves listed → continue to Phase 1
 3. Moves listed → `AskUserQuestion` header "Docs Layout", question "Migrate docs to Diataxis layout?", show the planned moves:
    - **Migrate now** → run the same command with `--apply`; in Phase 2 tell docs-maintainer to create `docs/README.md` and split mixed/oversized pages
@@ -63,7 +63,7 @@ After docs-maintainer completes:
 ## Phase 4: Documentation Validation (Post-Update)
 
 Run validation to detect potential hallucinations:
-1. Run: `node .agent/scripts/validate-docs.cjs docs/`
+1. Run: `rig-validate-docs docs/`
 2. Display validation report (warnings only, non-blocking)
 3. Checks: code references, internal links, config keys, legacy/unclassified layout warnings
 4. docs-maintainer runs `classify-doc.sh` on changed pages (advisory) per its Diataxis Workflow

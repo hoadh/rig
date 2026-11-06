@@ -17,7 +17,8 @@ const path = require('path');
 const readline = require('readline');
 const { spawnSync } = require('child_process');
 const { buildCopyPlan } = require('./install-kit/kit-source-file-list-and-copy-plan.cjs');
-const { isTransformableFile, rewriteContentForGlobalInstall } = require('./install-kit/kit-path-rewrite-for-install-mode.cjs');
+const { isTransformableFile, rewriteContentForGlobalInstall, rewriteBinCommandsForFileInstall } = require('./install-kit/kit-path-rewrite-for-install-mode.cjs');
+const { copyRuntime } = require('../plugins/rig/hooks/lib/runtime-copy-to-user-dir.cjs');
 const { mergeKitSettings } = require('./install-kit/settings-json-merge-preserving-user-hooks.cjs');
 const { skillsInstallerCommand } = require('./install-kit/skills-installer-command.cjs');
 const { deleteRetiredKitFiles } = require('./install-kit/retired-kit-hooks-and-files-cleanup.cjs');
@@ -117,9 +118,22 @@ function writeSettings({ item, content, stats: s }, ctx, stats) {
   stats.settings = s;
 }
 
+/**
+ * A global file install is also a possible rig:remote worker, and workers run `~/.claude/rig/runtime/remote/worker.cjs`
+ * (the plugin's session-init writes that copy; a file install has no such hook). A failure only warns.
+ */
+function installRuntimeCopy(stats) {
+  try {
+    stats.runtime = copyRuntime({ pluginRoot: path.join(KIT_ROOT, 'plugins', 'rig'), home: os.homedir() });
+  } catch (err) {
+    stats.runtimeError = err.message;
+  }
+}
+
 function runInstall(ctx) {
   const plan = buildCopyPlan({ kitRoot: KIT_ROOT, targetRoot: ctx.targetRoot, isGlobal: ctx.isGlobal, fs });
   const stats = { written: 0, unchanged: 0, preserved: [], rewritten: 0 };
+  const binNames = plan.filter((item) => item.rel.startsWith('plugins/rig/bin/')).map((item) => path.basename(item.rel));
   const settingsItem = plan.find((item) => item.kind === 'settings');
   const settings = settingsItem && prepareSettings(settingsItem, ctx);
   for (const item of plan) {
@@ -129,10 +143,20 @@ function runInstall(ctx) {
       continue;
     }
     let content = item.content !== undefined ? Buffer.from(item.content) : fs.readFileSync(item.src);
-    if (ctx.isGlobal && isTransformableFile(item.src)) {
-      const result = rewriteContentForGlobalInstall(content.toString('utf8'));
-      if (result.changes > 0) {
-        content = Buffer.from(result.content);
+    if (isTransformableFile(item.src)) {
+      let text = content.toString('utf8');
+      let changes = 0;
+      // Bin names first, so the global rewrite below turns `node .claude/bin/x` into `node $HOME/.claude/bin/x`
+      const bins = rewriteBinCommandsForFileInstall(text, binNames);
+      text = bins.content;
+      changes += bins.changes;
+      if (ctx.isGlobal) {
+        const result = rewriteContentForGlobalInstall(text);
+        text = result.content;
+        changes += result.changes;
+      }
+      if (changes > 0) {
+        content = Buffer.from(text);
         stats.rewritten++;
       }
     }
@@ -141,6 +165,7 @@ function runInstall(ctx) {
   }
   if (settings) writeSettings(settings, ctx, stats);
   const claudeDir = ctx.isGlobal ? ctx.targetRoot : path.join(ctx.targetRoot, '.claude');
+  if (ctx.isGlobal && !ctx.dryRun) installRuntimeCopy(stats);
   const retired = deleteRetiredKitFiles({ claudeDir, fs, dryRun: ctx.dryRun });
   stats.retiredFiles = retired.deleted;
   stats.retiredKeptReferenced = retired.keptReferenced;
@@ -168,6 +193,8 @@ function printSummary(ctx, { plan, stats }) {
       'Remove those registrations from settings.json / settings.local.json, then re-install. ' +
       'Any hooks/notifications/.env of yours is never touched by the installer.');
   }
+  if (stats.runtime) console.log(`  Runtime copy (remote worker, statusline): ${stats.runtime.status} ${stats.runtime.version} -> ${stats.runtime.dir}`);
+  if (stats.runtimeError) console.log(`  ! Runtime copy failed (${stats.runtimeError}); rig:remote cannot use this machine as a worker until it is written`);
   if (stats.backup) console.log(`  Backup: ${stats.backup}`);
 }
 

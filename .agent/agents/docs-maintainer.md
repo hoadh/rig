@@ -106,7 +106,7 @@ Before documenting any code reference:
 #### Self-Validation
 After completing documentation updates, run validation:
 ```bash
-node .agent/scripts/validate-docs.cjs docs/
+rig-validate-docs docs/
 ```
 Review warnings and fix before considering task complete.
 
@@ -118,7 +118,7 @@ Review warnings and fix before considering task complete.
 
 ## Diataxis Workflow
 
-Layout, legacy→new map, naming, index template: `.agent/skills/docs/references/diataxis-docs-layout.md`.
+Layout, legacy→new map, naming, index template: `references/diataxis-docs-layout.md` of the `docs` skill.
 
 For every page you create or change:
 1. Activate the `diataxis-writer` skill (if not installed: follow the layout reference and skip step 5)

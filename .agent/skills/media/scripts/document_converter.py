@@ -55,8 +55,8 @@ def find_api_key() -> Optional[str]:
     if load_dotenv:
         # Determine base paths
         script_dir = Path(__file__).parent
-        skill_dir = script_dir.parent  # .agent/skills/media
-        skills_dir = skill_dir.parent   # .agent/skills
+        skill_dir = script_dir.parent  # <kit>/skills/media
+        skills_dir = skill_dir.parent   # <kit>/skills
         claude_dir = skills_dir.parent  # .claude
 
         # Priority 2: Skill-specific .env

@@ -3,6 +3,8 @@
  * - Global install: in instruction files (md/yaml/toml) and settings.json, every project-relative
  *   `.claude/` reference (bare, `./`, `@`, quoted, `$CLAUDE_PROJECT_DIR`, `%CLAUDE_PROJECT_DIR%`,
  *   `%USERPROFILE%`) becomes `$HOME/.claude/`.
+ * - Bin commands (both modes): kit text calls `rig-<name>` (plugin bin/ is on PATH). A file install has no PATH
+ *   entry, so `rig-<name>` becomes `node .claude/bin/rig-<name>` (the global rewrite then makes it `$HOME/.claude/bin/...`).
  * - Hook commands are canonicalized to a quoted form that survives cwd changes and spaces:
  *     global → node "$HOME/.claude/hooks/x.cjs"
  *     local  → node "$CLAUDE_PROJECT_DIR"/.claude/hooks/x.cjs
@@ -41,6 +43,24 @@ const GLOBAL_RULES = [
   [/:\.claude\//g, `:${GLOBAL_CLAUDE_PATH}`],
 ];
 
+/**
+ * `rig-<name>` -> `node .claude/bin/rig-<name>` for the given bin names. Skipped when the name is part of a longer
+ * token or path (`bin/rig-x`, `rig-x.cjs`, `my-rig-x`, `rig-x-y`) or already runs under node.
+ * @param {string} content
+ * @param {string[]} binNames - file names in the kit's bin/ dir
+ */
+function rewriteBinCommandsForFileInstall(content, binNames) {
+  if (binNames.length === 0) return { content, changes: 0 };
+  const names = [...binNames].sort((a, b) => b.length - a.length).map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const pattern = new RegExp(`(?<![\\w./\\\\$-])(?<!node )(${names.join('|')})(?![\\w.-])`, 'g');
+  let changes = 0;
+  const out = content.replace(pattern, (_, name) => {
+    changes++;
+    return `node .claude/bin/${name}`;
+  });
+  return { content: out, changes };
+}
+
 /** Rewrites project-relative `.claude/` references for a global install. Returns { content, changes }. */
 function rewriteContentForGlobalInstall(content) {
   let changes = 0;
@@ -78,4 +98,4 @@ function canonicalizeHookCommand(command, isGlobal) {
   return useHome ? `${nodePrefix}"$HOME/${rel}"${suffix}` : `${nodePrefix}"$CLAUDE_PROJECT_DIR"/${rel}${suffix}`;
 }
 
-module.exports = { isTransformableFile, rewriteContentForGlobalInstall, canonicalizeHookCommand };
+module.exports = { isTransformableFile, rewriteContentForGlobalInstall, rewriteBinCommandsForFileInstall, canonicalizeHookCommand };

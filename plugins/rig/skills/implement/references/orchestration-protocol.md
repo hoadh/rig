@@ -1,6 +1,6 @@
 # Orchestration Protocol and Workflow Detail
 
-Moved from the always-loaded rules files (`primary-workflow.md`, `orchestration-protocol.md`, `development-rules.md`). The compact version of the tiers, naming, secrets and verification rules is in `.claude/rules/core-rules.md`.
+Moved from the always-loaded rules files (`primary-workflow.md`, `orchestration-protocol.md`, `development-rules.md`). The compact version of the tiers, naming, secrets and verification rules is in the Rig core rules (`rules/core-rules.md`, loaded at session start).
 
 You do the work yourself. Use subagents when they buy something: context isolation, parallelism, or a review not anchored on your own reasoning. Do not delegate by default; every handoff loses detail.
 
@@ -43,7 +43,7 @@ Review scales with the tier: no reviewer on a one-line fix unless it carries a r
 
 ## Docs and Integration
 - Keep API contracts and backward compatibility; document breaking changes.
-- Update `./docs` when behavior or structure changes (Large: `docs-maintainer`; none needed for pure internal fixes). Upkeep rules: `.claude/skills/docs/references/docs-upkeep-rules.md`.
+- Update `./docs` when behavior or structure changes (Large: `docs-maintainer`; none needed for pure internal fixes). Upkeep rules: `references/docs-upkeep-rules.md` of the `docs` skill.
 
 ## Debugging
 - For CI or server failures use the `debugger` agent (or investigate directly for Trivial/Standard), fix, re-run tests, then review again.
@@ -87,4 +87,4 @@ Report format:
 Subagents get only what they need, never session history: task, files to read/modify, acceptance criteria, constraints, plan phase text (not the whole plan), work context and reports paths. Write "Implement X per phase-02.md" or "Fix null check in auth.ts:45, cause: missing validation", not "continue where we left off". Coordination stays in the main agent.
 
 ## Agent Teams
-For multi-session collaboration use `/rig:team` (`.claude/skills/team/SKILL.md`); it is not part of the default flow.
+For multi-session collaboration use `/rig:team` (`SKILL.md` of the `team` skill); it is not part of the default flow.

@@ -120,6 +120,18 @@ describe('context-builder.cjs', () => {
       assert.strictEqual(contextBuilder.resolveSkillsVenv(), null);
     });
 
+    it('finds the Rig venv that rig-python builds in ~/.claude/rig/venv', () => {
+      const isWindows = process.platform === 'win32';
+      const bin = path.join(os.homedir(), '.claude', 'rig', 'venv', isWindows ? 'Scripts' : 'bin');
+      fs.mkdirSync(bin, { recursive: true });
+      fs.writeFileSync(path.join(bin, isWindows ? 'python.exe' : 'python3'), '');
+      try {
+        assert.strictEqual(contextBuilder.resolveSkillsVenv(), isWindows ? '~\\.claude\\rig\\venv\\Scripts\\python.exe' : '~/.claude/rig/venv/bin/python3');
+      } finally {
+        fs.rmSync(path.join(os.homedir(), '.claude', 'rig'), { recursive: true, force: true });
+      }
+    });
+
     it('prefers the project venv', () => {
       const isWindows = process.platform === 'win32';
       const bin = path.join(projectDir, '.claude', 'skills', '.venv', isWindows ? 'Scripts' : 'bin');

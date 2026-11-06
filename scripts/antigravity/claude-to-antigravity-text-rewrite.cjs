@@ -12,6 +12,17 @@ const CLAUDE_ONLY_SKILL_FILES = new Set(['plan/references/multi-machine-planning
 // Rules copied into .agent/rules/. Task-specific rules live in skill references and ship with the skills.
 const SYNCED_RULE_FILES = ['core-rules.md'];
 
+// Claude Code kit text calls plugin bin/ commands by name (`rig-worktree`); Antigravity has no PATH entry for them,
+// so the ones whose script ships inside a synced skill go back to the script path in .agent/skills/.
+const BIN_COMMANDS_IN_SKILLS = new Map([
+  ['rig-worktree', 'node .agent/skills/worktree/scripts/worktree.cjs'],
+  ['rig-markdown-viewer', 'node .agent/skills/markdown-viewer/scripts/server.cjs'],
+  ['rig-classify-doc', 'bash .agent/skills/diataxis-writer/scripts/classify-doc.sh'],
+  ['rig-ui-search', 'python .agent/skills/ui-design/scripts/search.py'],
+  ['rig-mcp', 'node .agent/skills/mcp/scripts/dist/cli.js'],
+]);
+const BIN_COMMAND_PATTERN = new RegExp(`(?<![\\w./$-])(${[...BIN_COMMANDS_IN_SKILLS.keys()].join('|')})(?![\\w.-])`, 'g');
+
 const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /** Read `name` and `description` from YAML frontmatter (single-line or `>-`/`|` block scalars). */
@@ -54,6 +65,9 @@ function createTextRewriter(dirRenames, knownSkillNames) {
       .replace(/\.\/\.claude\//g, './.agent/')
       .replace(/(^|[^\w/~.}-])\.claude\//gm, '$1.agent/');
     if (renamePattern) out = out.replace(renamePattern, (_, dir) => `skills/${dirRenames.get(dir)}`);
+    out = out.replace(/\$\(rig-browser --dir\)/g, '.agent/skills/browser/scripts')
+      .replace(/\$\(rig-skill-dir ([a-z][a-z0-9-]*)\)/g, '.agent/skills/$1')
+      .replace(BIN_COMMAND_PATTERN, (_, name) => BIN_COMMANDS_IN_SKILLS.get(name));
     return out.replace(/(?<![\w-])(\/?)rig:([a-z0-9-]+)/g, (whole, slash, name) => (knownSkillNames.has(name) ? `${slash}${name}` : whole));
   };
 }

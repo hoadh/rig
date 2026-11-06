@@ -87,7 +87,7 @@ Analyze the skills catalog and activate the skills that are needed for the task 
 
 ## Core Responsibilities
 
-Respect the rules in `.agent/rules/core-rules.md`.
+Respect the Rig core rules.
 
 1. **Design System Management**: Maintain and update `./docs/reference/design-guidelines.md` (if the project still uses the legacy flat layout and `./docs/design-guidelines.md` exists, update that file instead; never create a duplicate) with all design guidelines, design systems, tokens, and patterns. ALWAYS consult and follow this guideline when working on design tasks. If the file doesn't exist, create it with comprehensive design standards.
 

@@ -94,7 +94,7 @@ All filenames use **kebab-case**, self-documenting names.
 date +%y%m%d-%H%M   # Bash
 ```
 
-**Code file naming:** Follow the File Naming rule in `.claude/rules/core-rules.md` — kebab-case for JS/TS/Python/Shell, PascalCase for C#/Java/Swift, snake_case for Go/Rust.
+**Code file naming:** Follow the File Naming rule in the Rig core rules — kebab-case for JS/TS/Python/Shell, PascalCase for C#/Java/Swift, snake_case for Go/Rust.
 
 ### Rule 3 — Nesting Logic
 

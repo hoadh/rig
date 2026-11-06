@@ -65,7 +65,7 @@ function buildPlanStatusSection(agentType) {
 
 /**
  * Core rules for subagents, opt-in via `.rig.json` `subagent.injectCoreRules` (default false).
- * With the kit installed as files, Claude Code already loads CLAUDE.md and .claude/rules/*.md into
+ * With the kit installed as files, Claude Code already loads CLAUDE.md and the project rules files into
  * subagents, so injecting them again only costs tokens. Installs without rules files (plugin)
  * turn this on. Read from the .claude dir this hook runs from (project or global install);
  * fail open when missing or unreadable.

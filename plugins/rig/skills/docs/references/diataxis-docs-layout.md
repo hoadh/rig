@@ -1,7 +1,7 @@
 # Diataxis Docs Layout
 
 Standard `docs/` layout for Rig projects. Each page has ONE primary Diataxis type and lives in that type's directory.
-Code source of truth for the legacy map: `.claude/scripts/docs-diataxis-layout.cjs`.
+Code source of truth for the legacy map: `scripts/docs-diataxis-layout.cjs` in the Rig kit.
 
 ## Layout
 
@@ -94,11 +94,11 @@ Agents and skills that read docs name both paths explicitly:
 ## Migration
 
 ```bash
-node .claude/scripts/migrate-docs-to-diataxis-layout.cjs docs/          # dry-run: prints planned moves
-node .claude/scripts/migrate-docs-to-diataxis-layout.cjs docs/ --apply  # git mv + rewrite links
-node .claude/scripts/validate-docs.cjs docs/                            # links + layout warnings
+rig-migrate-docs docs/          # dry-run: prints planned moves
+rig-migrate-docs docs/ --apply  # git mv + rewrite links
+rig-validate-docs docs/                            # links + layout warnings
 # pages outside the legacy map: one --map per move, paths relative to docs/
-node .claude/scripts/migrate-docs-to-diataxis-layout.cjs docs/ --map setup.md=tutorials/getting-started.md --map guides=how-to
+rig-migrate-docs docs/ --map setup.md=tutorials/getting-started.md --map guides=how-to
 ```
 
 The migrator never overwrites an existing target (reported as conflict), and does not write `docs/README.md` or split pages: docs-maintainer does that. For a project whose docs follow no standard at all (ad-hoc names, mixed pages), run `/rig:docs restructure`: it classifies every page, builds the `--map` list, asks for approval, then moves, splits, and indexes.

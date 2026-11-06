@@ -83,7 +83,7 @@ Key takeaways...
 1. Write generated content to determined path
 2. Start preview server with the generated file:
 ```bash
-node .claude/skills/markdown-viewer/scripts/server.cjs \
+rig-markdown-viewer \
   --file "<generated-file-path>" --host 0.0.0.0 --open --foreground
 ```
 

@@ -18,12 +18,8 @@ Background HTTP server rendering markdown files with calm, book-like reading exp
 **This skill requires npm dependencies.** Run one of the following:
 
 ```bash
-# Option 1: Rig installer (recommended), run from the Rig repo ROOT (not this skill dir)
-node scripts/install-kit-from-local-repo.cjs --install-skills
-# Windows (PowerShell): .claude\skills\install.ps1
-
-# Option 2: Manual installation
-cd .claude/skills/markdown-viewer
+# Install into this skill's dir (works for the plugin and for file installs)
+cd "$(rig-skill-dir markdown-viewer)"
 npm install
 ```
 
@@ -41,23 +37,23 @@ Universal viewer - pass ANY path and view it:
 
 ```bash
 # View a markdown file
-node .claude/skills/markdown-viewer/scripts/server.cjs \
+rig-markdown-viewer \
   --file ./plans/my-plan/plan.md \
   --open
 
 # Browse a directory
-node .claude/skills/markdown-viewer/scripts/server.cjs \
+rig-markdown-viewer \
   --dir ./plans \
   --host 0.0.0.0 \
   --open
 
 # Background mode
-node .claude/skills/markdown-viewer/scripts/server.cjs \
+rig-markdown-viewer \
   --file ./README.md \
   --background
 
 # Stop all running servers
-node .claude/skills/markdown-viewer/scripts/server.cjs --stop
+rig-markdown-viewer --stop
 ```
 
 ## Skill Invocation
@@ -207,7 +203,7 @@ To access from another device on your network:
 
 ```bash
 # Start with 0.0.0.0 to bind to all interfaces
-node .claude/skills/markdown-viewer/scripts/server.cjs --file ./README.md --host 0.0.0.0 --port 3456
+rig-markdown-viewer --file ./README.md --host 0.0.0.0 --port 3456
 ```
 
 When using `--host 0.0.0.0`, the server auto-detects your local network IP and includes it in the output:

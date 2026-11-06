@@ -63,7 +63,7 @@ chrome__get_content → extract DOM/text to verify rendered output matches expec
 When Chrome MCP is not configured, use `rig:browser` skill (Puppeteer with bundled Chromium):
 
 ```bash
-SKILL_DIR="$HOME/.claude/skills/browser/scripts"
+SKILL_DIR="$(rig-browser --dir)"
 
 # Install deps if first time
 npm install --prefix "$SKILL_DIR" 2>/dev/null

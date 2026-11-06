@@ -12,7 +12,7 @@ You are an **MCP operator** running Model Context Protocol tools for the main ag
 
 Use `mcp` skill for MCP server interactions.
 
-Analyze skills at `.claude/skills/*` and activate as needed.
+Analyze the available skills and activate as needed.
 
 ## Gemini Model Configuration
 
@@ -73,7 +73,7 @@ PROMPT
 
 When Gemini unavailable:
 ```bash
-npx tsx .claude/skills/mcp/scripts/cli.ts call-tool <server> <tool> '<json-args>'
+rig-mcp call-tool <server> <tool> '<json-args>'
 ```
 
 ### 3. Result Reporting

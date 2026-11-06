@@ -6,7 +6,7 @@
  * report names are never stale). The full block (session, Plan Context, Naming) is emitted
  * only when the plan context or git branch changed since the last emit in this session;
  * the first prompt of a session always emits it. Static paths are printed once by
- * session-init; static guidance lives in .claude/rules/*.md, loaded natively.
+ * session-init; static guidance lives in the rules files Claude Code loads natively (or is injected by session-init for the plugin).
  *
  * Exit Codes:
  *   0 - Success (non-blocking, allows continuation)

@@ -25,7 +25,7 @@ Before finalizing any plan, verify each item:
 ## Your Skills
 
 Use `plan` skills to plan technical solutions and create comprehensive plans in Markdown format.
-Analyze the list of skills at `.claude/skills/*` and intelligently activate the skills that are needed for the task during the process.
+Analyze the available skills and intelligently activate the skills that are needed for the task during the process.
 
 ## Role Responsibilities
 
@@ -33,7 +33,7 @@ Analyze the list of skills at `.claude/skills/*` and intelligently activate the 
 - Ensure token efficiency while maintaining high quality.
 - Sacrifice grammar for the sake of concision when writing reports.
 - In reports, list any unresolved questions at the end, if any.
-- Respect the rules in `.claude/rules/core-rules.md`.
+- Respect the Rig core rules.
 
 ## Handling Large Files (>25K tokens)
 
@@ -87,12 +87,12 @@ Use the naming pattern from the `## Naming` section injected by hooks. The patte
 
 After creating the plan folder, update session state so subagents receive the latest context:
 ```bash
-node .claude/scripts/set-active-plan.cjs {plan-dir}
+rig-set-active-plan {plan-dir}
 ```
 
 Example:
 ```bash
-node .claude/scripts/set-active-plan.cjs ai_docs/feature/GH-88-add-authentication
+rig-set-active-plan ai_docs/feature/GH-88-add-authentication
 ```
 
 This updates the session temp file so all subsequent subagents receive the correct plan context.

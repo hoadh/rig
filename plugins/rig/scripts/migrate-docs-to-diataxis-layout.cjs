@@ -3,7 +3,7 @@
  * Migrate a legacy flat docs/ folder to the Diataxis layout, rewriting links.
  *
  * Usage:
- *   node .claude/scripts/migrate-docs-to-diataxis-layout.cjs [docs-dir] [--map <from>=<to> ...] [--apply]
+ *   rig-migrate-docs [docs-dir] [--map <from>=<to> ...] [--apply]
  *
  * Default is dry-run (prints plan, changes nothing). --apply moves files
  * (git mv inside a git work tree, else rename) and rewrites links:

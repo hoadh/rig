@@ -13,7 +13,7 @@ When no flag specified, analyze task and pick mode:
 
 Use `AskUserQuestion` if detection is uncertain.
 
-Mode choice follows the size tiers in `.claude/skills/implement/references/orchestration-protocol.md`: Standard tasks map to `--fast`; Large or risky work (auth, data, infra) maps to `--hard`/`--parallel`/`--two`. Trivial tasks need no plan.
+Mode choice follows the size tiers in `references/orchestration-protocol.md` of the `implement` skill: Standard tasks map to `--fast`; Large or risky work (auth, data, infra) maps to `--hard`/`--parallel`/`--two`. Trivial tasks need no plan.
 
 ## Scope Challenge Integration
 
@@ -153,5 +153,5 @@ Check `## Plan Context` in injected context:
 - **"Suggested: {path}"** → Branch hint only, ask if activate or create new
 - **"Plan: none"** → Create new using `Plan dir:` from `## Naming`
 
-After creating: `node .claude/scripts/set-active-plan.cjs {plan-dir}`
+After creating: `rig-set-active-plan {plan-dir}`
 Pass plan directory path to every subagent during the process.

@@ -28,19 +28,19 @@ Centralized environment variable resolver that follows Claude Code's hierarchy.
 
 ```bash
 # Resolve a variable for a specific skill
-python ~/.claude/scripts/resolve_env.py GEMINI_API_KEY --skill media
+rig-resolve-env GEMINI_API_KEY --skill media
 
 # With verbose output
-python ~/.claude/scripts/resolve_env.py GEMINI_API_KEY --skill media --verbose
+rig-resolve-env GEMINI_API_KEY --skill media --verbose
 
 # Find all locations where variable is defined
-python ~/.claude/scripts/resolve_env.py GEMINI_API_KEY --find-all
+rig-resolve-env GEMINI_API_KEY --find-all
 
 # Show hierarchy for a skill
-python ~/.claude/scripts/resolve_env.py --show-hierarchy --skill media
+rig-resolve-env --show-hierarchy --skill media
 
 # Export format for shell sourcing
-eval $(python ~/.claude/scripts/resolve_env.py GEMINI_API_KEY --export)
+eval $(rig-resolve-env GEMINI_API_KEY --export)
 ```
 
 ### Python API Usage
@@ -89,7 +89,7 @@ api_key = resolve_env('GEMINI_API_KEY', skill='media')
 
 if not api_key:
     print("Error: GEMINI_API_KEY not found")
-    print("Run: python ~/.claude/scripts/resolve_env.py --show-hierarchy --skill media")
+    print("Run: rig-resolve-env --show-hierarchy --skill media")
     sys.exit(1)
 
 # Use api_key...
@@ -107,19 +107,19 @@ if not api_key:
 
 ```bash
 # Test without any config files
-python ~/.claude/scripts/resolve_env.py TEST_VAR --verbose
+rig-resolve-env TEST_VAR --verbose
 
 # Test with environment variable
 export TEST_VAR=from-runtime
-python ~/.claude/scripts/resolve_env.py TEST_VAR --verbose
+rig-resolve-env TEST_VAR --verbose
 
 # Test with skill context
-python ~/.claude/scripts/resolve_env.py GEMINI_API_KEY --skill media --find-all
+rig-resolve-env GEMINI_API_KEY --skill media --find-all
 ```
 
 ## Docs layout scripts
 
-Diataxis docs layout used by `/rig:docs` (see `.claude/skills/docs/references/diataxis-docs-layout.md`).
+Diataxis docs layout used by `/rig:docs` (see `references/diataxis-docs-layout.md` of the `docs` skill).
 
 | Script | Purpose |
 |--------|---------|
@@ -128,4 +128,4 @@ Diataxis docs layout used by `/rig:docs` (see `.claude/skills/docs/references/di
 | `migrate-docs-custom-move-map-parser.cjs` | Parses and validates `--map` values (relative paths, target under a Diataxis dir or `project/`) |
 | `validate-docs.cjs [docs-dir]` | Recursive link/code-ref check + layout warnings (non-blocking) |
 
-Tests: `node --test .claude/scripts/*.test.cjs`
+Tests: `node --test scripts/*.test.cjs`

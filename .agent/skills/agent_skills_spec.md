@@ -48,7 +48,7 @@ The Markdown body has no restrictions on it.
 
 # Additional Information
 
-For a minimal example, see `.agent/skills/research/SKILL.md`.
+For a minimal example, see `SKILL.md` of the `research` skill.
 
 # Version History
 

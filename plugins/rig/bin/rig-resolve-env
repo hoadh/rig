@@ -1,0 +1,6 @@
+#!/usr/bin/env node
+'use strict';
+// Shows where a skill API key / env var comes from (resolve_env.py through the Rig venv python).
+const path = require('path');
+const { kitRootOf } = require('../scripts/rig-bin-launcher.cjs');
+require('../scripts/rig-python-venv-resolver.cjs').main(__filename, [path.join(kitRootOf(__filename), 'scripts', 'resolve_env.py'), ...process.argv.slice(2)]);

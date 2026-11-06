@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
 """
-Scan .claude/skills directory and extract skill metadata.
+Scan the kit's skills directory (../skills next to this script) and extract skill metadata.
 """
 
 import re
 from pathlib import Path
 from typing import Dict, List
+
+# Paths come from this file's location so the scan works for a plugin install and a file install alike.
+SCRIPTS_ROOT = Path(__file__).resolve().parent
+SKILLS_ROOT = SCRIPTS_ROOT.parent / 'skills'
 try:
     import yaml
 except ModuleNotFoundError:
     raise SystemExit(
-        "PyYAML is required. Install with: python3 -m pip install -r .claude/scripts/requirements.txt"
+        "PyYAML is required. Install with: python3 -m pip install -r scripts/requirements.txt"
     )
 
 # Exact mappings for high-signal Rig skills to avoid falling into "other".
@@ -101,7 +105,7 @@ def scan_skills(base_path: Path) -> List[Dict]:
 
             skill_entry = {
                 'name': skill_name,
-                'path': str(skill_file.relative_to(Path('.claude/skills'))),
+                'path': str(skill_file.relative_to(SKILLS_ROOT)),
                 'description': description,
                 'category': category,
                 'has_scripts': (skill_dir / 'scripts').exists(),
@@ -177,7 +181,7 @@ def group_by_category(skills: List[Dict]) -> Dict[str, List[Dict]]:
 
 def main():
     """Main execution."""
-    base_path = Path('.claude/skills')
+    base_path = SKILLS_ROOT
 
     if not base_path.exists():
         print(f"Error: {base_path} not found")
@@ -212,7 +216,7 @@ def main():
             print(f"  {scripts}{refs} {skill['name']:30} {skill['description'][:80]}")
 
     # Output YAML to scripts directory
-    output_path = Path('.claude/scripts/skills_data.yaml')
+    output_path = SCRIPTS_ROOT / 'skills_data.yaml'
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(yaml.dump(skills, allow_unicode=True, default_flow_style=False))
     print(f"\n✓ Saved metadata to {output_path}")

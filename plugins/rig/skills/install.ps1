@@ -899,11 +899,11 @@ function Setup-PythonEnv {
         }
     }
 
-    # Install .claude/scripts requirements (contains pyyaml for scan_skills.py)
+    # Install scripts/ requirements (contains pyyaml for scan_skills.py)
     $scriptsReqPath = Join-Path $ScriptDir "..\scripts\requirements.txt"
     if (Test-Path $scriptsReqPath) {
         $scriptsLogFile = Join-Path $LogDir "install-scripts.log"
-        Write-Info "Installing .claude/scripts dependencies..."
+        Write-Info "Installing scripts/ dependencies..."
 
         $pkgSuccess = 0
         $pkgFail = 0
@@ -926,10 +926,10 @@ function Setup-PythonEnv {
         }
 
         if ($pkgFail -eq 0) {
-            Write-Success ".claude/scripts: all $pkgSuccess packages installed"
+            Write-Success "scripts/: all $pkgSuccess packages installed"
             Track-Success -Category "optional" -Name "scripts"
         } else {
-            Write-Warning ".claude/scripts: $pkgSuccess installed, $pkgFail failed"
+            Write-Warning "scripts/: $pkgSuccess installed, $pkgFail failed"
         }
     }
 
@@ -1033,7 +1033,7 @@ function Get-RemediationCommands {
     if ($hasPythonFailed) {
         Write-Host "# Python packages (may require build tools):"
         Write-Host "# Install Visual Studio Build Tools: https://visualstudio.microsoft.com/visual-cpp-build-tools/"
-        Write-Host ".\.claude\skills\.venv\Scripts\Activate.ps1"
+        Write-Host "$VenvDir\Scripts\Activate.ps1"
 
         foreach ($item in $Script:FAILED_OPTIONAL) {
             $pkg = ($item -split ':')[0]
@@ -1119,7 +1119,7 @@ function Write-ErrorSummary {
         remediation = @{
             winget_packages = "winget install Gyan.FFmpeg ImageMagick.ImageMagick"
             build_tools = "https://visualstudio.microsoft.com/visual-cpp-build-tools/"
-            pip_retry = ".\.claude\skills\.venv\Scripts\Activate.ps1; pip install <package>"
+            pip_retry = "$VenvDir\Scripts\Activate.ps1; pip install <package>"
         }
     }
 
@@ -1137,10 +1137,10 @@ function Write-ErrorSummary {
 # Print usage instructions (now just brief tips)
 function Show-Usage {
     Write-Host "To use the Python virtual environment:" -ForegroundColor Green
-    Write-Host "  .\.claude\skills\.venv\Scripts\Activate.ps1"
+    Write-Host "  $VenvDir\Scripts\Activate.ps1"
     Write-Host ""
     Write-Host "For more information, see:" -ForegroundColor Blue
-    Write-Host "  .claude\skills\INSTALLATION.md"
+    Write-Host "  $ScriptDir\INSTALLATION.md"
     Write-Host ""
 }
 

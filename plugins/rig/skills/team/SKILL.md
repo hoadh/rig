@@ -41,5 +41,5 @@ Rig Context:
 - Active plan: {RIG_ACTIVE_PLAN or "none"}
 - Commits: conventional (feat:, fix:, docs:, refactor:, test:, chore:)
 - Refer to teammates by NAME
-- Read `.claude/skills/team/references/team-coordination.md` first: exclusive file ownership, `TaskUpdate` before reporting, on a stop request finish, mark your task done, reply in plain text
+- Read `references/team-coordination.md` of the `team` skill first: exclusive file ownership, `TaskUpdate` before reporting, on a stop request finish, mark your task done, reply in plain text
 ```

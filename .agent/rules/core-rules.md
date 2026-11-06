@@ -1,7 +1,7 @@
 # Core Rules
 
 - Principles: YAGNI, KISS, DRY. Do the simplest thing that works.
-- Size the process. Trivial (1 file, obvious): edit, run tests, no plan or subagents. Standard (few files): short plan, implement yourself, tests, one review if logic changed, docs if behavior or API changed. Large (multi-phase, cross-cutting): `/plan`, `/implement`, tester and reviewer, docs. Risk signals (auth, data, infra, public API) force Large. User override wins. Full tiers: `.agent/skills/implement/references/orchestration-protocol.md`.
+- Size the process. Trivial (1 file, obvious): edit, run tests, no plan or subagents. Standard (few files): short plan, implement yourself, tests, one review if logic changed, docs if behavior or API changed. Large (multi-phase, cross-cutting): `/plan`, `/implement`, tester and reviewer, docs. Risk signals (auth, data, infra, public API) force Large. User override wins. Full tiers: `references/orchestration-protocol.md` of the `implement` skill.
 - Names: kebab-case, descriptive (JS/TS/Python/shell); follow the language convention elsewhere.
 - File size: split when a file mixes concerns or passes ~500 lines (data, generated, tests exempt).
 - Edit existing files; no "enhanced" copies. Real behavior, no mocks standing in for it.

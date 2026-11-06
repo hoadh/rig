@@ -25,6 +25,14 @@ test('renamed skill dirs and rig: commands', () => {
   assert.strictEqual(rewrite('xrig:plan'), 'xrig:plan');
 });
 
+test('plugin bin commands whose script ships in a synced skill map back to the skill script', () => {
+  assert.strictEqual(rewrite('`rig-worktree info --json`'), '`node .agent/skills/worktree/scripts/worktree.cjs info --json`');
+  assert.strictEqual(rewrite('rig-ui-search "x" --domain ux'), 'python .agent/skills/ui-design/scripts/search.py "x" --domain ux');
+  assert.strictEqual(rewrite('SKILL_DIR="$(rig-browser --dir)"'), 'SKILL_DIR=".agent/skills/browser/scripts"');
+  assert.strictEqual(rewrite('cd "$(rig-skill-dir mcp)/scripts"'), 'cd ".agent/skills/mcp/scripts"');
+  assert.strictEqual(rewrite('bin/rig-worktree and rig-worktree.cjs and my-rig-worktree'), 'bin/rig-worktree and rig-worktree.cjs and my-rig-worktree');
+});
+
 test('parseFrontmatter reads quoted, plain and folded values', () => {
   const fm = t.parseFrontmatter('---\nname: rig:plan\ndescription: >-\n  Line one\n  line two\nuser-invocable: false\n---\nbody');
   assert.deepStrictEqual(fm, { name: 'rig:plan', description: 'Line one line two', 'user-invocable': 'false' });

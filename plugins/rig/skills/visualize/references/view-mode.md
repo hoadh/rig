@@ -4,14 +4,14 @@
 
 **IMPORTANT:** Run server as Claude Code background task using `run_in_background: true` with the Bash tool.
 
-The skill is located at `.claude/skills/markdown-viewer/`.
+The skill dir is printed by `rig-skill-dir markdown-viewer`; start the server with `rig-markdown-viewer`.
 
 ### Stop Server
 
 If `--stop` flag is provided:
 
 ```bash
-node .claude/skills/markdown-viewer/scripts/server.cjs --stop
+rig-markdown-viewer --stop
 ```
 
 ### Start Server
@@ -21,10 +21,10 @@ Run the `markdown-viewer` server as CC background task with `--foreground` flag:
 ```bash
 INPUT_PATH="<resolved-path>"
 if [[ -d "$INPUT_PATH" ]]; then
-  node .claude/skills/markdown-viewer/scripts/server.cjs \
+  rig-markdown-viewer \
     --dir "$INPUT_PATH" --host 0.0.0.0 --open --foreground
 else
-  node .claude/skills/markdown-viewer/scripts/server.cjs \
+  rig-markdown-viewer \
     --file "$INPUT_PATH" --host 0.0.0.0 --open --foreground
 fi
 ```

@@ -157,7 +157,7 @@
         "injectCoreRules": {
           "type": "boolean",
           "default": false,
-          "description": "Append .claude/rules/core-rules.md to every subagent's context. Off by default because Claude Code already loads .claude/rules/*.md into subagents; turn on for installs without rules files (plugin)."
+          "description": "Append the Rig core rules (rules/core-rules.md) to every subagent's context. Off by default because Claude Code already loads project rules files into subagents; turn on for installs without rules files (plugin)."
         }
       },
       "additionalProperties": true

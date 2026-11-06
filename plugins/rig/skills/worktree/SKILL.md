@@ -14,7 +14,7 @@ Isolated worktree for parallel work. Standalone repos use native Claude Code; th
 ## Step 1: Detect repo type
 
 ```bash
-node .claude/skills/worktree/scripts/worktree.cjs info --json
+rig-worktree info --json
 ```
 
 Read `repoType`, `projects`, `baseBranch`.
@@ -33,7 +33,7 @@ Read `repoType`, `projects`, `baseBranch`.
 3. Slug: kebab-case, max 50 chars.
 4. Run:
 ```bash
-node .claude/skills/worktree/scripts/worktree.cjs create "<PROJECT>" "<SLUG>" --prefix <TYPE>
+rig-worktree create "<PROJECT>" "<SLUG>" --prefix <TYPE>
 ```
 Options: `--no-prefix`, `--worktree-root <path>`, `--json`, `--dry-run`. Other commands: `remove <name-or-path>`, `list`, `info`.
 5. Install dependencies in the new worktree from its lockfile (bun, pnpm, yarn, npm, poetry, pip, cargo, go).

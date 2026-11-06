@@ -7,8 +7,7 @@ Decide early whether phases run on other machines, using real ids from the regis
 ## 1. Read the registry (local, no ssh)
 
 ```
-node .claude/skills/remote/scripts/remote.cjs machines --json   # if that file exists in the project
-node ~/.claude/skills/remote/scripts/remote.cjs machines --json # otherwise
+rig-remote machines --json
 ```
 
 Output: `{ self, registry, found, machines: [{ id, os, shell, allowedTools, hasClone }] }`. "Other machines" = entries whose `id` differs from `self` and `hasClone !== false` (`false` = the machine has no clone of this project yet: mention `remote register <id> --repo <abs path>` + `setup <id>` instead of offering it; `null` = this directory has no origin). Exit 2 = invalid registry: show the error, continue single-machine unless the user wants to fix it first.

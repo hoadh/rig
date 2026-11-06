@@ -18,12 +18,8 @@ Background HTTP server rendering markdown files with calm, book-like reading exp
 **This skill requires npm dependencies.** Run one of the following:
 
 ```bash
-# Option 1: Rig installer (recommended), run from the Rig repo ROOT (not this skill dir)
-node scripts/install-kit-from-local-repo.cjs --install-skills
-# Windows (PowerShell): .claude\skills\install.ps1
-
-# Option 2: Manual installation
-cd .agent/skills/markdown-viewer
+# Install into this skill's dir (works for the plugin and for file installs)
+cd ".agent/skills/markdown-viewer"
 npm install
 ```
 
