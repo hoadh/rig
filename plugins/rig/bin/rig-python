@@ -1,0 +1,4 @@
+#!/usr/bin/env node
+'use strict';
+// Runs python from the Rig venv (created on first use): rig-python [python args...]
+require('../scripts/rig-python-venv-resolver.cjs').main(__filename, process.argv.slice(2));

@@ -1,0 +1,4 @@
+#!/usr/bin/env node
+'use strict';
+// Records the active plan dir for this session (hooks and subagents read it).
+require('../scripts/rig-bin-launcher.cjs').runNodeScript(__filename, 'scripts/set-active-plan.cjs');

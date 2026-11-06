@@ -1,0 +1,4 @@
+#!/usr/bin/env node
+'use strict';
+// Docs link and Diataxis layout validator.
+require('../scripts/rig-bin-launcher.cjs').runNodeScript(__filename, 'scripts/validate-docs.cjs');

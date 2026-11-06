@@ -99,6 +99,21 @@ function readPluginCoreRules() {
 }
 
 /**
+ * Plugin mode only: keep ~/.claude/rig/runtime (remote worker, statusline) in step with this plugin version.
+ * The source is this hook's own plugin root, never env or a registry scan. A failure (read-only home, partial
+ * checkout) must not block the session, so it is logged and ignored; readers fail closed without VERSION.
+ */
+function refreshRuntimeCopy() {
+  try {
+    if (!isPluginCopy(__filename)) return;
+    const { copyRuntime } = require('./lib/runtime-copy-to-user-dir.cjs');
+    copyRuntime({ pluginRoot: path.resolve(__dirname, '..') });
+  } catch (error) {
+    logHookCrash('session-init', error, { event: 'SessionStart', note: 'runtime-copy' });
+  }
+}
+
+/**
  * Main hook execution
  */
 async function main() {
@@ -115,6 +130,7 @@ async function main() {
     }
     if (yielded) process.exit(0);
     pruneStaleState();
+    refreshRuntimeCopy();
     const envFile = process.env.CLAUDE_ENV_FILE;
     const source = data.source || 'unknown';
     const sessionId = data.session_id || null;

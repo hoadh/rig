@@ -1,0 +1,4 @@
+#!/usr/bin/env node
+'use strict';
+// Moves a docs tree to the Diataxis layout (dry-run unless --apply).
+require('../scripts/rig-bin-launcher.cjs').runNodeScript(__filename, 'scripts/migrate-docs-to-diataxis-layout.cjs');

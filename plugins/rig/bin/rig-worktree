@@ -1,0 +1,4 @@
+#!/usr/bin/env node
+'use strict';
+// Git worktree manager (info, create, remove, list).
+require('../scripts/rig-bin-launcher.cjs').runNodeScript(__filename, 'skills/worktree/scripts/worktree.cjs');

@@ -39,8 +39,17 @@ NC='\033[0m' # No Color
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VENV_DIR="$SCRIPT_DIR/.venv"
-STATE_FILE="$SCRIPT_DIR/.install-state.json"
+# Plugin installs (rig-python) point RIG_VENV_DIR at a writable dir outside the plugin cache
+# and keep the install state next to the venv instead of inside the skills dir.
+if [[ -n "${RIG_VENV_DIR:-}" ]]; then
+    VENV_DIR="$RIG_VENV_DIR"
+    STATE_DIR="$VENV_DIR.state"
+    mkdir -p "$STATE_DIR"
+else
+    VENV_DIR="$SCRIPT_DIR/.venv"
+    STATE_DIR="$SCRIPT_DIR"
+fi
+STATE_FILE="$STATE_DIR/.install-state.json"
 LOG_DIR="$VENV_DIR/logs"
 
 # Installation tracking arrays (Bash 3.2+ compatible - indexed arrays only)
@@ -1126,7 +1135,7 @@ write_error_summary() {
     fi
 
     # Write to a file that CLI can read
-    local summary_file="$SCRIPT_DIR/.install-error-summary.json"
+    local summary_file="$STATE_DIR/.install-error-summary.json"
 
     # Build JSON arrays carefully for bash compatibility
     local critical_json="[]"

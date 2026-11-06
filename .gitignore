@@ -20,6 +20,7 @@ coverage-ui.json
 /out/
 dist/
 bin/
+!/plugins/rig/bin/
 
 # production
 /build

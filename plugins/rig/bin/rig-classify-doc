@@ -1,0 +1,6 @@
+#!/usr/bin/env node
+'use strict';
+// Advisory Diataxis classifier for one doc (runs classify-doc.sh with bash; Git Bash on Windows).
+const path = require('path');
+const { kitRootOf, runAndExit } = require('../scripts/rig-bin-launcher.cjs');
+runAndExit('bash', [path.join(kitRootOf(__filename), 'skills', 'diataxis-writer', 'scripts', 'classify-doc.sh'), ...process.argv.slice(2)]);

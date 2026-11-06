@@ -14,6 +14,13 @@ const os = require('os');
 const fs = require('fs');
 const path = require('path');
 
+// Runtime copy (~/.claude/rig/runtime/): without its VERSION stamp the copy is incomplete or being replaced
+// (see hooks/lib/runtime-copy-to-user-dir.cjs). Fail closed: print nothing rather than half a statusline.
+if (path.basename(__dirname) === 'runtime' && path.basename(path.dirname(__dirname)) === 'rig'
+  && !fs.existsSync(path.join(__dirname, 'VERSION'))) {
+  process.exit(0);
+}
+
 // Import modular components
 const { setColorEnabled } = require('./hooks/lib/colors.cjs');
 const { parseTranscript } = require('./hooks/lib/transcript-parser.cjs');

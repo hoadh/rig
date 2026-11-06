@@ -1,0 +1,4 @@
+#!/usr/bin/env node
+'use strict';
+// Background markdown viewer server (needs the skill's npm deps).
+require('../scripts/rig-bin-launcher.cjs').runNodeScript(__filename, 'skills/markdown-viewer/scripts/server.cjs');

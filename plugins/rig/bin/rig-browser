@@ -1,0 +1,16 @@
+#!/usr/bin/env node
+'use strict';
+// rig-browser --dir          print the browser skill's scripts dir
+// rig-browser <script> ...   run <scripts dir>/<script>.js (screenshot, console, navigate, ...)
+const fs = require('fs');
+const path = require('path');
+const { kitRootOf, runAndExit } = require('../scripts/rig-bin-launcher.cjs');
+const dir = path.join(kitRootOf(__filename), 'skills', 'browser', 'scripts');
+const [first, ...rest] = process.argv.slice(2);
+if (first === '--dir') { process.stdout.write(`${dir}\n`); process.exit(0); }
+const name = first && first.replace(/\.js$/, '');
+if (!name || !/^[a-z][a-z-]*$/.test(name) || !fs.existsSync(path.join(dir, `${name}.js`))) {
+  process.stderr.write('usage: rig-browser --dir | rig-browser <script> [args]   (scripts: screenshot, console, navigate, click, fill, ...)\n');
+  process.exit(2);
+}
+runAndExit(process.execPath, [path.join(dir, `${name}.js`), ...rest]);

@@ -2,7 +2,7 @@
 /**
  * Update session state with new active plan
  *
- * Usage: node .claude/scripts/set-active-plan.cjs <plan-path>
+ * Usage: rig-set-active-plan <plan-path>   (plugin bin/; file installs: node .claude/bin/rig-set-active-plan)
  *
  * This script updates the session temp file with the new active plan path,
  * allowing subagents to receive the latest plan context via SubagentStart hook.
@@ -18,10 +18,16 @@ const { writeSessionState, readSessionState } = require('../hooks/lib/rig-config
 const sessionId = process.env.RIG_SESSION_ID;
 const newPlan = process.argv[2];
 
+const USAGE = ['Usage: rig-set-active-plan <plan-path>', 'Example: rig-set-active-plan plans/251207-1030-feature-name'];
+
+if (newPlan === '--help' || newPlan === '-h') {
+  console.log(USAGE.join('\n'));
+  process.exit(0);
+}
+
 if (!newPlan) {
   console.error('Error: Plan path required');
-  console.log('Usage: node .claude/scripts/set-active-plan.cjs <plan-path>');
-  console.log('Example: node .claude/scripts/set-active-plan.cjs plans/251207-1030-feature-name');
+  console.log(USAGE.join('\n'));
   process.exit(1);
 }
 
