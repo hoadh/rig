@@ -24,7 +24,10 @@ const { spawn, spawnSync } = require('child_process');
 const ROOT = path.resolve(__dirname, '..');
 const SCAN_DIRS = [path.join(ROOT, '.claude'), path.join(ROOT, 'scripts')];
 const IGNORED_DIRS = new Set(['node_modules', '.venv', '.git', 'worktrees']);
-const TIMEOUT_MS = 180000;
+// Per-file timeout. Windows runners spawn git/node/powershell 10-15x slower than Linux: the rig:remote
+// loopback e2e takes ~13 s on ubuntu-latest and ~180 s on windows-latest, so one limit cannot fit both.
+// RIG_TEST_TIMEOUT_MS overrides both defaults.
+const TIMEOUT_MS = Number(process.env.RIG_TEST_TIMEOUT_MS) || (process.platform === 'win32' ? 480000 : 180000);
 const CONCURRENCY = Math.max(2, Math.min(os.cpus().length, 8));
 
 // Matches foo.test.cjs and foo.test.js; helpers (statusline-suite.cjs, test-framework.cjs,

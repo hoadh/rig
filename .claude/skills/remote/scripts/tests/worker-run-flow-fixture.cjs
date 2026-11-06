@@ -16,6 +16,9 @@ const { hostOs, hostShell, installFakeScheduledTasks, removeDirRetrying } = requ
 const SLUG = 'plan-a';
 const BRANCH = `rig/tester/${SLUG}`;
 const UUID = '123e4567-e89b-42d3-a456-426614174000';
+// A loaded windows-latest runner has taken over 30 s to start powershell for a one-line echo (exit 124
+// in CI); these tests check the exit mapping, not speed, so give the shell headroom there.
+const COMMAND_TIMEOUT_SEC = process.platform === 'win32' ? 180 : 30;
 
 const STUB = `#!/usr/bin/env node
 const fs = require('fs'), path = require('path'), cp = require('child_process');
@@ -59,7 +62,7 @@ function setup() {
     v: 1, runId: runId(), orchestrator: 'mac', slug: SLUG, kind: 'agent', baseSha, startSha: baseSha, branch: BRANCH,
     owns: ['src/**'], timeoutSec: 30, maxTurns: 5, agent: { sessionId: UUID, resume: false, allowedTools: ['Read'], disallowedTools: [] }, ...over,
   });
-  const commandSpec = (command, over = {}) => ({ v: 1, runId: runId(), orchestrator: 'mac', kind: 'command', ref: baseSha, command, timeoutSec: 30, ...over });
+  const commandSpec = (command, over = {}) => ({ v: 1, runId: runId(), orchestrator: 'mac', kind: 'command', ref: baseSha, command, timeoutSec: COMMAND_TIMEOUT_SEC, ...over });
   return {
     env, target, baseSha, agentSpec, commandSpec,
     stubRan: () => fakeRanCount(home, 'claude'), // times the stub claude was started (kills vacuous passes)
