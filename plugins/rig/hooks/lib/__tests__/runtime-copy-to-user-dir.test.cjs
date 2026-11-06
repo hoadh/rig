@@ -11,6 +11,7 @@ const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
 const rc = require('../runtime-copy-to-user-dir.cjs');
+const lock = require('../dir-lock-with-owner-token.cjs');
 
 const PLUGIN_ROOT = path.resolve(__dirname, '..', '..', '..');
 const tmpRoots = [];
@@ -212,5 +213,155 @@ describe('session-init hook-up', () => {
     const res = run(root, home);
     assert.strictEqual(res.status, 0);
     assert.strictEqual(rc.readRuntimeVersion(rc.runtimeDirFor(home)), null);
+  });
+});
+
+describe('staged swap, no downgrade (M2)', () => {
+  it('an installed runtime with a greater version is never overwritten (older session, dev checkout, pinned project)', () => {
+    const home = mkTmp('rig-home-');
+    rc.copyRuntime({ pluginRoot: fakePlugin('2.1.0'), home });
+    const res = rc.copyRuntime({ pluginRoot: fakePlugin('2.0.0'), home });
+    assert.strictEqual(res.status, 'newer');
+    assert.strictEqual(res.version, '2.1.0');
+    assert.strictEqual(rc.readRuntimeVersion(rc.runtimeDirFor(home)), '2.1.0');
+    assert.match(fs.readFileSync(path.join(rc.runtimeDirFor(home), 'remote', 'worker.cjs'), 'utf8'), /v2\.1\.0/);
+    assert.strictEqual(rc.copyRuntime({ pluginRoot: fakePlugin('2.0.0'), home, force: true }).status, 'copied', 'force overrides');
+    assert.strictEqual(rc.readRuntimeVersion(rc.runtimeDirFor(home)), '2.0.0');
+  });
+
+  it('semver order: prerelease below release, numeric parts compared as numbers', () => {
+    assert.ok(rc.compareSemver('2.0.0-beta.1', '2.0.0') < 0);
+    assert.ok(rc.compareSemver('2.0.0-beta.2', '2.0.0-beta.10') < 0);
+    assert.ok(rc.compareSemver('2.10.0', '2.9.9') > 0);
+    assert.strictEqual(rc.compareSemver('2.0.0', '2.0.0'), 0);
+    const home = mkTmp('rig-home-');
+    rc.copyRuntime({ pluginRoot: fakePlugin('2.0.0'), home });
+    assert.strictEqual(rc.copyRuntime({ pluginRoot: fakePlugin('2.0.0-beta.3'), home }).status, 'newer');
+  });
+
+  it('the swap never deletes files under a running worker: a file opened from the old dir stays readable, and no staging dir remains', { skip: process.platform === 'win32' }, () => {
+    const home = mkTmp('rig-home-');
+    rc.copyRuntime({ pluginRoot: fakePlugin('2.0.0'), home });
+    const dir = rc.runtimeDirFor(home);
+    const fd = fs.openSync(path.join(dir, 'remote', 'worker.cjs'), 'r'); // "a running worker" holds the old file
+    try {
+      assert.strictEqual(rc.copyRuntime({ pluginRoot: fakePlugin('2.1.0'), home }).status, 'copied');
+      assert.match(fs.readFileSync(fd, 'utf8'), /v2\.0\.0/, 'the old file content is still there for the running process');
+    } finally { fs.closeSync(fd); }
+    assert.deepStrictEqual(fs.readdirSync(path.dirname(dir)).sort(), ['runtime']);
+  });
+
+  it('while a copy is staged, the live runtime is complete and untouched; VERSION flips only with the swap', () => {
+    const home = mkTmp('rig-home-');
+    const first = fakePlugin('2.0.0');
+    rc.copyRuntime({ pluginRoot: first, home });
+    const dir = rc.runtimeDirFor(home);
+    // Spy on the swap: when the staged dir exists the live dir must still be the complete 2.0.0 copy
+    const realRename = fs.renameSync;
+    const observed = [];
+    fs.renameSync = (from, to) => {
+      if (from === dir) observed.push({ live: rc.readRuntimeVersion(dir), staged: rc.readRuntimeVersion(path.join(path.dirname(dir), `runtime.tmp-${process.pid}`)) });
+      return realRename(from, to);
+    };
+    try { rc.copyRuntime({ pluginRoot: fakePlugin('2.1.0'), home }); } finally { fs.renameSync = realRename; }
+    assert.strictEqual(observed.at(-1).live, '2.0.0', 'the live dir was still the complete old copy during the staged phase');
+    assert.strictEqual(observed.at(-1).staged, '2.1.0', 'the staged dir was complete (VERSION inside) before the swap');
+    assert.strictEqual(rc.readRuntimeVersion(dir), '2.1.0');
+  });
+
+  it('an old dir that could not be removed is left for a later run, which sweeps it once it is old enough', () => {
+    const home = mkTmp('rig-home-');
+    const rig = path.join(home, '.claude', 'rig');
+    fs.mkdirSync(path.join(rig, 'runtime.old-4242', 'remote'), { recursive: true });
+    fs.mkdirSync(path.join(rig, 'runtime.tmp-4243'), { recursive: true });
+    fs.mkdirSync(path.join(rig, 'runtime.old-4244'), { recursive: true });
+    const old = new Date(Date.now() - 60 * 60 * 1000);
+    for (const n of ['runtime.old-4242', 'runtime.tmp-4243']) fs.utimesSync(path.join(rig, n), old, old);
+    rc.copyRuntime({ pluginRoot: fakePlugin('2.0.0'), home });
+    assert.deepStrictEqual(fs.readdirSync(rig).sort(), ['runtime', 'runtime.old-4244'], 'old leftovers are removed, a fresh one (maybe in use) is kept');
+  });
+});
+
+describe('dir lock with owner token (M4)', () => {
+  it('release removes the lock only for its owner: a holder that lost its lock cannot delete the new holder\'s', () => {
+    const dir = path.join(mkTmp('rig-lock-'), 'l.lock');
+    const a = lock.acquireLock(dir, 1000);
+    assert.ok(a);
+    assert.strictEqual(lock.acquireLock(dir, 1000), null, 'second caller is refused while fresh');
+    lock.releaseLock(dir, 'not-the-token');
+    assert.ok(fs.existsSync(dir), 'a wrong token does not release');
+    // A's lock goes stale and B takes over; A then finishes late and releases with its old token
+    const old = new Date(Date.now() - 5000);
+    fs.utimesSync(dir, old, old);
+    const b = lock.acquireLock(dir, 1000);
+    assert.ok(b && b !== a, 'stale lock taken over');
+    lock.releaseLock(dir, a);
+    assert.ok(fs.existsSync(dir), "A's late release must not delete B's lock");
+    lock.releaseLock(dir, b);
+    assert.ok(!fs.existsSync(dir));
+  });
+
+  it('of several contenders on one stale lock exactly one wins, and no .stale dir is left behind', () => {
+    const root = mkTmp('rig-lock-');
+    const dir = path.join(root, 'l.lock');
+    fs.mkdirSync(dir);
+    const old = new Date(Date.now() - 60000);
+    fs.utimesSync(dir, old, old);
+    const results = Array.from({ length: 5 }, () => lock.acquireLock(dir, 1000));
+    assert.strictEqual(results.filter(Boolean).length, 1);
+    assert.deepStrictEqual(fs.readdirSync(root), ['l.lock']);
+  });
+
+  it('a live lock moved aside by a contender that judged a different (stale) holder is put back', () => {
+    const root = mkTmp('rig-lock-');
+    const dir = path.join(root, 'l.lock');
+    fs.mkdirSync(dir);
+    fs.writeFileSync(path.join(dir, 'owner'), 'stale-holder');
+    const old = new Date(Date.now() - 60000);
+    fs.utimesSync(dir, old, old);
+    // Between the contender's stale check and its rename, a live holder replaces the lock
+    const realRename = fs.renameSync;
+    let swapped = false;
+    fs.renameSync = (from, to) => {
+      if (!swapped && from === dir) {
+        swapped = true;
+        fs.rmSync(dir, { recursive: true });
+        fs.mkdirSync(dir);
+        fs.writeFileSync(path.join(dir, 'owner'), 'live-holder');
+      }
+      return realRename(from, to);
+    };
+    let token;
+    try { token = lock.acquireLock(dir, 1000); } finally { fs.renameSync = realRename; }
+    assert.strictEqual(token, null, 'the contender must not take a live lock');
+    assert.strictEqual(fs.readFileSync(path.join(dir, 'owner'), 'utf8'), 'live-holder', 'the live holder\'s lock is still in place');
+  });
+});
+
+describe('every copied file resolves its relative requires inside the copy (L4)', () => {
+  // Orchestrator-only libs reach into skills/_shared (../../../_shared); the worker never loads them
+  const ORCHESTRATOR_ONLY = new Set(['remote/lib/plan-phase-status-writer.cjs', 'remote/lib/plan-phase-machine-map.cjs']);
+  const walk = (d, out = []) => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const f = path.join(d, e.name); if (e.isDirectory()) walk(f, out); else out.push(f); } return out; };
+
+  it('in the runtime layout, only the documented orchestrator-only libs reach outside the copy', () => {
+    const home = mkTmp('rig-home-');
+    const { dir } = rc.copyRuntime({ pluginRoot: PLUGIN_ROOT, home });
+    const escaping = [];
+    for (const file of walk(dir).filter((f) => f.endsWith('.cjs'))) {
+      const rel = path.relative(dir, file).split(path.sep).join('/');
+      for (const m of fs.readFileSync(file, 'utf8').matchAll(/require\(\s*['"](\.[^'"]+)['"]\s*\)/g)) {
+        const base = path.resolve(path.dirname(file), m[1]);
+        const hit = [base, `${base}.cjs`, `${base}.js`, `${base}.json`].find((c) => fs.existsSync(c) && fs.statSync(c).isFile());
+        if (!hit && !ORCHESTRATOR_ONLY.has(rel)) escaping.push(`${rel} -> ${m[1]}`);
+      }
+    }
+    assert.deepStrictEqual(escaping, []);
+    // ...and the worker never reaches them
+    const seen = new Set();
+    const visit = (f) => { if (seen.has(f)) return; seen.add(f); for (const m of fs.readFileSync(f, 'utf8').matchAll(/require\(\s*['"](\.[^'"]+)['"]\s*\)/g)) { const b = path.resolve(path.dirname(f), m[1]); const h = [b, `${b}.cjs`].find((c) => fs.existsSync(c) && fs.statSync(c).isFile()); if (h) visit(h); } };
+    visit(path.join(dir, 'remote', 'worker.cjs'));
+    visit(path.join(dir, 'remote', 'worker-run-entry.cjs'));
+    for (const f of fs.readdirSync(path.join(dir, 'remote', 'worker-commands'))) visit(path.join(dir, 'remote', 'worker-commands', f));
+    assert.deepStrictEqual([...seen].map((f) => path.relative(dir, f).split(path.sep).join('/')).filter((r) => ORCHESTRATOR_ONLY.has(r)), []);
   });
 });

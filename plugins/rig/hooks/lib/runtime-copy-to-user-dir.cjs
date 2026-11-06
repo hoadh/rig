@@ -9,14 +9,19 @@
  *
  * Safety:
  *   - A fixed file list, so no path comes from data; destinations are checked to stay under the runtime dir.
- *   - `VERSION` is written LAST via atomic rename and removed FIRST: an interrupted copy has no VERSION, and
- *     readers (statusline, worker) fail closed without it.
- *   - Managed entries are deleted before copying, so a stale file or a planted symlink never survives or gets followed.
+ *   - The copy is STAGED in a sibling dir (`runtime.tmp-<pid>`, VERSION written last) and swapped in by renaming:
+ *     the old dir is renamed aside, the staged one renamed into place, then the old one removed. A running worker
+ *     never has files deleted under it; if the old dir cannot be removed (files in use, Windows) it is left and
+ *     swept on a later run. Readers (statusline, worker) fail closed without VERSION.
+ *   - A runtime whose VERSION is semver-greater is never overwritten (an older plugin session, a dev checkout or
+ *     a pinned project must not downgrade the shared copy) unless `force`.
+ *   - The old dir is replaced whole, so a stale file or a planted symlink never survives or gets followed.
  *   - Symlinks in the source are refused; the destination dir must not resolve outside `~/.claude/rig`.
  */
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { acquireLock, releaseLock, sleepSync } = require('./dir-lock-with-owner-token.cjs');
 
 // [source relative to the plugin root, destination relative to the runtime dir]; directories are copied whole
 const RUNTIME_ENTRIES = [
@@ -29,11 +34,11 @@ const RUNTIME_ENTRIES = [
   ['skills/remote/scripts/worker-commands', 'remote/worker-commands'],
   ['skills/remote/scripts/lib', 'remote/lib'],
 ];
-// Top-level destinations owned by the copy (wiped before each copy).
-const MANAGED_TOP_LEVEL = ['statusline.cjs', 'hooks', 'remote'];
 const VERSION_FILE = 'VERSION';
 const VERSION_RE = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.+-]+)?$/;
 const LOCK_STALE_MS = 60 * 1000;
+const LEFTOVER_MAX_AGE_MS = 10 * 60 * 1000;
+const RENAME_RETRIES = 5;
 
 const rigDirFor = (home = os.homedir()) => path.join(home, '.claude', 'rig');
 const runtimeDirFor = (home = os.homedir()) => path.join(rigDirFor(home), 'runtime');
@@ -79,26 +84,59 @@ function isComplete(runtimeDir, expectedRels) {
   return expectedRels.every((rel) => fs.existsSync(path.join(runtimeDir, ...rel.split('/'))));
 }
 
-function acquireLock(lockDir) {
-  for (let attempt = 0; attempt < 2; attempt++) {
+/** Semver precedence: negative when a < b, 0 when equal, positive when a > b (prerelease sorts below its release). */
+function compareSemver(a, b) {
+  const parse = (v) => {
+    const m = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?/.exec(v);
+    return { nums: [Number(m[1]), Number(m[2]), Number(m[3])], pre: m[4] ? m[4].split('.') : null };
+  };
+  const x = parse(a);
+  const y = parse(b);
+  for (let i = 0; i < 3; i++) if (x.nums[i] !== y.nums[i]) return x.nums[i] - y.nums[i];
+  if (!x.pre || !y.pre) return x.pre ? -1 : y.pre ? 1 : 0;
+  for (let i = 0; i < Math.max(x.pre.length, y.pre.length); i++) {
+    const p = x.pre[i];
+    const q = y.pre[i];
+    if (p === undefined) return -1;
+    if (q === undefined) return 1;
+    const pn = /^\d+$/.test(p);
+    const qn = /^\d+$/.test(q);
+    if (pn && qn && Number(p) !== Number(q)) return Number(p) - Number(q);
+    if (pn !== qn) return pn ? -1 : 1;
+    if (!pn && p !== q) return p < q ? -1 : 1;
+  }
+  return 0;
+}
+
+/** rename with a few retries: on Windows a dir that is some process's cwd or has open files refuses to move. */
+function renameWithRetry(from, to) {
+  for (let attempt = 0; ; attempt++) {
     try {
-      fs.mkdirSync(lockDir);
-      return true;
+      fs.renameSync(from, to);
+      return;
     } catch (err) {
-      if (err.code !== 'EEXIST') throw err;
-      try {
-        if (Date.now() - fs.statSync(lockDir).mtimeMs < LOCK_STALE_MS) return false;
-        fs.rmSync(lockDir, { recursive: true, force: true }); // stale lock of a crashed copy
-      } catch { /* raced with the owner releasing it: retry */ }
+      if (attempt >= RENAME_RETRIES || !['EBUSY', 'EPERM', 'EACCES', 'ENOTEMPTY'].includes(err.code)) throw err;
+      sleepSync(100 * (attempt + 1));
     }
   }
-  return false;
+}
+
+/** Remove aside/staging dirs a crashed or blocked earlier copy left behind (old enough not to be in use by a live copy). */
+function sweepLeftovers(rigDir) {
+  for (const name of fs.readdirSync(rigDir)) {
+    if (!/^runtime\.(tmp|old|lock\.stale)-/.test(name)) continue;
+    const full = path.join(rigDir, name);
+    try {
+      if (Date.now() - fs.statSync(full).mtimeMs > LEFTOVER_MAX_AGE_MS) fs.rmSync(full, { recursive: true, force: true });
+    } catch { /* still in use or already gone: a later run retries */ }
+  }
 }
 
 /**
  * Copy the runtime files when the stamped version differs (or the copy is incomplete).
  * @param {{pluginRoot: string, home?: string, force?: boolean}} opts
- * @returns {{status: 'copied'|'current'|'busy', version: string, dir: string}}
+ * @returns {{status: 'copied'|'current'|'busy'|'newer', version: string, dir: string}}
+ *   `newer`: the installed runtime has a greater version and is kept (`version` is then the installed one)
  * @throws on a missing/invalid plugin.json, an escaping symlink, or an unwritable destination (callers fail open)
  */
 function copyRuntime({ pluginRoot, home = os.homedir(), force = false }) {
@@ -107,33 +145,58 @@ function copyRuntime({ pluginRoot, home = os.homedir(), force = false }) {
   const files = expandEntries(pluginRoot, realRoot);
   const rigDir = rigDirFor(home);
   const dir = runtimeDirFor(home);
-  fs.mkdirSync(dir, { recursive: true });
+  fs.mkdirSync(rigDir, { recursive: true });
   const realRig = fs.realpathSync(rigDir);
-  const realDir = fs.realpathSync(dir);
-  if (!isInside(realRig, realDir)) throw new Error(`runtime dir ${dir} resolves outside ${rigDir}`);
-
-  if (!force && readRuntimeVersion(dir) === version && isComplete(dir, files.map(([, rel]) => rel))) return { status: 'current', version, dir };
+  if (fs.existsSync(dir) || isDanglingLink(dir)) {
+    const realDir = fs.realpathSync(dir);
+    if (!isInside(realRig, realDir)) throw new Error(`runtime dir ${dir} resolves outside ${rigDir}`);
+  }
+  const installed = readRuntimeVersion(dir);
+  if (!force && installed && compareSemver(installed, version) > 0) return { status: 'newer', version: installed, dir };
+  if (!force && installed === version && isComplete(dir, files.map(([, rel]) => rel))) return { status: 'current', version, dir };
 
   const lockDir = path.join(realRig, 'runtime.lock');
-  if (!acquireLock(lockDir)) return { status: 'busy', version, dir };
+  const token = acquireLock(lockDir, LOCK_STALE_MS);
+  if (!token) return { status: 'busy', version, dir };
+  const staging = path.join(realRig, `runtime.tmp-${process.pid}`);
+  const aside = path.join(realRig, `runtime.old-${process.pid}`);
   try {
-    fs.rmSync(path.join(realDir, VERSION_FILE), { force: true }); // invalidate first: no VERSION = readers fail closed
-    for (const top of MANAGED_TOP_LEVEL) fs.rmSync(path.join(realDir, top), { recursive: true, force: true });
-    for (const [src, rel] of files) {
-      const dest = path.join(realDir, ...rel.split('/'));
-      if (!isInside(realDir, dest)) throw new Error(`runtime destination escapes the runtime dir: ${rel}`);
-      fs.mkdirSync(path.dirname(dest), { recursive: true });
-      const tmp = `${dest}.tmp-${process.pid}`;
-      fs.writeFileSync(tmp, fs.readFileSync(src));
-      fs.renameSync(tmp, dest);
+    sweepLeftovers(realRig);
+    // Re-check under the lock: another session may have finished the same or a newer copy meanwhile
+    const now = readRuntimeVersion(dir);
+    if (!force && now && (compareSemver(now, version) > 0 || (now === version && isComplete(dir, files.map(([, rel]) => rel))))) {
+      return { status: now === version ? 'current' : 'newer', version: now, dir };
     }
-    const versionTmp = path.join(realDir, `${VERSION_FILE}.tmp-${process.pid}`);
+    fs.rmSync(staging, { recursive: true, force: true });
+    for (const [src, rel] of files) {
+      const dest = path.join(staging, ...rel.split('/'));
+      if (!isInside(staging, dest)) throw new Error(`runtime destination escapes the runtime dir: ${rel}`);
+      fs.mkdirSync(path.dirname(dest), { recursive: true });
+      fs.writeFileSync(dest, fs.readFileSync(src));
+    }
+    const versionTmp = path.join(staging, `${VERSION_FILE}.tmp`);
     fs.writeFileSync(versionTmp, `${version}\n`);
-    fs.renameSync(versionTmp, path.join(realDir, VERSION_FILE)); // last: marks the copy complete
+    fs.renameSync(versionTmp, path.join(staging, VERSION_FILE)); // last: marks the copy complete
+    // Swap: old dir aside first (works for Windows too), then the staged dir into place
+    fs.rmSync(aside, { recursive: true, force: true });
+    const hadOld = fs.existsSync(dir) || isDanglingLink(dir);
+    if (hadOld) renameWithRetry(dir, aside);
+    try {
+      renameWithRetry(staging, dir);
+    } catch (err) {
+      if (hadOld) fs.renameSync(aside, dir); // put the previous runtime back
+      throw err;
+    }
+    try { fs.rmSync(aside, { recursive: true, force: true }); } catch { /* files in use: swept by a later run */ }
   } finally {
-    fs.rmSync(lockDir, { recursive: true, force: true });
+    fs.rmSync(staging, { recursive: true, force: true });
+    releaseLock(lockDir, token);
   }
   return { status: 'copied', version, dir };
 }
 
-module.exports = { RUNTIME_ENTRIES, copyRuntime, readRuntimeVersion, runtimeDirFor, rigDirFor, VERSION_FILE };
+function isDanglingLink(p) {
+  try { return fs.lstatSync(p).isSymbolicLink(); } catch { return false; }
+}
+
+module.exports = { RUNTIME_ENTRIES, copyRuntime, readRuntimeVersion, runtimeDirFor, rigDirFor, compareSemver, VERSION_FILE };
