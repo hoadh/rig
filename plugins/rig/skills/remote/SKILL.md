@@ -13,7 +13,7 @@ One orchestrator machine owns a plan. Other machines (workers) run either a test
 
 ## Prerequisites
 
-- Rig installed on EVERY machine with the same major version (`doctor` checks protocol and version). On a worker, install the Rig plugin and start one Claude Code session (or run `rig-init`) so `~/.claude/rig/runtime/remote/worker.cjs` exists; a global file install writes it too.
+- Rig installed on EVERY machine with the same major version (`doctor` checks protocol and version). On a worker, install the Rig plugin and start one Claude Code session (or run `rig-init --runtime` in a terminal there) so `~/.claude/rig/runtime/remote/worker.cjs` exists.
 - Each worker has a **Rig-dedicated clone per project** (clean, never used for manual work), listed as `repo`, or under `repos` when the machine serves several projects (`references/registry-format.md`). A dedicated OS user per worker is recommended.
 - Registry `~/.claude/rig-machines.json` on the orchestrator: see `references/registry-format.md`. Never put secrets in it.
 - Key-based non-interactive ssh to each worker; `claude` logged in (or a token available to the service user) on workers that run agents.

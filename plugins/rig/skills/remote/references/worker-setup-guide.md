@@ -8,7 +8,7 @@ Tell the user up front; `setup` prints the exact command as a `fix:` line when o
 
 | Item | How |
 |---|---|
-| Rig on the worker, same major version | install the Rig plugin on the worker and start one Claude Code session there (or run `rig-init`): that writes `~/.claude/rig/runtime/remote/worker.cjs`. A global file install from a Rig checkout (`node scripts/install-kit-from-local-repo.cjs --global`) writes it too |
+| Rig on the worker, same major version | install the Rig plugin on the worker and start one Claude Code session there (or run `rig-init --runtime` in a terminal there): that writes `~/.claude/rig/runtime/remote/worker.cjs` |
 | Key-based ssh | `ssh-copy-id user@host` (Windows admin: `C:\ProgramData\ssh\administrators_authorized_keys`); `ssh -o BatchMode=yes user@host echo ok` must print ok |
 | Host key accepted | `ssh user@host` once interactively, verify the fingerprint (Rig uses `StrictHostKeyChecking=yes`) |
 | `claude` logged in | `ssh -t user@host claude` then `/login`, or `claude setup-token` + `CLAUDE_CODE_OAUTH_TOKEN` in the worker user's env (never in the registry) |

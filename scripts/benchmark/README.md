@@ -24,7 +24,7 @@ Runs are sequential and resumable: cells already in `results/<date>/runs.ndjson`
 ## Isolation
 
 - Each run gets a fresh temp workspace (fixture copy, own git baseline) and a temp `CLAUDE_CONFIG_DIR` containing only the copied `.credentials.json` (or `ANTHROPIC_API_KEY` from env). The operator's `~/.claude` is never read; the runner asserts this before starting.
-- `vanilla`: no `.claude/`, no `CLAUDE.md`. `rig`: project install via `scripts/install-kit-from-local-repo.cjs --dir <workspace> --yes` from THIS checkout, without optional skill packs.
+- `vanilla`: no `.claude/`, no `CLAUDE.md`. `rig`: the plugin of THIS checkout, loaded with `claude --plugin-dir plugins/rig` (the 1.x file installer is retired; no skill dependency packs, no CLAUDE.md in the workspace).
 - Same model, same CLI version (recorded per run), same allowlist: `--permission-mode acceptEdits` plus `Bash(npm test|npm run|node|git status|git diff|git log)`.
 - Not isolated: managed/enterprise policy files outside the home dir (e.g. `/etc/claude-code`), and the account's server-side settings.
 

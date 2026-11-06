@@ -16,7 +16,7 @@ function remoteCli() {
   return `node ${/\s/.test(shown) ? JSON.stringify(shown) : shown}`;
 }
 
-const INSTALL_RIG = `${WORKER_INSTALL_HINT}; a 1.x-style global file install from a 2.x checkout (\`node scripts/install-kit-from-local-repo.cjs --global\`) writes it too`;
+const INSTALL_RIG = WORKER_INSTALL_HINT;
 
 function sshHint(msg, ssh) {
   if (/Host key verification failed|HOST IDENTIFICATION HAS CHANGED|No .*host key is known/i.test(msg)) {

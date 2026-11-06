@@ -18,7 +18,7 @@ const SEMVER = /^(\d+)\.\d+\.\d+(?:[-+][0-9A-Za-z.+-]+)?$/;
 const RUNTIME_ROOT = path.resolve(__dirname, '..', '..');
 const KIT_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
 
-const WORKER_INSTALL_HINT = 'install the Rig plugin on the worker and start one Claude Code session there (or run `rig-init`) so ~/.claude/rig/runtime exists; ' +
+const WORKER_INSTALL_HINT = 'install the Rig plugin on the worker and start one Claude Code session there (or run `rig-init --runtime` in a terminal there) so ~/.claude/rig/runtime exists; ' +
   'orchestrator and worker need the same major Rig version';
 
 function readVersionFile(file, parse) {

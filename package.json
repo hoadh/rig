@@ -11,8 +11,7 @@
     "test:eval:all": "bun scripts/eval/run.ts all",
     "bench": "node scripts/benchmark/run-benchmark.ts",
     "bench:verify": "node scripts/benchmark/verify-hidden-tests.ts",
-    "bench:report": "node scripts/benchmark/benchmark-report.ts",
-    "kit:install": "node scripts/install-kit-from-local-repo.cjs"
+    "bench:report": "node scripts/benchmark/benchmark-report.ts"
   },
   "repository": {
     "type": "git",

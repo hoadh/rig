@@ -48,8 +48,8 @@ export function assertIsolation(configDir: string, workspace: string, arm: Arm):
   if (extra.length > 0) throw new Error(`Isolation failure: config dir not clean before run: ${extra.join(', ')}`);
   const hasRigFiles = existsSync(path.join(workspace, '.claude')) || existsSync(path.join(workspace, 'CLAUDE.md'));
   if (arm === 'vanilla' && hasRigFiles) throw new Error('Isolation failure: vanilla workspace contains .claude/ or CLAUDE.md');
-  if (arm === 'rig' && !existsSync(path.join(workspace, '.claude', 'settings.json'))) {
-    throw new Error('Rig arm: install did not produce .claude/settings.json');
+  if (arm === 'rig' && !existsSync(path.join(RIG_PLUGIN_DIR, '.claude-plugin', 'plugin.json'))) {
+    throw new Error(`Rig arm: no plugin at ${RIG_PLUGIN_DIR}`);
   }
 }
 
@@ -60,18 +60,12 @@ export function buildChildEnv(configDir: string): NodeJS.ProcessEnv {
   return env;
 }
 
-/**
- * Installs Rig into `workspace` as a project install using the installer from this checkout.
- * Note: optional skill packs (--install-skills) are not installed (cancelled in the plan).
- */
-export function installRig(workspace: string): void {
-  const env = { ...process.env };
-  delete env.CLAUDE_CONFIG_DIR;
-  const res = spawnSync(process.execPath, [path.join(REPO_ROOT, 'scripts', 'install-kit-from-local-repo.cjs'), '--dir', workspace, '--yes'], {
-    encoding: 'utf8',
-    env,
-  });
-  if (res.status !== 0) throw new Error(`Rig install failed (${res.status}): ${res.stderr || res.stdout}`);
+/** The Rig plugin of THIS checkout; the rig arm loads it with `--plugin-dir` (the 1.x file installer is retired). */
+export const RIG_PLUGIN_DIR = path.join(REPO_ROOT, 'plugins', 'rig');
+
+/** CLI args that enable Rig for one run: the plugin from this checkout, nothing is installed into the workspace. */
+export function rigPluginArgs(): string[] {
+  return ['--plugin-dir', RIG_PLUGIN_DIR];
 }
 
 /** Records the post-setup state as the baseline commit so later diffs show only the agent's work. */
