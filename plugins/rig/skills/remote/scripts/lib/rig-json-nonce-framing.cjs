@@ -7,7 +7,8 @@
  */
 const crypto = require('crypto');
 
-const PROTOCOL_VERSION = 1;
+// 2 = Rig 2.0: the worker runs from ~/.claude/rig/runtime and the handshake also compares the Rig major version
+const PROTOCOL_VERSION = 2;
 const NONCE_RE = /^[0-9a-f]{32}$/;
 
 const makeNonce = () => crypto.randomBytes(16).toString('hex');

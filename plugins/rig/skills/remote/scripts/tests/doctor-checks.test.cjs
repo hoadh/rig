@@ -22,9 +22,16 @@ t.test('bootstrap failure stops before worker checks', () => {
   t.eq(cs.map((c) => c.id), ['ssh', 'node', 'claude']);
   t.ok(D.hasFailure(cs));
 });
-t.test('integrity: same version diff hash fails; diff version warns', () => {
+t.test('integrity: same version diff hash fails; same major with a different version warns', () => {
   t.eq(status(D.evaluateMachine(input({ facts: facts({ integrityHash: 'zz' }) })), 'rig-version'), 'fail');
-  t.eq(status(D.evaluateMachine(input({ info: { protocol: 1, rigVersion: '1.9.0' }, facts: facts({ integrityHash: 'zz' }) })), 'rig-version'), 'warn');
+  t.eq(status(D.evaluateMachine(input({ info: { protocol: 1, rigVersion: '2.0.1' }, facts: facts({ integrityHash: 'zz' }) })), 'rig-version'), 'warn');
+});
+t.test('a different or unknown Rig major version fails with the install hint', () => {
+  for (const rigVersion of ['1.9.0', 'unknown']) {
+    const c = D.evaluateMachine(input({ info: { protocol: 1, rigVersion }, facts: facts({ integrityHash: 'zz' }) })).find((x) => x.id === 'rig-version');
+    t.eq(c.status, 'fail', rigVersion);
+    t.ok(/rig-init/.test(c.fix) && /~\/\.claude\/rig\/runtime/.test(c.fix) && /major/.test(c.fix), `${rigVersion}: ${c.fix}`);
+  }
 });
 t.test('disk thresholds, macOS auth warn, origin mismatch, push failure, stale warn', () => {
   t.eq(status(D.evaluateMachine(input({ facts: facts({ diskFreeGiB: 5 }) })), 'disk'), 'warn');

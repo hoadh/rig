@@ -13,6 +13,7 @@ const { buildWorkerInvocation } = require('./remote-command-builder.cjs');
 const { getMachine, selfMachineId } = require('./machine-registry.cjs');
 const V = require('./identifier-validators.cjs');
 const { runChild, MAX_OUTPUT_BYTES } = require('./capped-child-process-runner.cjs');
+const { readRigVersion, checkWorkerCompat, WORKER_INSTALL_HINT } = require('./rig-version-compat.cjs');
 
 const DEFAULT_TIMEOUT_MS = 60_000;
 // Spike signatures: bash 127 "command not found"; cmd "is not recognized as an internal or external command";
@@ -42,17 +43,22 @@ function classifyFailure({ code, stderr }) {
     return {
       cls: 'command-not-found',
       message: 'worker command not found on the machine',
-      hint: `set an absolute "node" path in the registry (non-interactive PATH lacks node) and install Rig there. stderr: ${tail(stderr)}`,
+      hint: `set an absolute "node" path in the registry (non-interactive PATH lacks node); if node is fine, ${WORKER_INSTALL_HINT}. stderr: ${tail(stderr)}`,
     };
   }
   return { cls: 'bad-output', message: 'worker returned no valid framed reply', hint: `exit ${code}; stderr: ${tail(stderr)}` };
 }
 
-/** Resolve the worker script for the local transport (override > ~/.claude install > this checkout). */
+/**
+ * Resolve the worker script for the local transport: override > the runtime copy (same path ssh workers use, only
+ * when its VERSION stamp exists) > a 1.x global install > this checkout.
+ */
 function localWorkerPath() {
   if (process.env.RIG_REMOTE_WORKER_PATH) return process.env.RIG_REMOTE_WORKER_PATH;
-  const installed = path.join(os.homedir(), '.claude', 'skills', 'remote', 'scripts', 'worker.cjs');
-  return fs.existsSync(installed) ? installed : path.join(__dirname, '..', 'worker.cjs');
+  const runtime = path.join(os.homedir(), '.claude', 'rig', 'runtime');
+  if (fs.existsSync(path.join(runtime, 'VERSION')) && fs.existsSync(path.join(runtime, 'remote', 'worker.cjs'))) return path.join(runtime, 'remote', 'worker.cjs');
+  const legacy = path.join(os.homedir(), '.claude', 'skills', 'remote', 'scripts', 'worker.cjs');
+  return fs.existsSync(legacy) ? legacy : path.join(__dirname, '..', 'worker.cjs');
 }
 
 const useLocal = (machine) => process.env.RIG_REMOTE_TRANSPORT === 'local' || machine === selfMachineId();
@@ -103,11 +109,10 @@ const handshakes = new Map(); // machine -> Promise<info>
 function ensureWorkerCompatible(machine, opts) {
   if (!handshakes.has(machine)) {
     const p = execWorker(machine, 'info', [], opts).then(({ reply }) => {
-      if (reply.protocol !== framing.PROTOCOL_VERSION) {
-        throw new RemoteError(`${machine}: protocol ${reply.protocol} != orchestrator ${framing.PROTOCOL_VERSION}`, EXIT.TRANSPORT, {
-          class: 'protocol-mismatch', hint: 'update Rig on both machines to the same version',
-        });
-      }
+      // A worker that replies with an error (e.g. an incomplete runtime copy) has no version to compare
+      if (reply.error) throw new RemoteError(`${machine}: ${reply.error.message}`, EXIT.TRANSPORT, { class: reply.error.class || 'worker-error', hint: reply.error.hint || WORKER_INSTALL_HINT });
+      const refused = checkWorkerCompat(reply, { protocol: framing.PROTOCOL_VERSION, rigVersion: readRigVersion() });
+      if (refused) throw new RemoteError(`${machine}: ${refused.message}`, EXIT.TRANSPORT, { class: refused.cls, hint: refused.hint });
       return reply;
     });
     handshakes.set(machine, p);

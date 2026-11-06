@@ -5,6 +5,8 @@ const path = require('path');
 const t = require('./minimal-test-harness.cjs');
 const T = require('../lib/ssh-transport.cjs');
 const { PROTOCOL_VERSION } = require('../lib/rig-json-nonce-framing.cjs');
+const { readRigVersion } = require('../lib/rig-version-compat.cjs');
+const { copyRuntime } = require('../../../../hooks/lib/runtime-copy-to-user-dir.cjs');
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rig-transport-test-'));
 const stub = path.join(dir, 'stub-worker.cjs');
@@ -13,7 +15,10 @@ fs.writeFileSync(stub, `
 let s=''; process.stdin.on('data',c=>s+=c).on('end',()=>{
   const env = JSON.parse(s); const mode = process.argv[2];
   const out = (o,n=env.nonce)=>console.log('RIGJSON:'+n+':'+JSON.stringify(o));
-  if (mode==='info') out({protocol:${PROTOCOL_VERSION},rigVersion:'t',node:process.version,platform:process.platform});
+  if (mode==='info') out({protocol:${PROTOCOL_VERSION},rigVersion:${JSON.stringify(readRigVersion())},node:process.version,platform:process.platform});
+  else if (mode==='majorold') out({protocol:${PROTOCOL_VERSION},rigVersion:'1.9.0'});
+  else if (mode==='noversion') out({protocol:${PROTOCOL_VERSION},rigVersion:'unknown'});
+  else if (mode==='broken') out({error:{message:'Rig runtime copy has no valid VERSION',class:'runtime-incomplete',hint:'h'}});
   else if (mode==='old') out({protocol:${PROTOCOL_VERSION + 1}});
   else if (mode==='echo') out({payload:env.payload});
   else if (mode==='forged') { console.log('RIGJSON:{"forged":true}'); out({real:true}); }
@@ -98,6 +103,61 @@ t.test('handshake ok + memoized; mismatch -> protocol-mismatch exit 5', async ()
   fs.writeFileSync(process.env.RIG_REMOTE_WORKER_PATH, fs.readFileSync(stub, 'utf8').replace("mode = process.argv[2]", "mode = 'old'"));
   await t.rejectsRemote(T.ensureWorkerCompatible('boxb'), { exitCode: 5, cls: 'protocol-mismatch' });
   process.env.RIG_REMOTE_WORKER_PATH = stub;
+});
+t.test('handshake refuses a worker with another Rig major version, an unknown version, or an error reply', async () => {
+  const mk = (mode) => { const f = path.join(dir, `${mode}-worker.cjs`); fs.writeFileSync(f, fs.readFileSync(stub, 'utf8').replace('mode = process.argv[2]', `mode = '${mode}'`)); return f; };
+  const rig = process.env.RIG_REMOTE_WORKER_PATH;
+  try {
+    process.env.RIG_REMOTE_WORKER_PATH = mk('majorold');
+    const e1 = await t.rejectsRemote(T.ensureWorkerCompatible('boxc'), { exitCode: 5, cls: 'version-mismatch' });
+    t.ok(/rig-init/.test(e1.hint) && /same major/.test(e1.hint), e1.hint);
+    process.env.RIG_REMOTE_WORKER_PATH = mk('noversion');
+    await t.rejectsRemote(T.ensureWorkerCompatible('boxd'), { exitCode: 5, cls: 'version-unknown' });
+    process.env.RIG_REMOTE_WORKER_PATH = mk('broken');
+    await t.rejectsRemote(T.ensureWorkerCompatible('boxe'), { exitCode: 5, cls: 'runtime-incomplete' });
+  } finally {
+    process.env.RIG_REMOTE_WORKER_PATH = rig;
+  }
+});
+t.test('local transport prefers the runtime copy (with VERSION), then a 1.x install, then this checkout', () => {
+  const rig = process.env.RIG_REMOTE_WORKER_PATH;
+  const home = process.env.HOME;
+  try {
+    delete process.env.RIG_REMOTE_WORKER_PATH;
+    process.env.HOME = dir;
+    process.env.USERPROFILE = dir;
+    t.eq(T.localWorkerPath(), path.join(__dirname, '..', 'worker.cjs'));
+    const legacy = path.join(dir, '.claude', 'skills', 'remote', 'scripts', 'worker.cjs');
+    fs.mkdirSync(path.dirname(legacy), { recursive: true });
+    fs.writeFileSync(legacy, '');
+    t.eq(T.localWorkerPath(), legacy);
+    copyRuntime({ pluginRoot: path.resolve(__dirname, '..', '..', '..', '..'), home: dir });
+    t.eq(T.localWorkerPath(), path.join(dir, '.claude', 'rig', 'runtime', 'remote', 'worker.cjs'));
+    fs.rmSync(path.join(dir, '.claude', 'rig', 'runtime', 'VERSION'));
+    t.eq(T.localWorkerPath(), legacy, 'no VERSION: the runtime copy is not used');
+  } finally {
+    process.env.RIG_REMOTE_WORKER_PATH = rig;
+    process.env.HOME = home;
+    process.env.USERPROFILE = home;
+    fs.rmSync(path.join(dir, '.claude'), { recursive: true, force: true });
+  }
+});
+t.test('the worker started from its runtime copy reports the stamped version, and fails closed without VERSION', async () => {
+  const rig = process.env.RIG_REMOTE_WORKER_PATH;
+  const home = fs.mkdtempSync(path.join(dir, 'rt-home-'));
+  try {
+    const { dir: runtime } = copyRuntime({ pluginRoot: path.resolve(__dirname, '..', '..', '..', '..'), home });
+    process.env.RIG_REMOTE_WORKER_PATH = path.join(runtime, 'remote', 'worker.cjs');
+    const ok = await T.ensureWorkerCompatible('rtbox'); // same version + protocol as the source tree
+    t.eq(ok.rigVersion, readRigVersion());
+    fs.rmSync(path.join(runtime, 'VERSION'));
+    const r = await T.execWorker('rtbox2', 'info');
+    t.eq(r.reply.error.class, 'runtime-incomplete');
+    t.eq(r.code, 1);
+    await t.rejectsRemote(T.ensureWorkerCompatible('rtbox3'), { exitCode: 5, cls: 'runtime-incomplete' });
+  } finally {
+    process.env.RIG_REMOTE_WORKER_PATH = rig;
+  }
 });
 t.test('real worker.cjs via local transport: info handshake', async () => {
   delete process.env.RIG_REMOTE_WORKER_PATH;

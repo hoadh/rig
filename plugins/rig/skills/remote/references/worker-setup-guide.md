@@ -1,6 +1,6 @@
 # Worker Setup Guide (stage 1)
 
-Goal: every worker passes `doctor`, then `machines` lists it, so `/rig:plan` can assign phases to it. Run from the project repo on the orchestrator. `R` below = `node .claude/skills/remote/scripts/remote.cjs` (or the `~/.claude/...` copy).
+Goal: every worker passes `doctor`, then `machines` lists it, so `/rig:plan` can assign phases to it. Run from the project repo on the orchestrator. `R` below = `rig-remote`.
 
 ## What the user must do by hand (cannot be automated)
 
@@ -8,7 +8,7 @@ Tell the user up front; `setup` prints the exact command as a `fix:` line when o
 
 | Item | How |
 |---|---|
-| Rig on the worker, SAME version | from a Rig checkout on the worker: `node scripts/install-kit-from-local-repo.cjs --global` |
+| Rig on the worker, same major version | install the Rig plugin on the worker and start one Claude Code session there (or run `rig-init`): that writes `~/.claude/rig/runtime/remote/worker.cjs`. A global file install from a Rig checkout (`node scripts/install-kit-from-local-repo.cjs --global`) writes it too |
 | Key-based ssh | `ssh-copy-id user@host` (Windows admin: `C:\ProgramData\ssh\administrators_authorized_keys`); `ssh -o BatchMode=yes user@host echo ok` must print ok |
 | Host key accepted | `ssh user@host` once interactively, verify the fingerprint (Rig uses `StrictHostKeyChecking=yes`) |
 | `claude` logged in | `ssh -t user@host claude` then `/login`, or `claude setup-token` + `CLAUDE_CODE_OAUTH_TOKEN` in the worker user's env (never in the registry) |
@@ -19,7 +19,7 @@ Tell the user up front; `setup` prints the exact command as a `fix:` line when o
 
 1. **Collect details** with AskUserQuestion (one machine at a time): id (`^[a-z0-9][a-z0-9-]{0,31}$`, = that machine's `RIG_MACHINE` or lowercased hostname), ssh target (`user@host` or `~/.ssh/config` alias), os (`linux`/`macos`/`windows`), absolute clone path for a NEW Rig-only clone (e.g. `/home/rig/<project>`), optional absolute `node`/`claude` paths (required `node` on Windows), optional `allowedTools`. Never ask for or store passwords/tokens.
 2. **Register**: `R register <id> --ssh <target> --os <os> --repo <path> [--node <abs>] [--allowed-tools "Bash(npm test:*)"]`. Exit 2 = invalid entry: fix the flag shown and retry; `--replace` only if the user wants to overwrite an existing id. Another project on the same machine: see [Multiple projects on one worker](#multiple-projects-on-one-worker).
-3. **Setup**: `R setup <id> [--git-name "Rig <id>" --git-email <email>]`. It runs ssh/node/claude probe → Rig protocol → `machine-id` check → creates the clone + baseline → `doctor`. Idempotent: rerun freely. A `machine-id` failure stops setup before the clone is created.
+3. **Setup**: `R setup <id> [--git-name "Rig <id>" --git-email <email>]`. It runs ssh/node/claude probe → Rig protocol and major version → `machine-id` check → creates the clone + baseline → `doctor`. Idempotent: rerun freely. A `machine-id` failure stops setup before the clone is created.
 4. **Fix loop**: for each `FAIL`/`WARN` line, apply its `fix:` (manual items → ask the user to do them and confirm), then rerun `setup <id>`. Stop after 3 identical failures and ask the user.
    - `machine-id` FAIL (`worker id is "x", registry calls it "y"`): set `RIG_MACHINE` on the worker (see [Worker id](#worker-id-rig_machine)), or rename the registry key to `x`. `machine-id` WARN (`predates machine-id report`): update Rig on the worker.
    - `repo` FAIL (`no clone of <origin> on <id>`) in a project: run `R register <id> --repo <abs clone>` in that project, then `setup <id>`.

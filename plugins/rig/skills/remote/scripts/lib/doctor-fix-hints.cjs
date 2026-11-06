@@ -6,6 +6,7 @@
  */
 const os = require('os');
 const path = require('path');
+const { WORKER_INSTALL_HINT } = require('./rig-version-compat.cjs');
 
 /** How to invoke this orchestrator CLI, with $HOME shortened to ~. */
 function remoteCli() {
@@ -15,7 +16,7 @@ function remoteCli() {
   return `node ${/\s/.test(shown) ? JSON.stringify(shown) : shown}`;
 }
 
-const INSTALL_RIG = 'install the SAME Rig version globally on the worker: from a Rig checkout there run `node scripts/install-kit-from-local-repo.cjs --global`';
+const INSTALL_RIG = `${WORKER_INSTALL_HINT}; a 1.x-style global file install from a 2.x checkout (\`node scripts/install-kit-from-local-repo.cjs --global\`) writes it too`;
 
 function sshHint(msg, ssh) {
   if (/Host key verification failed|HOST IDENTIFICATION HAS CHANGED|No .*host key is known/i.test(msg)) {

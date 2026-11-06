@@ -9,7 +9,8 @@ const { usageError } = require('./remote-errors.cjs');
 const V = require('./identifier-validators.cjs');
 
 /** Relative to sshd's cwd (= home) on every OS; forward slashes work everywhere. */
-const WORKER_REL_PATH = '.claude/skills/remote/scripts/worker.cjs';
+// The runtime copy (hooks/lib/runtime-copy-to-user-dir.cjs) is the only worker location: no plugin cache path, no registry scan.
+const WORKER_REL_PATH = '.claude/rig/runtime/remote/worker.cjs';
 
 // Chars that break cmd /c, powershell or sh quoting (parentheses end cmd's `if (...)` blocks and
 // break "Program Files (x86)" under cmd's /c quote rule). Reject instead of trying to escape.

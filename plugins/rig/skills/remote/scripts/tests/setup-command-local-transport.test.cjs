@@ -67,7 +67,7 @@ t.test('existing clone without baseline: fail line with fix, doctor skipped', as
 });
 t.test('worker id mismatch: machine-id fails with fix, prepare never called', async () => {
   const calls = [];
-  const client = { execWorker: async (_n, cmd) => { calls.push(cmd); return { reply: { protocol: require('../lib/rig-json-nonce-framing.cjs').PROTOCOL_VERSION, rigVersion: 'x', machine: 'other' } }; },
+  const client = { execWorker: async (_n, cmd) => { calls.push(cmd); return { reply: { protocol: require('../lib/rig-json-nonce-framing.cjs').PROTOCOL_VERSION, rigVersion: require('../lib/rig-version-compat.cjs').readRigVersion(), machine: 'other' } }; },
     workerTarget: () => ({}) };
   const r = await setup.setupMachine('box', {}, client);
   t.eq(r.ready, false);
@@ -80,6 +80,17 @@ t.test('worker id mismatch: machine-id fails with fix, prepare never called', as
   let code;
   try { code = await setup.run(['box'], { client, doctor: async () => 0 }); } finally { process.stdout.write = write; }
   t.eq(code, 1, out); t.ok(/FAIL\s+machine-id/.test(out), out);
+});
+t.test('worker with another Rig major version: rig-version fails with the install fix, prepare never called', async () => {
+  const calls = [];
+  const client = { execWorker: async (_n, cmd) => { calls.push(cmd); return { reply: { protocol: require('../lib/rig-json-nonce-framing.cjs').PROTOCOL_VERSION, rigVersion: '1.9.0', machine: 'box' } }; },
+    workerTarget: () => ({}) };
+  const r = await setup.setupMachine('box', {}, client);
+  t.eq(r.ready, false);
+  const s = r.steps.find((x) => x.id === 'rig-version');
+  t.eq(s.status, 'fail');
+  t.ok(/rig-init/.test(s.fix) && /same major/.test(s.fix), s.fix);
+  t.eq(calls, ['info']);
 });
 t.test('usage errors before any work: unknown machine, half identity, no args', async () => {
   await t.rejectsRemote(runSetup(['nope']), { exitCode: 2 });

@@ -16,7 +16,7 @@ const { git } = require('../lib/rig-local-worktree.cjs');
 const { newRunId } = require('../lib/run-directory.cjs');
 const { bootstrapProbe } = require('../lib/doctor-bootstrap-probe.cjs');
 const { evaluateMachine, withFixHints, hasFailure } = require('../lib/doctor-checks.cjs');
-const { readRigVersion } = require('../worker-commands/info-command.cjs');
+const { readRigVersion } = require('../lib/rig-version-compat.cjs');
 
 const PUSH_PROBE_MAX_MS = 60_000;
 // Windows scheduled tasks (headless S4U time trigger) start ~60-65s after registration by design.

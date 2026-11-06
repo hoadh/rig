@@ -13,7 +13,7 @@ One orchestrator machine owns a plan. Other machines (workers) run either a test
 
 ## Prerequisites
 
-- Rig installed globally (`~/.claude/skills/remote/`) on EVERY machine, same version (`doctor` checks the protocol).
+- Rig installed on EVERY machine with the same major version (`doctor` checks protocol and version). On a worker, install the Rig plugin and start one Claude Code session (or run `rig-init`) so `~/.claude/rig/runtime/remote/worker.cjs` exists; a global file install writes it too.
 - Each worker has a **Rig-dedicated clone per project** (clean, never used for manual work), listed as `repo`, or under `repos` when the machine serves several projects (`references/registry-format.md`). A dedicated OS user per worker is recommended.
 - Registry `~/.claude/rig-machines.json` on the orchestrator: see `references/registry-format.md`. Never put secrets in it.
 - Key-based non-interactive ssh to each worker; `claude` logged in (or a token available to the service user) on workers that run agents.
@@ -23,13 +23,10 @@ One orchestrator machine owns a plan. Other machines (workers) run either a test
 
 `register` each worker, then `setup` until it prints `setup: ok`, then `machines`. Follow `references/worker-setup-guide.md` (ask the user for machine details, run, read `fix:` lines, repeat). Never auto-accept an existing clone: pass `--accept-existing-clone` only after the user inspected it.
 
-## Script path
-
-Use the project copy when present, else the global one:
+## Running it
 
 ```
-node .claude/skills/remote/scripts/remote.cjs <cmd> [args]
-node ~/.claude/skills/remote/scripts/remote.cjs <cmd> [args]
+rig-remote <cmd> [args]
 ```
 
 ## Commands
@@ -79,7 +76,7 @@ Scheduled tasks default to `taskMode: headless` (S4U logon): no desktop, started
 
 ## SSH host resolution and production hosts
 
-Moved from the former `development-rules.md`; the one-line core rule is in `.claude/rules/core-rules.md`.
+Moved from the former `development-rules.md`; the one-line core rule is in the Rig core rules (`rules/core-rules.md`, loaded at session start).
 
 - Resolve user/host with `ssh -G <host>` (reads `~/.ssh/config`; check the `user` and `hostname` lines). A `user` equal to the local login with no matching `Host` block means not configured.
 - No User configured: ask the user once, then offer to add a `Host <alias>` entry (`HostName`, `User`) to `~/.ssh/config` so it is not asked again. Write it only if the user agrees; never put keys or passwords there.

@@ -2,7 +2,8 @@
 const t = require('./minimal-test-harness.cjs');
 const B = require('../lib/remote-command-builder.cjs');
 
-const REL = '.claude/skills/remote/scripts/worker.cjs';
+// The runtime copy (session-init / rig-init write it) is the single worker location for plugin and file installs
+const REL = '.claude/rig/runtime/remote/worker.cjs';
 
 t.test('plain node when no registry node', () => {
   t.eq(B.buildWorkerInvocation({ shell: 'bash' }, 'info'), `node ${REL} info`);

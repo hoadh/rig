@@ -2,7 +2,7 @@
 /** worker `facts`: payload {target} -> read-only doctor facts (see worker-machine-facts). */
 const { usageError } = require('../lib/remote-errors.cjs');
 const { collectFacts } = require('../lib/worker-machine-facts.cjs');
-const { readRigVersion } = require('./info-command.cjs');
+const { readRigVersion } = require('../lib/rig-version-compat.cjs');
 
 async function run(_argv, ctx) {
   const target = ctx.payload && ctx.payload.target;

@@ -8,6 +8,7 @@
  */
 const { stripUrlCredentials } = require('./secret-redaction.cjs');
 const { fixHint } = require('./doctor-fix-hints.cjs');
+const { checkVersionCompat } = require('./rig-version-compat.cjs');
 const V = require('./identifier-validators.cjs');
 const { normalizeOrigin } = require('./git-origin-url-normalizer.cjs');
 
@@ -79,6 +80,8 @@ function baselineCheck(repo) {
 }
 
 function versionCheck(wVer, oVer, wHash, oHash) {
+  const refused = checkVersionCompat(wVer, oVer); // the protocol has its own check line
+  if (refused) return fail('rig-version', refused.message);
   if (wVer !== oVer) return warn('rig-version', `version drift: worker ${wVer} vs ${oVer}`);
   return wHash === oHash ? ok('rig-version', `${wVer}, scripts identical`) : fail('rig-version', `same version ${wVer} but scripts differ (tampered or half-updated install)`);
 }

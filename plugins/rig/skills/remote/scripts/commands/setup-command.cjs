@@ -13,6 +13,7 @@ const { parseFlags } = require('../lib/cli-flag-parser.cjs');
 const V = require('../lib/identifier-validators.cjs');
 const { getMachineForProject } = require('../lib/machine-repo-for-project-resolver.cjs');
 const { PROTOCOL_VERSION } = require('../lib/rig-json-nonce-framing.cjs');
+const { checkVersionCompat, readRigVersion } = require('../lib/rig-version-compat.cjs');
 const { git } = require('../lib/rig-local-worktree.cjs');
 const { stripUrlCredentials } = require('../lib/secret-redaction.cjs');
 const { bootstrapProbe } = require('../lib/doctor-bootstrap-probe.cjs');
@@ -63,6 +64,11 @@ async function setupMachine(name, opts, client) {
     const info = (await client.execWorker(name, 'info')).reply;
     if (info.protocol !== PROTOCOL_VERSION) {
       steps.push(...hinted([step('protocol', 'fail', `worker protocol ${info.protocol} != ${PROTOCOL_VERSION}`)]));
+      return done(false);
+    }
+    const refused = checkVersionCompat(info.rigVersion, readRigVersion());
+    if (refused) {
+      steps.push(...hinted([step('rig-version', 'fail', refused.message)]));
       return done(false);
     }
     // a worker that calls itself something else refuses every dispatch: stop before cloning

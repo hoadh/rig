@@ -10,6 +10,7 @@ const path = require('path');
 const { EXIT, RemoteError } = require('./lib/remote-errors.cjs');
 const { helpText, dispatch } = require('./lib/subcommand-router.cjs');
 const framing = require('./lib/rig-json-nonce-framing.cjs');
+const { runtimeVersionProblem, WORKER_INSTALL_HINT } = require('./lib/rig-version-compat.cjs');
 
 const COMMANDS_DIR = path.join(__dirname, 'worker-commands');
 
@@ -42,6 +43,13 @@ async function main(argv) {
     process.stdout.write(framing.frameReply(env.nonce, obj));
   };
   try {
+    // Fail closed: a runtime copy without VERSION is incomplete or being replaced by session-init
+    const problem = runtimeVersionProblem(path.resolve(__dirname, '..'));
+    if (problem) {
+      process.stderr.write(`error: ${problem}\n`);
+      reply({ error: { message: problem, class: 'runtime-incomplete', hint: WORKER_INSTALL_HINT } });
+      return EXIT.ERROR;
+    }
     return await dispatch(COMMANDS_DIR, sub, rest, { reply, payload: env.payload, protocol: env.protocol, nonce: env.nonce });
   } catch (err) {
     const known = err instanceof RemoteError;
