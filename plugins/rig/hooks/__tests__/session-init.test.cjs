@@ -7,7 +7,7 @@
  * Mitigation: When source=compact, inject warning to re-verify approval state
  */
 
-const { describe, it } = require('node:test');
+const { describe, it, after } = require('node:test');
 const assert = require('node:assert');
 const { spawn } = require('child_process');
 const path = require('path');
@@ -15,6 +15,13 @@ const fs = require('fs');
 const os = require('os');
 
 const HOOK_PATH = path.join(__dirname, '..', 'session-init.cjs');
+
+// session-init (plugin mode) copies the remote worker and statusline into ~/.claude/rig/runtime and reads the
+// user's hook settings. Every hook run here gets a throwaway HOME so the suite never touches the real one.
+const TEST_HOME = fs.mkdtempSync(path.join(os.tmpdir(), 'session-init-test-home-'));
+process.env.HOME = TEST_HOME;
+process.env.USERPROFILE = TEST_HOME;
+after(() => fs.rmSync(TEST_HOME, { recursive: true, force: true }));
 
 /**
  * Execute session-init.cjs with given stdin data and return stdout
