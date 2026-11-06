@@ -8,6 +8,7 @@ import os from 'node:os';
 import path from 'node:path';
 import type { Arm } from './benchmark-types.ts';
 import { BENCH_DIR } from './benchmark-workspace.ts';
+import preflight from './global-rig-hooks-preflight.cjs';
 
 const REPO_ROOT = path.resolve(BENCH_DIR, '..', '..');
 const CREDENTIALS = '.credentials.json';
@@ -51,6 +52,8 @@ export function assertIsolation(configDir: string, workspace: string, arm: Arm):
   if (arm === 'rig' && !existsSync(path.join(RIG_PLUGIN_DIR, '.claude-plugin', 'plugin.json'))) {
     throw new Error(`Rig arm: no plugin at ${RIG_PLUGIN_DIR}`);
   }
+  // The child keeps the real HOME (auth lives there): 1.x global hooks there would make the plugin hooks yield
+  if (arm === 'rig') preflight.assertNoGlobalRigHooks();
 }
 
 /** Environment for the claude child process: operator's env minus Claude session vars, plus the temp config dir. */

@@ -45,6 +45,9 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history and tags: the rig-init owned-path test compares its list with the v1.0.0 and v1.1.0 trees
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
