@@ -54,14 +54,45 @@ test('buildWorkflow quotes and shortens the description', () => {
   assert.match(wf, /\.agent\/skills\/fix\/SKILL\.md/);
 });
 
-test('convertProjectInstructions drops hook section and keeps header accurate', () => {
-  const md = '# CLAUDE.md\n\nThis file provides guidance to Claude Code here.\n\n**IMPORTANT:** DO NOT modify skills in `~/.claude/skills`.\nRead ./CLAUDE.md\n\n## Hook Response Protocol\n\nask\n\n## Git\n\nok\n';
-  const out = t.convertProjectInstructions(md, rewrite, 'GEMINI.md');
-  assert.match(out, /^# GEMINI\.md/);
-  assert.match(out, /generated from `CLAUDE\.md`/);
+test('buildGeminiMd = core rules + project instructions + concept pointer, headings nested', () => {
+  const core = '# Core Rules\n\n- Use /rig:plan for big work\n- see CLAUDE.md\n';
+  const md = '# CLAUDE.md\n\nGuidance for Claude Code (claude.ai/code) in this repository.\n\n**IMPORTANT:** DO NOT modify skills in `~/.claude/skills`.\nRead ./CLAUDE.md\n\n## Hook Response Protocol\n\nask\n\n## Git\n\nok\n```bash\n## not a heading\n```\n';
+  const out = t.buildGeminiMd(core, md, rewrite);
+  assert.match(out, /^# GEMINI\.md\n/);
+  assert.strictEqual(out.match(/^# /gm).length, 1);
+  assert.ok(out.indexOf('## Core rules') < out.indexOf('## Project instructions') && out.indexOf('## Project instructions') < out.indexOf('## Claude Code concepts'));
+  assert.match(out, /- Use \/plan for big work\n- see GEMINI\.md/);
   assert.match(out, /Read \.\/GEMINI\.md/);
-  assert.doesNotMatch(out, /Hook Response|DO NOT modify skills/);
-  assert.match(out, /## Git\n\nok/);
+  assert.match(out, /### Git\n\nok/);
+  assert.match(out, /```bash\n## not a heading\n```/);
+  assert.match(out, /claude-code-concepts-in-antigravity\.md/);
+  assert.doesNotMatch(out, /Hook Response|DO NOT modify skills|Guidance for Claude Code|# Core Rules/);
+});
+
+test('plugin-only bins: docs tools map to copied scripts, python to the venv', () => {
+  assert.strictEqual(rewrite('rig-validate-docs docs/'), 'node .agent/scripts/validate-docs.cjs docs/');
+  assert.strictEqual(rewrite('`rig-migrate-docs docs/ --apply`'), '`node .agent/scripts/migrate-docs-to-diataxis-layout.cjs docs/ --apply`');
+  assert.strictEqual(rewrite('rig-python scan.py'), '.agent/skills/.venv/bin/python3 scan.py');
+  assert.ok(t.AGENT_SCRIPT_FILES.includes('validate-docs.cjs') && t.AGENT_SCRIPT_FILES.includes('migrate-docs-to-diataxis-layout.cjs'));
+});
+
+test('set-active-plan becomes a note, resolve-env lines are dropped', () => {
+  assert.match(rewrite('After creating plan: `rig-set-active-plan {plan-dir}`'), /^After creating plan: no command needed: Antigravity has no active-plan marker/);
+  assert.match(rewrite('```bash\n  rig-set-active-plan {plan-dir}\n```'), /```bash\n {2}# no command needed: Antigravity has no active-plan marker.*\n```/);
+  assert.doesNotMatch(rewrite('a\n  $ rig-set-active-plan x\nb'), /rig-set-active-plan/);
+  assert.strictEqual(rewrite('a\nprint("rig-resolve-env --show-hierarchy")\nb'), 'a\nb');
+  assert.strictEqual(rewrite('a\r\nrig-resolve-env x\r\nb'), 'a\r\nb');
+  assert.strictEqual(rewrite('my-rig-resolve-env.py stays'), 'my-rig-resolve-env.py stays');
+});
+
+test('more skill-script forms: ${CLAUDE_SKILL_DIR}, rig-browser --dir, <kit>, backslash paths, browser output dirs', () => {
+  assert.strictEqual(rewrite('${CLAUDE_SKILL_DIR}/scripts/a.py', { skillName: 'media' }), '.agent/skills/media/scripts/a.py');
+  assert.strictEqual(rewrite('${CLAUDE_SKILL_DIR}/a'), '${CLAUDE_SKILL_DIR}/a');
+  assert.strictEqual(rewrite('(`rig-browser --dir`) or rig-browser <script> --args'), '(`.agent/skills/browser/scripts`) or node .agent/skills/browser/scripts/<script>.js --args');
+  assert.strictEqual(rewrite('cd <kit>/skills and <kit>\\skills'), 'cd .agent/skills and .agent\\skills');
+  assert.strictEqual(rewrite('(`.claude\\skills\\.venv`) ..\\.claude\\.mcp.json'), '(`.agent\\skills\\.venv`) ..\\.agent\\.mcp.json');
+  assert.strictEqual(rewrite('`<project>/.claude/browser/logs/` and $SKILL_DIR/.claude/browser/tmp'), '`<project>/.agent/browser/logs/` and $SKILL_DIR/.agent/browser/tmp');
+  assert.strictEqual(rewrite('{project_dir}/.claude/.env and ~/.claude/.env'), '{project_dir}/.claude/.env and ~/.claude/.env');
 });
 
 test('setFrontmatterName replaces only the name line', () => {

@@ -1,7 +1,8 @@
 name: Antigravity Sync Check
 
 # Fails when .agent/ or GEMINI.md no longer match what
-# scripts/sync-antigravity-agent-dir.cjs generates from plugins/rig/ and CLAUDE.md.
+# scripts/sync-antigravity-agent-dir.cjs generates from plugins/rig/ and CLAUDE.md,
+# or when they still contain Claude Code-only references (.claude/, plugin variables, bin names, ...).
 
 on:
   push:
@@ -27,8 +28,8 @@ jobs:
         with:
           node-version: 'lts/*'
 
-      - name: Test rewrite rules
-        run: node --test scripts/antigravity/claude-to-antigravity-text-rewrite.test.cjs
+      - name: Test rewrite rules, frontmatter filter and leftover check
+        run: node --test scripts/antigravity/*.test.cjs
 
       - name: Regenerate .agent/ and GEMINI.md
         run: node scripts/sync-antigravity-agent-dir.cjs
@@ -43,3 +44,6 @@ jobs:
             exit 1
           fi
           echo "✓ .agent/ and GEMINI.md match plugins/rig/"
+
+      - name: Fail on Claude Code-only leftovers
+        run: node scripts/sync-antigravity-agent-dir.cjs --check-leftovers
