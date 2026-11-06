@@ -159,6 +159,28 @@ t.test('the worker started from its runtime copy reports the stamped version, an
     process.env.RIG_REMOTE_WORKER_PATH = rig;
   }
 });
+t.test('a worker home with no runtime copy: a real node "Cannot find module" is worker-missing with the install hint (H3)', async () => {
+  const rig = process.env.RIG_REMOTE_WORKER_PATH;
+  const fakeHome = fs.mkdtempSync(path.join(dir, 'norun-home-'));
+  try {
+    // Exactly what `ssh host node .claude/rig/runtime/remote/worker.cjs info` runs when the worker never wrote the runtime
+    process.env.RIG_REMOTE_WORKER_PATH = path.join(fakeHome, '.claude', 'rig', 'runtime', 'remote', 'worker.cjs');
+    const e = await t.rejectsRemote(T.ensureWorkerCompatible('norun'), { exitCode: 5, cls: 'worker-missing' });
+    t.ok(/Rig worker runtime missing/.test(e.message), e.message);
+    t.ok(/rig-init/.test(e.hint) && /Cannot find module/.test(e.hint) && /same major/.test(e.hint), e.hint);
+    // Doctor shows the same hint for that message
+    const { fixHint } = require('../lib/doctor-fix-hints.cjs');
+    const fix = fixHint({ id: 'reach', status: 'fail', msg: e.message }, { name: 'norun', cfg: { ssh: 'u@h', os: 'linux' } });
+    t.ok(/rig-init/.test(fix) && /~\/\.claude\/rig\/runtime/.test(fix), fix);
+  } finally {
+    process.env.RIG_REMOTE_WORKER_PATH = rig;
+  }
+});
+t.test('classify: the hint excerpt is the Error line, not the last stack frames', () => {
+  const stderr = `node:internal/modules/cjs/loader:1228\n  throw err;\n  ^\n\nError: Cannot find module '/x/y.cjs'\n    at a (b)\n    at c (d)\n` + '    at frame\n'.repeat(60);
+  t.ok(/^Error: Cannot find module/.test(T.classifyFailure({ code: 1, stderr }).hint.replace(/^exit 1; stderr: /, '')), T.classifyFailure({ code: 1, stderr }).hint);
+  t.eq(T.classifyFailure({ code: 1, stderr: "Error: Cannot find module 'C:\\Users\\u\\.claude\\rig\\runtime\\remote\\worker.cjs'" }).cls, 'worker-missing');
+});
 t.test('real worker.cjs via local transport: info handshake', async () => {
   delete process.env.RIG_REMOTE_WORKER_PATH;
   process.env.HOME = dir; // no ~/.claude install in temp home -> falls back to this checkout's worker

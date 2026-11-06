@@ -32,12 +32,23 @@ function buildSshArgv(target, remoteCommand) {
   ];
 }
 
-const tail = (s, n = 400) => String(s).trim().slice(-n);
+// stderr excerpt for hints: the first `Error:` line (where node says what went wrong), else the last n chars
+const tail = (s, n = 400) => {
+  const text = String(s).trim();
+  const errLine = text.split(/\r?\n/).find((l) => /^\s*(Error|TypeError|SyntaxError)\b/.test(l));
+  return errLine ? errLine.trim().slice(0, n) : text.slice(-n);
+};
+
+// node's failure when the worker file itself is absent: the machine has no Rig runtime copy (never ran a plugin session / 1.x install)
+const WORKER_MISSING_RE = /Cannot find module\b[^\n]*[\\/]rig[\\/]runtime[\\/]remote[\\/]worker\.cjs/i;
 
 /** Map a finished process with no usable framed reply to a transport error class. */
 function classifyFailure({ code, stderr }) {
   if (code === 255) {
     return { cls: 'unreachable', message: 'ssh could not reach the machine', hint: tail(stderr) };
+  }
+  if (WORKER_MISSING_RE.test(String(stderr))) {
+    return { cls: 'worker-missing', message: 'Rig worker runtime missing on the machine', hint: `${WORKER_INSTALL_HINT}. ${tail(stderr)}` };
   }
   if (code === 127 || code === 9009 || NOT_FOUND_RE.test(String(stderr))) {
     return {

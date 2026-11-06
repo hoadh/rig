@@ -60,7 +60,7 @@ function fixHint(check, { name, cfg }) {
     case 'node': return exeHint('node', cfg);
     case 'claude': return exeHint('claude', cfg);
     case 'reach':
-      if (/command not found|not recognized/i.test(msg)) return INSTALL_RIG;
+      if (/command not found|not recognized|Rig worker runtime missing/i.test(msg)) return INSTALL_RIG;
       if (/protocol/i.test(msg)) return INSTALL_RIG;
       return `rerun \`${R} doctor ${name}\`; if it persists check ssh and node on the worker`;
     case 'machine-id': return machineIdHint(msg, { name, cfg });
