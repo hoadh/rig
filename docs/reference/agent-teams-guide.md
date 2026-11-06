@@ -429,12 +429,12 @@ All hooks follow fail-open design (exit 0 always) and are gated by `isHookEnable
 
 | File | Purpose |
 |------|---------|
-| `.claude/skills/team/SKILL.md` | Skill definition with imperative templates (1.1.0) |
-| `.claude/skills/team/references/team-templates.md` | Team templates (research, implement, review, debug) |
-| `.claude/skills/team/references/team-coordination.md` | Teammate behavior rules + Rig conventions |
-| `.claude/skills/implement/references/orchestration-protocol.md` | Size tiers and subagent protocol |
-| `.claude/hooks/team-context-inject.cjs` | Team + Rig context injection (SubagentStart) |
-| `.claude/hooks/session-init.cjs` | Session and Rig path env injection |
+| `plugins/rig/skills/team/SKILL.md` | Skill definition with imperative templates (1.1.0) |
+| `plugins/rig/skills/team/references/team-templates.md` | Team templates (research, implement, review, debug) |
+| `plugins/rig/skills/team/references/team-coordination.md` | Teammate behavior rules + Rig conventions |
+| `plugins/rig/skills/implement/references/orchestration-protocol.md` | Size tiers and subagent protocol |
+| `plugins/rig/hooks/team-context-inject.cjs` | Team + Rig context injection (SubagentStart) |
+| `plugins/rig/hooks/session-init.cjs` | Session and Rig path env injection |
 
 ## Quick Start
 

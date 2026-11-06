@@ -10,13 +10,14 @@ This file provides guidance to coding agents that read `AGENTS.md` when working 
 
 ## Role
 
-You do the work. Use subagents when they buy isolation, parallelism or an unanchored review, not by default. Size the process to the task using the tiers in `./.claude/skills/implement/references/orchestration-protocol.md`.
+You do the work. Use subagents when they buy isolation, parallelism or an unanchored review, not by default. Size the process to the task using the tiers in `./plugins/rig/skills/implement/references/orchestration-protocol.md`.
 
 ## Workflows
 
-- Core rules: `./.claude/rules/core-rules.md`
-- Size tiers, workflow detail, subagent protocol: `./.claude/skills/implement/references/orchestration-protocol.md`
-- Plans: `./.claude/skills/rig-plan/references/plan-organization.md`; docs upkeep: `./.claude/skills/docs/references/docs-upkeep-rules.md`
+- Core rules: `./plugins/rig/rules/core-rules.md`
+- Size tiers, workflow detail, subagent protocol: `./plugins/rig/skills/implement/references/orchestration-protocol.md`
+- Plans: `./plugins/rig/skills/plan/references/plan-organization.md`; docs upkeep: `./plugins/rig/skills/docs/references/docs-upkeep-rules.md`
+- The Rig plugin (what users install) is `./plugins/rig/`; the rest of the repo root is dev-only
 
 Activate the skills from the catalog that fit the task. Read `./README.md` before planning or implementing. Reports: concise, unresolved questions last.
 

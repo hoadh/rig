@@ -28,17 +28,17 @@ Catalog of Rig layers and components, plus the technology stack. For why the sys
 - `$1, $2, $3...` - Individual positional arguments
 
 #### 1.3 Configuration Manager
-**Location**: `.claude/` directory
+**Location**: `plugins/rig/` (skills, agents, rules; discovered by Claude Code from the plugin manifest)
 **Responsibility**: Load agent and command definitions
 **File Types**:
 - Agent definitions (`.md` with YAML frontmatter)
 - Command definitions (`.md` with embedded agent calls)
 - Skill modules (knowledge bases)
 - Workflow templates
-- Hook diagnostics logs (`.claude/hooks/.logs/hook-log.jsonl`)
+- Hook diagnostics logs (`$CLAUDE_PLUGIN_DATA/logs/`, or `plugins/rig/hooks/.logs/` without it)
 
 #### 1.4 Hook Runtime Diagnostics
-**Location**: `.claude/hooks/lib/hook-logger.cjs` and `.claude/hooks/.logs/hook-log.jsonl`
+**Location**: `plugins/rig/hooks/lib/hook-logger.cjs`; log at `$CLAUDE_PLUGIN_DATA/logs/hook-log.jsonl` (or `plugins/rig/hooks/.logs/` when the variable is unset)
 **Responsibility**: Persist structured hook execution telemetry for local inspection and downstream dashboard consumption
 **Current Coverage**:
 - `SessionStart`: `session-init`
@@ -152,9 +152,9 @@ Issues, blockers, or questions
 - `/rig:brainstorm` - Solution ideation
 - `/rig:debug` - Deep analysis
 
-**Skill Directories** (`.claude/skills/`):
+**Skill Directories** (`plugins/rig/skills/`):
 - `docs/` - Documentation workflows
-- `rig-plan/` - Planning workflow
+- `plan/` - Planning workflow
 - `code-review/` - Code review workflows
 - `test/` - Testing workflows
 
@@ -244,7 +244,7 @@ Explore different approaches simultaneously
 
 **Structure**:
 ```
-.claude/skills/
+plugins/rig/skills/
 └── [skill-name]/
     ├── SKILL.md           # Main skill definition
     ├── references/        # Supporting documentation
@@ -283,28 +283,28 @@ Planner incorporates into plan
 **Purpose**: Intercept and control Claude Code operations for performance, context management, and security
 
 **Hook Architecture**:
-All hooks located in `.claude/hooks/` with consistent patterns - fail-safe exit code 0 (non-blocking)
+All hooks located in `plugins/rig/hooks/` with consistent patterns - fail-safe exit code 0 (non-blocking)
 
 **Native features instead of hooks**:
 
-- Sensitive files and heavy directories: `permissions.ask` / `permissions.deny` in `.claude/settings.json`
-- File naming: rule in `.claude/rules/core-rules.md`
+- Sensitive files and heavy directories: `permissions.ask` / `permissions.deny`. A plugin cannot ship them; `rig-init --permissions` merges them into `~/.claude/settings.json`. The bash guard's secret-read rule covers the gap in the meantime.
+- File naming: rule in `plugins/rig/rules/core-rules.md`
 - Context usage: statusline reads `rate_limits` from stdin
 
 **1. Session-Init Hook** (`session-init.cjs`)
 - **Trigger**: SessionStart (startup, resume, clear, compact)
-- **Purpose**: Export Rig session vars and paths
+- **Purpose**: Return the session context as `additionalContext` (plugin mode also appends `rules/core-rules.md`, capped at 10,000 characters), write Rig session variables through `CLAUDE_ENV_FILE`, and keep the runtime copy in step with the plugin version
 - **Exports**: `RIG_SESSION_ID`, `RIG_PLAN_DATE_FORMAT`, `RIG_NAME_PATTERN`, `RIG_ACTIVE_PLAN`, `CLAUDE_CODE_TASK_LIST_ID`, `RIG_REPORTS_PATH`, `RIG_PLANS_PATH`, `RIG_PROJECT_ROOT`, `RIG_GIT_BRANCH`
 
 **2. Dev-Rules-Reminder Hook** (`dev-rules-reminder.cjs`)
 - **Trigger**: Every user prompt (UserPromptSubmit)
 - **Purpose**: Inject dynamic session facts only
-- **Output**: `## Rig Session` block (datetime, paths, plan context, naming). Static rules are read from `.claude/rules/`, not injected.
+- **Output**: `## Rig Session` block (datetime, paths, plan context, naming). Static rules are read from `plugins/rig/rules/`, not injected.
 
 **3. Subagent-Init Hook** (`subagent-init.cjs`)
 - **Trigger**: SubagentStart
 - **Purpose**: Give subagents the dynamic Rig context (paths, plan context, naming)
-- **Note**: Static rules stay in `.claude/rules/`; only dynamic facts are injected
+- **Note**: Static rules stay in `plugins/rig/rules/`; only dynamic facts are injected
 
 **4. Team-Context Hook** (`team-context-inject.cjs`)
 - **Trigger**: SubagentStart (agent teams only)
@@ -314,14 +314,14 @@ All hooks located in `.claude/hooks/` with consistent patterns - fail-safe exit 
 - **Trigger**: Stop
 - **Purpose**: When code was edited this turn and no passing test/build/typecheck/lint command ran after the last edit, nudge (`remind`, default) or block (`block`, max 2 per turn) the stop
 - **Config**: `verifyGuard.mode` (`remind|block|off`), `verifyGuard.extraCommandPatterns` (global only), `hooks.verify-completion-guard`. A project may only raise the mode. Off for headless runs (`CLAUDE_CODE_ENTRYPOINT=sdk*`, `CLAUDE_CODE_SESSION_ATTENDED=0`) and `RIG_VERIFY_GUARD_MODE=off`
-- **Modules** (`.claude/hooks/lib/`): `verify-guard-config.cjs`, `verify-command-detector.cjs`, `turn-edit-and-verify-scanner.cjs`, `verify-guard-turn-counter.cjs`, `unsafe-regex-shape-checker.cjs`, `regex-test-with-timeout.cjs`
+- **Modules** (`plugins/rig/hooks/lib/`): `verify-guard-config.cjs`, `verify-command-detector.cjs`, `turn-edit-and-verify-scanner.cjs`, `verify-guard-turn-counter.cjs`, `unsafe-regex-shape-checker.cjs`, `regex-test-with-timeout.cjs`
 - **Fail-open**: any error, missing transcript or lagging transcript exits 0 with no output (logged)
 
 **6. Bash-Safety-Guard Hook** (`bash-safety-guard.cjs`)
 - **Trigger**: PreToolUse, matcher `Bash`
 - **Purpose**: Deny or ask on `sed -i`/`perl -i` of a symlink and risky `pkill` (self-matching `-f`, broad, common names). Logs only rule id and command hash
 - **Config** (global `~/.claude/.rig.json` only): `hooks.bash-safety-guard`, `bashSafetyGuard.rules.{inPlaceEditSymlink,processKill,secretFileRead}`
-- **Modules** (`.claude/hooks/lib/`): `bash-safety-rule-engine.cjs`, `bash-command-segment-tokenizer.cjs`, `bash-in-place-edit-symlink-rule.cjs`, `bash-process-kill-rule.cjs`, `bash-secret-file-read-rule.cjs`, `bash-safety-guard-config.cjs`, `unsafe-regex-shape-checker.cjs`, `regex-test-with-timeout.cjs`
+- **Modules** (`plugins/rig/hooks/lib/`): `bash-safety-rule-engine.cjs`, `bash-command-segment-tokenizer.cjs`, `bash-in-place-edit-symlink-rule.cjs`, `bash-process-kill-rule.cjs`, `bash-secret-file-read-rule.cjs`, `bash-safety-guard-config.cjs`, `unsafe-regex-shape-checker.cjs`, `regex-test-with-timeout.cjs`
 - **Fail-open**: internal errors exit 0
 
 See [how-to](../how-to/configure-verification-and-safety-guards.md).
@@ -332,11 +332,11 @@ See [how-to](../how-to/configure-verification-and-safety-guards.md).
 - Cross-Platform: Node.js `.cjs` scripts for Windows and Unix
 - Testing: `npm test` runs all hook test files
 
-#### 6.1a Statusline (`.claude/statusline.cjs`)
+#### 6.1a Statusline (`plugins/rig/statusline.cjs`)
 
 **Purpose**: Show live session state in Claude Code's status bar. Reads the statusline JSON from stdin; no external dependencies.
 
-**Modules** (`.claude/hooks/lib/`):
+**Modules** (`plugins/rig/hooks/lib/`):
 - `statusline-segment-renderers.cjs`: segments, row wrapping, tools/agents/todos lines
 - `statusline-text-formatters.cjs`: width measurement, truncation, token/duration formatting
 - `colors.cjs`: 256-color palette, `badge`, heat-gradient `gradientBar` (respects `NO_COLOR`)
@@ -351,7 +351,7 @@ See [how-to](../how-to/configure-verification-and-safety-guards.md).
 
 **Cost**: hidden when `rate_limits` is present (Pro/Max), unless `CLAUDE_BILLING_MODE=api`.
 
-**Tests**: `node .claude/hooks/lib/__tests__/statusline-suite.cjs`
+**Tests**: `node plugins/rig/hooks/lib/__tests__/statusline-suite.cjs`
 
 #### 6.2 MCP (Model Context Protocol) Integration
 
@@ -373,106 +373,7 @@ See [how-to](../how-to/configure-verification-and-safety-guards.md).
 - Code analysis
 - Debugging assistance
 
-#### 6.3 Preview Dashboard System (COMPLETE - Phase 6)
-
-**Purpose**: Interactive web-based visualization of implementation plans and project progress
-
-**Architecture**:
-```
-.claude/skills/markdown-viewer/
-├── scripts/
-│   ├── server.cjs              # HTTP server & request handler
-│   ├── lib/
-│   │   ├── plan-scanner.cjs    # Plan discovery & metadata extraction
-│   │   ├── dashboard-renderer.cjs  # Plan cards & dashboard rendering
-│   │   ├── plan-navigator.cjs  # Plan file parsing & traversal
-│   │   ├── markdown-renderer.cjs  # Markdown to HTML conversion
-│   │   ├── http-server.cjs     # HTTP server utilities
-│   │   ├── port-finder.cjs     # Available port detection
-│   │   └── process-mgr.cjs     # Process management
-│   ├── tests/                  # Test suites
-│   └── ...                     # Other modules
-├── assets/
-│   ├── dashboard-template.html # Dashboard UI template
-│   ├── dashboard.css           # Dashboard styles + theme
-│   └── dashboard.js            # Interactive dashboard logic
-└── SKILL.md                    # Skill documentation
-```
-
-**Core Components** (All 6 Phases Complete):
-
-**Phase 1-2: Infrastructure**
-- Plan Scanner, HTTP Server, Port detection utilities
-- Real-time plan discovery & metadata extraction
-- Security validation (path traversal prevention)
-
-**Phase 3-4: API & Data**
-- `/dashboard` route with HTML UI
-- `/api/dashboard` JSON API endpoint
-- Comprehensive metadata extraction (name, progress, status, phases, timestamps)
-
-**Phase 5-6: UI & Features** (COMPLETE)
-1. **Dashboard Renderer** (`dashboard-renderer.cjs`):
-   - Generates plan cards with progress visualization
-   - Calculates progress rings and status bars
-   - Supports sorting: by date, alphabetically, by progress
-   - Real-time filtering by status (all/pending/active/completed)
-   - Full-text search across plan names and descriptions
-
-2. **Dashboard Template** (`dashboard-template.html`):
-   - Responsive grid layout (auto-fit cards)
-   - Sticky header with controls
-   - Search bar with debounced input
-   - Sort/filter dropdowns
-   - Plan cards with metadata
-
-3. **Dashboard Styles** (`dashboard.css`):
-   - Dark/light theme support with CSS variables
-   - WCAG 2.1 AA color contrast compliance
-   - Progress ring visualization (SVG-based)
-   - Responsive design (mobile-first)
-   - Smooth transitions and animations
-
-4. **Dashboard Logic** (`dashboard.js`):
-   - Client-side filtering and sorting
-   - Theme toggle (persisted in localStorage)
-   - Real-time search with regex support
-   - Accessibility features (keyboard navigation, ARIA labels)
-   - Plan card interactions and detail views
-
-**Data Flow**:
-```
-User Request (/dashboard)
-    ↓
-HTTP Server
-    ↓
-Plan Scanner (discovers plans in ./plans)
-    ↓
-Dashboard Renderer (generates cards with progress)
-    ↓
-Dashboard Template (renders HTML with cards)
-    ↓
-Dashboard JS (enables interactivity)
-    ↓
-User sees sorted/filtered plan grid
-```
-
-**Features Complete**:
-- Real-time plan discovery (no manual updates)
-- Interactive card-based grid layout
-- Progress tracking with percentage calculation & rings
-- Status derivation (pending/in-progress/completed)
-- Sorting: date (newest first), alphabetical, progress %
-- Filtering: all, pending, active, completed
-- Full-text search with highlighting
-- Dark/light theme toggle with persistence
-- WCAG 2.1 AA accessibility compliance
-- Responsive mobile-friendly design
-- Phase breakdown with status indicators
-- Timestamp tracking for plan modifications
-- Security-validated path traversal
-
-#### 6.4 External Service Integration
+#### 6.3 External Service Integration
 
 **GitHub**:
 - Actions (CI/CD automation)
@@ -488,7 +389,10 @@ User sees sorted/filtered plan grid
 #### 7.1 File-Based Storage
 
 **Configuration Data**:
-- `.claude/` - Claude Code config
+- `plugins/rig/` - the plugin (skills, agents, hooks, bin, rules, scripts); installed by Claude Code
+- `~/.claude/.rig.json` - per-user Rig config
+- `~/.claude/rig/` - runtime copy, Python venv (written by `rig-init`)
+- `~/.claude/rig-backups/` - migration backups
 - `.gitignore` - Git exclusions
 - `package.json` - Node.js config
 

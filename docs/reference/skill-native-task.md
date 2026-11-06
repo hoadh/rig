@@ -29,6 +29,6 @@ The 1.0.0 hydration workflow (`hydration-workflow.md`) is gone. Plans are no lon
 
 ## Details
 
-- Task operations, metadata and reporting: `.claude/skills/progress/references/task-operations.md`
-- Planning and phase-file rules: `.claude/skills/rig-plan/references/task-management.md`
+- Task operations, metadata and reporting: `plugins/rig/skills/progress/references/task-operations.md`
+- Planning and phase-file rules: `plugins/rig/skills/plan/references/task-management.md`
 - Agent and skill authoring rule on the Tasks API: [authoring standards](./agent-skill-hook-authoring-standards.md)

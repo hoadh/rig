@@ -2,7 +2,7 @@
 
 ## Overview
 
-All Claude Code skills now use a centralized environment variable resolver (`~/.claude/scripts/resolve_env.py`) for consistent configuration management across project-local and user-global scopes.
+All Claude Code skills now use a centralized environment variable resolver (the `rig-resolve-env` command) for consistent configuration management across project-local and user-global scopes.
 
 ## Priority Hierarchy
 
@@ -30,13 +30,13 @@ Supports both project-local and user-global configurations:
 Built-in tools for troubleshooting:
 ```bash
 # Show hierarchy for specific skill
-python ~/.claude/scripts/resolve_env.py --show-hierarchy --skill media
+rig-resolve-env --show-hierarchy --skill media
 
 # Find where variable is defined
-python ~/.claude/scripts/resolve_env.py GEMINI_API_KEY --find-all
+rig-resolve-env GEMINI_API_KEY --find-all
 
 # Resolve with verbose output
-python ~/.claude/scripts/resolve_env.py GEMINI_API_KEY --skill media --verbose
+rig-resolve-env GEMINI_API_KEY --skill media --verbose
 ```
 
 ### 4. **Maintainability**
@@ -48,16 +48,16 @@ Single source of truth - update once, affects all skills.
 
 ```bash
 # Resolve variable for specific skill
-python ~/.claude/scripts/resolve_env.py GEMINI_API_KEY --skill media
+rig-resolve-env GEMINI_API_KEY --skill media
 
 # With default value
-python ~/.claude/scripts/resolve_env.py API_KEY --default fallback-value
+rig-resolve-env API_KEY --default fallback-value
 
 # Export format for shell
-eval $(python ~/.claude/scripts/resolve_env.py GEMINI_API_KEY --export)
+eval $(rig-resolve-env GEMINI_API_KEY --export)
 
 # Show hierarchy
-python ~/.claude/scripts/resolve_env.py --show-hierarchy --skill media
+rig-resolve-env --show-hierarchy --skill media
 ```
 
 ### Python API Usage
@@ -140,7 +140,7 @@ Result: All skills use `test-key` regardless of config files.
 
 ### Check Hierarchy
 ```bash
-python ~/.claude/scripts/resolve_env.py --show-hierarchy --skill media
+rig-resolve-env --show-hierarchy --skill media
 ```
 
 Output shows which config files exist (✓) and their priority:
@@ -160,7 +160,7 @@ Priority order (highest to lowest):
 
 ### Find All Locations
 ```bash
-python ~/.claude/scripts/resolve_env.py GEMINI_API_KEY --find-all
+rig-resolve-env GEMINI_API_KEY --find-all
 ```
 
 Shows everywhere the variable is defined and which one wins:
@@ -182,7 +182,7 @@ Variable 'GEMINI_API_KEY' found in 2 location(s):
 
 ### Verbose Resolution
 ```bash
-python ~/.claude/scripts/resolve_env.py GEMINI_API_KEY --skill media --verbose
+rig-resolve-env GEMINI_API_KEY --skill media --verbose
 ```
 
 Shows step-by-step where the resolver looks:
@@ -227,17 +227,15 @@ api_key = resolve_env('API_KEY_NAME', skill='skill-name')
 
 ## Files Created
 
-1. **~/.claude/scripts/resolve_env.py** - Centralized resolver implementation
-2. **~/.claude/scripts/README.md** - Detailed usage documentation
-3. **.claude/ENVIRONMENT_RESOLVER.md** (this file) - Project documentation
+1. **plugins/rig/scripts/resolve_env.py** - Centralized resolver implementation (run as `rig-resolve-env`)
+2. **plugins/rig/scripts/README.md** - Detailed usage documentation
+3. **guide/ENVIRONMENT_RESOLVER.md** (this file) - Project documentation
 
 ## Updated Files
 
-1. **.claude/.env.example** - Added resolver reference
-2. **.claude/skills/.env.example** - Added resolver reference
-3. **.claude/skills/media/.env.example** - Added resolver reference
-4. **.claude/skills/media/scripts/gemini_batch_process.py** - Integrated resolver
-5. **.claude/skills/media/SKILL.md** - Updated documentation
+1. **plugins/rig/skills/.env.example** - Added resolver reference
+2. **plugins/rig/skills/media/scripts/gemini_batch_process.py** - Integrated resolver
+3. **plugins/rig/skills/media/SKILL.md** - Updated documentation
 
 ## Next Steps
 
@@ -246,10 +244,10 @@ api_key = resolve_env('API_KEY_NAME', skill='skill-name')
 3. **Create config files** as needed:
    - `~/.claude/.env` for personal defaults
    - `.claude/.env` in projects for team defaults
-   - `.claude/skills/<skill>/.env` for skill-specific overrides
+   - `.claude/skills/<skill>/.env` for skill-specific overrides (the user's own files)
 
 ## Support
 
-- Documentation: `~/.claude/scripts/README.md`
-- Show hierarchy: `python ~/.claude/scripts/resolve_env.py --show-hierarchy`
-- Debug variable: `python ~/.claude/scripts/resolve_env.py VAR_NAME --verbose`
+- Documentation: `plugins/rig/scripts/README.md`
+- Show hierarchy: `rig-resolve-env --show-hierarchy`
+- Debug variable: `rig-resolve-env VAR_NAME --verbose`

@@ -12,7 +12,7 @@ Constraints carried over from ADR 0001: no database, no daemon, no new service t
 
 ## Decision
 
-`rig:remote` (`.claude/skills/remote/`) runs a plan across machines. One machine is the **orchestrator** and owns the plan. Other machines are **workers**. The rules:
+`rig:remote` (`plugins/rig/skills/remote/`) runs a plan across machines. One machine is the **orchestrator** and owns the plan. Other machines are **workers**. The rules:
 
 | Area | Decision |
 |---|---|
