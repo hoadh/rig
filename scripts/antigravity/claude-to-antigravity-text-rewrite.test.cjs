@@ -6,6 +6,7 @@ const t = require('./claude-to-antigravity-text-rewrite.cjs');
 const rewrite = t.createTextRewriter(new Map([['rig-plan', 'plan']]), new Set(['plan', 'fix']));
 
 test('project .claude/ paths become .agent/, user ~/.claude/ files stay', () => {
+  assert.strictEqual(rewrite('Rules: `plugins/rig/rules/core-rules.md`, skills in plugins/rig/skills/'), 'Rules: `.agent/rules/core-rules.md`, skills in .agent/skills/');
   assert.strictEqual(rewrite('see .claude/rules/x.md and ./.claude/y'), 'see .agent/rules/x.md and ./.agent/y');
   assert.strictEqual(rewrite('`~/.claude/rig-machines.json`'), '`~/.claude/rig-machines.json`');
   assert.strictEqual(rewrite('$HOME/.claude/.env'), '$HOME/.claude/.env');

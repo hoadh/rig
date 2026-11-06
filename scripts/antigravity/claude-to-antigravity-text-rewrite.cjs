@@ -89,6 +89,7 @@ function createTextRewriter(dirRenames, knownSkillNames) {
       .replace(/\.\/\.claude\//g, './.agent/')
       .replace(/(^|[^\w/~.}-])\.claude\//gm, '$1.agent/')
       .replace(/(^|[^\w/~.}-])\.claude\\/gm, '$1.agent\\')
+      .replace(/(^|[^\w/~.}-])plugins\/rig\//gm, '$1.agent/')
       .replace(/(<project>|\$SKILL_DIR)\/\.claude\/browser\//g, '$1/.agent/browser/')
       .replace(/<kit>(?=[/\\])/g, '.agent');
     if (ctx.skillName) out = out.replace(/\$\{CLAUDE_SKILL_DIR\}/g, `.agent/skills/${ctx.skillName}`);
