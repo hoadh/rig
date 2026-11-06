@@ -57,7 +57,8 @@ describe('consent gate', () => {
       const r = await run(m, argv, { env: { CLAUDECODE: '1' } });
       assert.strictEqual(r.code, 2, argv.join(' '));
       assert.match(r.err, /outside Claude Code/);
-      assert.ok(r.err.includes(`rig-init ${argv.join(' ')}`), `prints the command: ${r.err}`);
+      // A terminal has no plugin bin/ on PATH, so the printed command is `node "<abs>/bin/rig-init" <verbs>`.
+      assert.ok(r.err.includes('node "') && r.err.includes(`rig-init" ${argv.join(' ')}`), `prints the command: ${r.err}`);
       assert.deepStrictEqual(r.asked, [], 'never prompts');
     }
     assert.deepStrictEqual(snapshot(m.root), state);
@@ -104,7 +105,7 @@ describe('consent gate', () => {
     delete env.CLAUDECODE;
     const res = spawnSync(process.execPath, [BIN, '--migrate', '--global'], { env, input: 'y\n', encoding: 'utf8', cwd: m.root });
     assert.strictEqual(res.status, 2);
-    assert.match(res.stderr, /rig-init --migrate --global/);
+    assert.match(res.stderr, /node "[^"]+[/\\\\]bin[/\\\\]rig-init" --migrate --global/);
     assert.deepStrictEqual(snapshot(m.root), state);
     const inside = spawnSync(process.execPath, [BIN, '--runtime'], { env: { ...env, CLAUDECODE: '1' }, input: 'y\n', encoding: 'utf8', cwd: m.root });
     assert.strictEqual(inside.status, 2);

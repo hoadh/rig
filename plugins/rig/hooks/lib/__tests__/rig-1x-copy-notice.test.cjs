@@ -29,7 +29,7 @@ describe('rig1xCopyNotice', () => {
     fs.writeFileSync(path.join(root, 'proj', '.claude', 'metadata.json'), '{"name":"rig"}');
     const opts = { self: path.join(root, 'plugin', 'hooks', 'session-init.cjs'), home: path.join(root, 'home'), projectDir: path.join(root, 'proj') };
     assert.deepStrictEqual(find1xCopies(opts), ['global', 'project']);
-    assert.match(rig1xCopyNotice(opts), /~\/\.claude and this project \.claude[\s\S]*`rig-init --migrate` in a terminal/);
+    assert.match(rig1xCopyNotice(opts), /~\/\.claude and this project \.claude[\s\S]*`node "[^"]+[/\\\\]bin[/\\\\]rig-init" --migrate` in a terminal/);
   });
 
   it('does not count the hook file that is running as a 1.x copy, and a project that is the home dir counts once', () => {

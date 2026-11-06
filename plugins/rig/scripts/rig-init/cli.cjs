@@ -1,4 +1,5 @@
 'use strict';
+const { rigInitTerminalCommand } = require('../../hooks/lib/rig-init-terminal-command.cjs');
 /**
  * rig-init CLI (`bin/rig-init`). Read-only verb: --plan [--json]. Apply verbs: --migrate [--global|--project <dir>],
  * --resume, --restore <backup-dir>, --permissions, --runtime, --deps.
@@ -106,7 +107,7 @@ async function mainWithIo(io = {}) {
   try {
     if (o.verb === '--plan') return await runPlan(o, { home, cwd, stdout, pluginRoot, checkVersion });
 
-    const refusal = applyRefusal({ env, stdinIsTTY, stdoutIsTTY, ancestors, command: `rig-init ${argv.map(quote).join(' ')}` });
+    const refusal = applyRefusal({ env, stdinIsTTY, stdoutIsTTY, ancestors, command: `${rigInitTerminalCommand(path.resolve(__dirname, '..', '..'))} ${argv.map(quote).join(' ')}` });
     if (refusal) { stderr(refusal.trimEnd()); return 2; }
     const versionWarning = describeVersionCheck(checkVersion());
     if (versionWarning) stderr(versionWarning);

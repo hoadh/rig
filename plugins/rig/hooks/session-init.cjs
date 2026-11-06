@@ -77,8 +77,9 @@ function detectAgentTeam() {
   }
 }
 
+const RIG_INIT = require('./lib/rig-init-terminal-command.cjs').rigInitTerminalCommand(path.dirname(__dirname));
 const GLOBAL_COPY_NOTICE = 'Rig plugin is installed but the 1.x Rig hooks in ~/.claude are still registered, so the 1.x hooks run and the plugin hooks yield. ' +
-  'Run `rig-init --migrate` in a terminal to move the 1.x install to the plugin (preview with `rig-init --plan`).';
+  `Run \`${RIG_INIT} --migrate\` in a terminal to move the 1.x install to the plugin (preview with \`${RIG_INIT} --plan\`).`;
 
 // additionalContext is capped by Claude Code (10,000 characters); stay inside it.
 const CORE_RULES_MAX_CHARS = 10000;

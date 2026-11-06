@@ -7,6 +7,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { rigInitTerminalCommand } = require('./rig-init-terminal-command.cjs');
 
 const SENTINEL = path.join('.claude', 'hooks', 'session-init.cjs');
 
@@ -46,8 +47,9 @@ function find1xCopies({ self, projectDir = process.env.CLAUDE_PROJECT_DIR || pro
 function rig1xCopyNotice(opts) {
   const where = find1xCopies(opts);
   if (!where.length) return '';
+  const cmd = rigInitTerminalCommand(path.dirname(path.dirname(opts.self)));
   return `Rig 1.x files are still installed (${where.map((w) => (w === 'global' ? '~/.claude' : 'this project .claude')).join(' and ')}). ` +
-    'Run `rig-init --migrate` in a terminal (preview with `rig-init --plan`) to move them to the plugin; the 1.x hooks and the plugin hooks do not run twice meanwhile.';
+    `Run \`${cmd} --migrate\` in a terminal (preview with \`${cmd} --plan\`) to move them to the plugin; the 1.x hooks and the plugin hooks do not run twice meanwhile.`;
 }
 
 module.exports = { find1xCopies, rig1xCopyNotice, hasRig1xMarker };

@@ -20,6 +20,8 @@ rig-init --plan --json
 
 If `rig-init` is not found, the plugin's `bin/` is not on PATH yet: tell the user to restart Claude Code, then stop.
 
+In the user's own terminal `rig-init` is not on PATH (Claude Code adds the plugin `bin/` only for its Bash tool). Whenever you print a command for the user to run, write it as `node "${CLAUDE_PLUGIN_ROOT}/bin/rig-init" <verb>` with the absolute path shown here, never a bare `rig-init`.
+
 The JSON has `claudeCode` (version check), `targets[]` (a 1.x `global` and/or `project` install: `settings`, `moves`, `kept`, `committed`, `hint`, `blockers`, `pendingBackup`), `permissions` (`needed`), `runtime` (`installedVersion`, `statusLine`).
 
 ## Step 2: Show the groups
