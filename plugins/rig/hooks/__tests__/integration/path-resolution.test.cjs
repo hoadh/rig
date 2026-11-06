@@ -9,7 +9,7 @@
  * - dev-rules-reminder.cjs
  */
 
-const { describe, it } = require('node:test');
+const { describe, it, after } = require('node:test');
 const assert = require('node:assert');
 const { spawn, execSync } = require('child_process');
 const path = require('path');
@@ -17,6 +17,12 @@ const fs = require('fs');
 const os = require('os');
 
 const HOOKS_DIR = path.join(__dirname, '..', '..');
+
+// session-init (plugin mode) writes the runtime copy into ~/.claude/rig: run every hook under a throwaway HOME
+const TEST_HOME = fs.mkdtempSync(path.join(os.tmpdir(), 'path-resolution-home-'));
+process.env.HOME = TEST_HOME;
+process.env.USERPROFILE = TEST_HOME;
+after(() => fs.rmSync(TEST_HOME, { recursive: true, force: true }));
 
 /**
  * Run a hook with given input
