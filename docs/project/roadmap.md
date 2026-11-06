@@ -1,14 +1,14 @@
 # Rig - Project Roadmap
 
 **Last Updated:** 2026-11-06
-**Current Version:** 1.1.0 (released 2026-11-06)
+**Current Version:** 2.0.0-beta.1 (beta pending, unreleased). Last release 1.1.0 (2026-11-06)
 **Repository:** https://github.com/hoadh/rig
 
 Version history lives in [CHANGELOG.md](../../CHANGELOG.md). This roadmap tracks status and plans only.
 
 ## Executive Summary
 
-Rig is an orchestration framework for Claude Code: agents, skills, hooks and workflows that plan, build, test and review software with file-based state. 1.1.0 is released (2026-11-06). Next work closes the security and CI gaps and the `rig:remote` follow-ups.
+Rig is an orchestration framework for Claude Code: agents, skills, hooks and workflows that plan, build, test and review software with file-based state. 1.1.0 is released (2026-11-06) and stays on `release/1.x`. 2.0 packages Rig as a Claude Code plugin: the file installer is retired, 1.x installs migrate with `rig-init`. 2.0.0 ships after the 2.0.0-beta.N cycle on Linux, Windows and macOS.
 
 ## Status at a Glance
 
@@ -16,6 +16,32 @@ Rig is an orchestration framework for Claude Code: agents, skills, hooks and wor
 |-------|--------|-------|
 | 1.0.0 | Released (2026-10-17) | Agents, skills, hooks, docs workflow, rig:remote v1, Antigravity copy |
 | 1.1.0 | Released 2026-11-06 | Rules moved into skills, thinner skills, Agent Teams rewrite, Tasks API optional, plugin-prefixed agent types. Section below. Follow-ups listed under 1.0.0 |
+| 2.0.0 | beta pending (2.0.0-beta.1 unreleased) | Claude Code plugin, `rig-init` setup and migration, bin entrypoints, Antigravity sync for the plugin layout. Section below |
+
+---
+
+## 2.0.0 (beta pending)
+
+Status: **beta pending**. `2.0.0-beta.1` is in the tree and CHANGELOG but not tagged. Live checks that need a real Claude Code session on another OS are still open, listed per phase below. Phases 1 to 4 are built; phase 5 is docs and the release script.
+
+| Phase | Area | Status | Open live check |
+|---|---|---|---|
+| 1 | Plugin skeleton: `plugins/rig/`, manifests, `hooks/hooks.json`, validate CI, version bump check | Built | Windows Git Bash for `bin/`; real double-fire with a 1.x project copy |
+| 2 | `bin/` entrypoints, runtime copy, remote protocol 2 | Built | Linux to Windows worker dispatch (release gate); statusline after a version bump |
+| 3 | `rig-init`: plan, migrate, resume, restore, permissions, runtime, deps; `/rig:setup`; consent gate | Built | Migration round trip in a disposable HOME (runbook in the plan reports) |
+| 4 | Antigravity sync for the plugin layout | Built | `/plan` workflow in Antigravity |
+| 5 | Docs, `release-plugin.cjs`, beta and 2.0.0 tag | In progress | Beta install from the tag on Linux (full), Windows (smoke), macOS (blocking) |
+
+| Item | Status | Notes |
+|---|---|---|
+| Claude Code plugin with marketplace `rig-marketplace` | Built, beta pending | `/plugin marketplace add hoadh/rig`, `/plugin install rig@rig-marketplace`. Claude Code floor 2.1.292 |
+| File installer retired | Done | `install-kit-from-local-repo.cjs` prints the steps; `scripts/install-kit/` removed. 1.x on `release/1.x` |
+| 1.x migration | Built | `rig-init --plan`, `--migrate`, `--resume`, `--restore`. Journaled, restorable, never deletes. [How-to](../how-to/migrate-from-rig-1x.md) |
+| Setup verbs in a terminal | Built | `rig-init --runtime`, `--permissions`, `--deps`. Refused inside Claude Code. `/rig:setup` only previews |
+| Plan 1427 installer dedupe and skill packs | Dropped | Obsolete: the plugin has no copies and ships every skill |
+| Release tagging and marketplace pin | Built; beta tag not yet cut | `scripts/release-plugin.cjs` writes ref and sha per tag; CI (`--check-ref`) checks the pin against the latest tag |
+
+Next: tag `2.0.0-beta.1` and install it from GitHub in disposable HOMEs on Linux, Windows and macOS. Fix forward and repeat as `beta.N`. Tag `2.0.0` after the three OS checks pass. 2.1 follow-ups: `--workflow` for implement, `remote status --follow`, a SubagentStop guard (needs Claude Code 2.1.311), plugin `userConfig`, optional skill packs as separate plugins.
 
 ---
 
@@ -23,13 +49,13 @@ Rig is an orchestration framework for Claude Code: agents, skills, hooks and wor
 
 | Area | What ships | Where |
 |------|------------|-------|
-| Rules | `core-rules.md` (1.7 KB) replaces five rule files; task sections moved into skill references. Map: [rules layout](../explanation/rules-layout.md) | `.claude/rules/`, `.claude/skills/*/references/` |
-| Context | Static always-loaded text 35.1 KB to 9.6 KB; `UserPromptSubmit` emits the full block once per plan or branch change | `.claude/hooks/` |
-| Skills | A thinking skill and the Stop notification hooks removed; `worktree`, `explore`, `code-review` thinned onto built-in features; `team` rewritten for Agent Teams | `.claude/skills/` |
+| Rules | `core-rules.md` (1.7 KB) replaces five rule files; task sections moved into skill references. Map: [rules layout](../explanation/rules-layout.md) | `plugins/rig/rules/`, `plugins/rig/skills/*/references/` |
+| Context | Static always-loaded text 35.1 KB to 9.6 KB; `UserPromptSubmit` emits the full block once per plan or branch change | `plugins/rig/hooks/` |
+| Skills | A thinking skill and the Stop notification hooks removed; `worktree`, `explore`, `code-review` thinned onto built-in features; `team` rewritten for Agent Teams | `plugins/rig/skills/` |
 | Output styles | Level setting and level-based styles removed; use the built-in `/output-style` | `.rig.json` |
-| Agents | Dead tool names removed; Tasks API optional; `effort` and `skills` frontmatter | `.claude/agents/` |
-| Hooks | Plugin-prefixed agent types normalized (`rig:tester` to `tester`); remote owns-denylist covers plugin paths | `.claude/hooks/lib/agent-type-normalizer.cjs` |
-| Installer | Retired rule and output-style files copied to `.bak` before removal | `scripts/install-kit/` |
+| Agents | Dead tool names removed; Tasks API optional; `effort` and `skills` frontmatter | `plugins/rig/agents/` |
+| Hooks | Plugin-prefixed agent types normalized (`rig:tester` to `tester`); remote owns-denylist covers plugin paths | `plugins/rig/hooks/lib/agent-type-normalizer.cjs` |
+| Installer | Retired rule and output-style files copied to `.bak` before removal | `scripts/install-kit/` (removed in 2.0) |
 
 Released with CI green on Ubuntu, Windows and macOS (PR #2). Still open: Linux and Windows smoke (`/rig:plan`, `/rig:implement`) in a live session; the `rig:remote` loopback tests are flaky on Windows.
 
@@ -37,14 +63,14 @@ Released with CI green on Ubuntu, Windows and macOS (PR #2). Still open: Linux a
 
 | Area | What ships | Where |
 |------|------------|-------|
-| Agents | 14 agent definitions (planner, tester, code-reviewer, docs-maintainer, debugger, and others) | `.claude/agents/` |
-| Skills | 31 skills: 27 `/rig:*` slash commands, 4 helpers with `user-invocable: false` | `.claude/skills/`, [catalog](../../guide/SKILLS.md) |
-| Hooks | `session-init`, `subagent-init`, `team-context-inject`, `dev-rules-reminder` inject dynamic facts only | `.claude/hooks/` |
-| Native guards | Sensitive files: `permissions.ask`. Heavy directories: `permissions.deny`. File naming: rule in `.claude/rules/core-rules.md`. Usage: statusline reads `rate_limits` from stdin | `.claude/settings.json`, `.claude/statusline.cjs` |
-| Statusline | Cross-platform Node.js script with tests; modern 256-color layout: context, 5h/7d limits, time/tokens, git state, config, tools/agents/todos | `.claude/statusline.cjs`, `.claude/hooks/lib/__tests__/` |
+| Agents | 14 agent definitions (planner, tester, code-reviewer, docs-maintainer, debugger, and others) | `plugins/rig/agents/` |
+| Skills | 31 skills: 27 `/rig:*` slash commands, 4 helpers with `user-invocable: false` | `plugins/rig/skills/`, [catalog](../../guide/SKILLS.md) |
+| Hooks | `session-init`, `subagent-init`, `team-context-inject`, `dev-rules-reminder` inject dynamic facts only | `plugins/rig/hooks/` |
+| Native guards | Sensitive files: `permissions.ask`. Heavy directories: `permissions.deny`. File naming: rule in `plugins/rig/rules/core-rules.md`. Usage: statusline reads `rate_limits` from stdin | `.claude/settings.json`, `plugins/rig/statusline.cjs` |
+| Statusline | Cross-platform Node.js script with tests; modern 256-color layout: context, 5h/7d limits, time/tokens, git state, config, tools/agents/todos | `plugins/rig/statusline.cjs`, `plugins/rig/hooks/lib/__tests__/` |
 | Docs workflow | Diataxis layout; `/rig:docs restructure` (alias `refactor`) migrates non-standard layouts; layout-aware validator | `docs/README.md`, `/rig:docs` |
-| UI skills | ui-styling targets Tailwind CSS v4; ui-design ships style, palette and stack data | `.claude/skills/ui-styling/`, `.claude/skills/ui-design/` |
-| create-skill | Description optimizer runs via `claude -p` with the session auth | `.claude/skills/create-skill/` |
+| UI skills | ui-styling targets Tailwind CSS v4; ui-design ships style, palette and stack data | `plugins/rig/skills/ui-styling/`, `plugins/rig/skills/ui-design/` |
+| create-skill | Description optimizer runs via `claude -p` with the session auth | `plugins/rig/skills/create-skill/` |
 | ADR 0001 | Agent state lives in files | [decision record](../explanation/decisions/0001-agent-state-lives-in-files.md) |
 | rig:remote v1 | Plan phases and test commands on macOS, Windows and Linux workers over ssh | see below |
 | Antigravity | `scripts/sync-antigravity-agent-dir.cjs` generates `.agent/` and `GEMINI.md` from `.claude/` (30 skills, 25 workflows, agents as role files); CI (`antigravity-sync-check.yml`) fails when they drift | `.agent/`, `GEMINI.md` |

@@ -1,7 +1,7 @@
 # System Architecture
 
 **Last Updated**: 2026-11-06
-**Version**: 1.1.0 (released 2026-11-06)
+**Version**: 2.0.0-beta.1 (unreleased; 1.1.0 released 2026-11-06)
 **Project**: Rig
 
 ## Overview
@@ -38,6 +38,64 @@ Rig is organized in layers:
 7. Data Layer
 
 Full catalog (responsibilities, files, technology stack): [System Components](../reference/system-components.md).
+
+## Plugin Layout (2.0)
+
+Rig 2.x ships as one Claude Code plugin, `rig`, from the `rig-marketplace` marketplace. The repo is the marketplace. The plugin itself is `plugins/rig/`. Nothing is copied into a project or into `~/.claude` by hand.
+
+```
+GitHub repo hoadh/rig
+├── .claude-plugin/marketplace.json    marketplace rig-marketplace, source: plugins/rig (git-subdir)
+└── plugins/rig/                       the plugin (what Claude Code installs)
+    ├── .claude-plugin/plugin.json     name, version (semver, bumped per change)
+    ├── skills/ agents/                auto-discovered; skill names carry no prefix, /rig: is added by Claude Code
+    ├── hooks/hooks.json               hook registrations (exec form: node + args, ${CLAUDE_PLUGIN_ROOT})
+    ├── bin/rig-*                      14 command entrypoints, put on the Bash tool PATH
+    ├── rules/core-rules.md            the always-loaded rules, injected at session start
+    ├── scripts/rig-init/              the setup and migration CLI (rig-init)
+    └── statusline.cjs, hooks/lib/     runtime sources, copied out by rig-init --runtime
+```
+
+### What runs where
+
+| Piece | How it runs | Notes |
+|---|---|---|
+| Hooks | `hooks.json`, Node, with `CLAUDE_PLUGIN_ROOT` and `CLAUDE_PLUGIN_DATA` set | Session context, subagent context, prompt reminder, bash safety guard (PreToolUse), verify-on-stop (Stop) |
+| Core rules | `session-init` returns `rules/core-rules.md` as `additionalContext` | Plugin mode only; the whole session context is capped at 10,000 characters |
+| `bin/rig-*` | Bash tool PATH; each launcher finds the plugin root from its own real path | Bash tool calls do not get `CLAUDE_PLUGIN_*` variables, so nothing reads them there |
+| Runtime copy | `~/.claude/rig/runtime/` (statusline, remote worker, their libs) | Written by `rig-init --runtime`, refreshed at each session start. Swapped in whole, never downgraded, refused when `VERSION` is missing |
+| Hook state | `CLAUDE_PLUGIN_DATA` (hook-private: reminder state, git cache, verify-guard counter, hook log) | Shared session files `rig-session-<id>.json` stay in the OS temp dir, because Bash-run scripts and the statusline read them and do not get the variable |
+| Python | `rig-python` uses a venv at `~/.claude/rig/venv`, built once on first use from the skills' `requirements.txt` | A file install (1.x) keeps its venv at `<root>/skills/.venv`. System packages and npm dependencies are not part of this build; `rig-init --deps` runs the full installer |
+| Setup and migration | `rig-init` in a terminal only | The only writer of `~/.claude` configuration. See below |
+
+### rig-init and the consent gate
+
+`rig-init` is the only code that changes a user's Claude Code configuration. Its verbs: `--plan [--json]` (read-only), `--migrate [--global|--project <dir>]`, `--resume`, `--restore <dir>`, `--permissions`, `--runtime`, `--deps`.
+
+Every apply verb goes through one gate. It refuses when `CLAUDECODE` is set, when any ancestor process is Claude Code, when the ancestor chain cannot be read, or when stdin or stdout is not a terminal. Otherwise it shows the plan and asks `y/N`. No flag or environment variable skips the question. The gate is a guard against accidents, not a sandbox: the Bash guard rule also asks before any command that would run `rig-init` apply verbs or a backup's `restore.cjs`.
+
+Migration (1.x to 2.x) is journaled:
+
+1. The plan reads `settings.json` and the owned-path list (`rig-1x-owned-paths.json`, 747 `.claude/`-relative files from the 1.0.0 and 1.1.0 trees). Blockers stop it before anything moves.
+2. The backup directory (`~/.claude/rig-backups/<project-hash|global>/<timestamp>/`, owner-only) gets the journal, a copy of each settings file it changes, `moved-paths.txt`, and a standalone `restore.cjs`.
+3. Settings are rewritten, then files move. Each step is saved first, so `--resume` finishes an interrupted run and a crash at any step leaves settings that never point at a missing file.
+4. Restore needs the plugin disabled. It re-adds only the hook handlers and `statusLine` it removed, keeps later user edits, and never overwrites a file.
+
+### Coexistence with 1.x
+
+A 1.x install registers hooks in `~/.claude/settings.json` or the project's settings. The plugin copy yields to a registered 1.x global or project hook with the same event and matcher, so no hook runs twice. `session-init` prints a line pointing to `rig-init --migrate` while such copies exist. Migration removes them.
+
+### Remote workers
+
+The remote worker runs from the runtime copy (`~/.claude/rig/runtime/remote/worker.cjs` on the worker). The worker protocol is version 2. The orchestrator refuses a worker with a different major version or an unknown version, and `doctor` warns on minor drift. Both sides must run the same major version. Details: [ADR 0002](decisions/0002-multi-machine-remote-orchestration.md).
+
+### Antigravity output
+
+`.agent/` and `GEMINI.md` are generated from `plugins/rig/` and `CLAUDE.md` by `scripts/sync-antigravity-agent-dir.cjs`. The sync strips Claude Code-only frontmatter, rewrites bin names and `/rig:` commands to Antigravity paths, and fails when a Claude Code-only reference survives (`--check-leftovers`). Plugin-only behavior (session-context injection, runtime copies, `rig-init`) has no Antigravity equivalent and is described in the concept doc: [Antigravity vs Claude Code](./antigravity-vs-claude-code.md).
+
+### Repo-only files
+
+`.claude/` in this repo holds development settings (permissions, attribution), templates (`.env.example`, `.mcp.json.example`) and the default `.rig.json`. None of it ships. Edit plugin behavior under `plugins/rig/`.
 
 ## Component Interactions
 
@@ -184,7 +242,7 @@ Update docs/README.md index
 validate-docs.cjs (links, code refs, layout warnings)
 ```
 
-Layout rules: `.claude/skills/docs/references/diataxis-docs-layout.md`.
+Layout rules: `plugins/rig/skills/docs/references/diataxis-docs-layout.md`.
 
 ### Agent State
 
@@ -196,15 +254,15 @@ Agents keep no state outside the file system ([ADR 0001](decisions/0001-agent-st
 
 ### Rules and Skill References
 
-Always-loaded rules are one file, `.claude/rules/core-rules.md`. Task-specific rules live in the skill that uses them (implement, rig-plan, docs, team, remote) and load only when that skill runs. Where each moved section went: [rules layout](./rules-layout.md).
+Always-loaded rules are one file, `plugins/rig/rules/core-rules.md`, injected at session start. Task-specific rules live in the skill that uses them (implement, rig-plan, docs, team, remote) and load only when that skill runs. Where each moved section went: [rules layout](./rules-layout.md).
 
 ### Parallel Work Isolation
 
-`/rig:team` gives each implementation dev its own git worktree (`isolation: "worktree"`) and assigns file ownership by glob, so parallel agents in one session do not edit the same files. The lead merges the worktree branches at the end. Rules: `.claude/skills/team/references/team-coordination.md`.
+`/rig:team` gives each implementation dev its own git worktree (`isolation: "worktree"`) and assigns file ownership by glob, so parallel agents in one session do not edit the same files. The lead merges the worktree branches at the end. Rules: `plugins/rig/skills/team/references/team-coordination.md`.
 
 ### Multi-Machine Execution (rig:remote)
 
-`rig:remote` (`.claude/skills/remote/`, [ADR 0002](decisions/0002-multi-machine-remote-orchestration.md)) runs plan phases and test commands on other machines. One orchestrator owns the plan. Workers run a headless agent per phase in a Rig-dedicated clone. Git is the only data channel; ssh is control only. No agent sits between the orchestrator and a worker: the orchestrator drives the deterministic CLI over ssh.
+`rig:remote` (`plugins/rig/skills/remote/`, [ADR 0002](decisions/0002-multi-machine-remote-orchestration.md)) runs plan phases and test commands on other machines. One orchestrator owns the plan. Workers run a headless agent per phase in a Rig-dedicated clone. Git is the only data channel; ssh is control only. No agent sits between the orchestrator and a worker: the orchestrator drives the deterministic CLI over ssh.
 
 ```mermaid
 flowchart LR
@@ -218,7 +276,7 @@ flowchart LR
 |---|---|---|
 | Orchestrator CLI | `scripts/remote.cjs` | register, machines, setup, doctor, run, dispatch, status, cancel, review, collect, takeover |
 | Worker CLI | `scripts/worker.cjs` | prepare, baseline, info, start, status, list, cancel, exec, facts |
-| Machine registry | `~/.claude/rig-machines.json` (orchestrator only), written by `register` | Machine ids, ssh target, OS, paths; optional `repos` map (origin key -> clone path, one clone per project; a project missing from `repos` gets `no-clone`); no secrets. Format: `.claude/skills/remote/references/registry-format.md` |
+| Machine registry | `~/.claude/rig-machines.json` (orchestrator only), written by `register` | Machine ids, ssh target, OS, paths; optional `repos` map (origin key -> clone path, one clone per project; a project missing from `repos` gets `no-clone`); no secrets. Format: `plugins/rig/skills/remote/references/registry-format.md` |
 | Coordination branch | `rig-coord/<slug>` (orphan, single writer) | Plan mirror and orchestrator lock; claimed by create-only push |
 | Worker branch | `rig/<machine>/<slug>` (runner pushes only) | Agent commits after the owns/denylist guard |
 | Integration branch | `rig-int/<slug>` (collect only) | Reviewed worker branches merged in phase order |
@@ -325,7 +383,8 @@ Operator steps: [Run a plan across machines](../how-to/run-plan-across-machines.
 ```
 Developer Machine
 ├── Claude Code CLI
-├── .claude/ (configuration)
+├── Claude Code plugin rig (installed from rig-marketplace)
+├── ~/.claude/rig/ (runtime copy, venv)
 ├── Git repository
 └── Node.js runtime
 ```
@@ -344,22 +403,19 @@ Developer Machine
 Releases are manual:
 
 ```
-npm test                                         # every hook test file (scripts/run-hook-tests.cjs)
-    ↓
-node scripts/prepare-release-assets.cjs <version>
-    ├─→ .claude/metadata.json (version, file list)
-    └─→ dist/rig.zip
-    ↓
-gh release create|upload v<version> dist/rig.zip  # no npm publish
+node scripts/release-plugin.cjs                # dry run: checks plugin.json version, clean tree, main, npm test
+node scripts/release-plugin.cjs --apply        # terminal only: pins the marketplace entry (ref, sha), commits, creates tag v<version>
+git push origin main v<version>                # the script never pushes
 ```
 
-`antigravity-sync-check.yml` runs on every push and PR to `main` and fails when `.agent/` or `GEMINI.md` differ from a fresh sync.
+`--allow-branch` lets a beta tag come from a branch other than `main`. The entry's `sha` is the release content commit and the tag points at that commit, so a user installing the entry gets exactly the tagged content. There is no zip and no npm publish.
+
+`plugin-validate.yml` runs `claude plugin validate --strict` on `plugins/rig` and the marketplace on the Claude Code floor (2.1.292) and on the latest release, and fails a change to `plugins/rig/**` that does not raise the plugin version. `antigravity-sync-check.yml` runs on every push and PR to `main` and fails when `.agent/` or `GEMINI.md` differ from a fresh sync, or when a Claude Code-only reference survives in them.
 
 ### Production Usage
 
 ```
 User Project
-├── .claude/ (from template)
 ├── docs/ (generated)
 ├── plans/ (generated)
 ├── src/ (user code)
@@ -426,7 +482,7 @@ User Project
 
 ## Extension Points
 
-Agents, skills, and workflows are markdown files under `.claude/`, so extending Rig needs no code changes. Steps: [Extend Rig with Agents and Skills](../how-to/extend-rig-with-agents-and-skills.md).
+Agents, skills, and workflows are markdown files under `plugins/rig/`, so extending Rig needs no code changes. Steps: [Extend Rig with Agents and Skills](../how-to/extend-rig-with-agents-and-skills.md).
 
 ## Performance Considerations
 
@@ -452,7 +508,7 @@ Agents, skills, and workflows are markdown files under `.claude/`, so extending 
 
 ## Future Architecture Evolution
 
-Rig is developed independently and stays a set of files under `.claude/` with no runtime service. Direction and priorities live in the [Roadmap](../project/roadmap.md). Changes that would add a database, daemon, or remote execution must first revisit [ADR 0001](decisions/0001-agent-state-lives-in-files.md).
+Rig is developed independently and stays a set of files in the plugin (`plugins/rig/`) with no runtime service. Direction and priorities live in the [Roadmap](../project/roadmap.md). Changes that would add a database, daemon, or remote execution must first revisit [ADR 0001](decisions/0001-agent-state-lives-in-files.md).
 
 ## References
 

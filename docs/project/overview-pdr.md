@@ -47,7 +47,7 @@ Provide a toolkit that:
 **Persona 2: Technical Lead**
 - **Needs**: Enforce standards, review code, maintain architecture docs
 - **Pain Points**: Review bottleneck, inconsistent patterns, outdated docs
-- **Solution**: Review gates, shared rules in `.claude/rules/`, living documentation
+- **Solution**: Review gates, shared rules in `plugins/rig/rules/`, living documentation
 
 **Persona 3: Open Source Maintainer**
 - **Needs**: Scale contributions, maintain quality, clear documentation
@@ -58,7 +58,7 @@ Provide a toolkit that:
 
 ### 1. Multi-Agent Orchestration
 
-14 subagents in `.claude/agents/`:
+14 subagents in `plugins/rig/agents/`:
 - **Plan and research**: `planner`, `researcher`, `brainstormer`
 - **Build**: `implementer`, `code-simplifier`, `ui-ux-designer`
 - **Verify**: `tester`, `code-reviewer`, `debugger`
@@ -73,7 +73,7 @@ Agents hand off through files in `plans/` and `plans/reports/` ([ADR 0001](../ex
 
 ### 2. Skills and Slash Commands
 
-31 skills in `.claude/skills/`: 27 appear as `/rig:*` slash commands, 4 are internal helpers loaded by other skills.
+31 skills in `plugins/rig/skills/`: 27 appear as `/rig:*` slash commands, 4 are internal helpers loaded by other skills.
 
 **Core Development Commands**:
 - `/rig:plan` - Research and write a phased implementation plan
@@ -93,7 +93,7 @@ Agents hand off through files in `plans/` and `plans/reports/` ([ADR 0001](../ex
 **Design & Frontend**: ui-styling, ui-design
 **Git & Workflow**: git, worktree, pr, devlog
 **MCP Tools**: mcp
-**Project Planning**: rig-plan, progress, project-organization
+**Project Planning**: plan, progress, project-organization
 **Skill Development**: create-skill
 **Testing & QA**: test, browser
 **Visualization**: mermaidjs-v11, visualize
@@ -103,7 +103,7 @@ Full catalog: [guide/SKILLS.md](../../guide/SKILLS.md).
 
 ### 3. Hooks and Native Guards
 
-**Hooks** (`.claude/hooks/`) inject dynamic facts only:
+**Hooks** (`plugins/rig/hooks/`) inject dynamic facts only:
 - `session-init`: session vars, paths, active plan
 - `subagent-init`: Rig context for subagents
 - `team-context-inject`: team peers and tasks
@@ -119,8 +119,7 @@ Full catalog: [guide/SKILLS.md](../../guide/SKILLS.md).
 
 **Features**:
 - Semantic versioning (MAJOR.MINOR.PATCH), conventional commits
-- Manual release: `node scripts/prepare-release-assets.cjs <version>` builds `dist/rig.zip`, then `gh release` publishes it
-- GitHub Releases with the `rig.zip` package (no npm publishing)
+- Release: `node scripts/release-plugin.cjs` (dry run), then `--apply` in a terminal. It pins the marketplace entry to the tag and commit and creates `v<version>`. No zip, no npm publishing
 - Run `npm test` (every hook test file) before a release
 
 ### 5. Development Workflow Automation
@@ -140,7 +139,7 @@ Run plan phases and test commands on other machines (macOS, Windows, Linux) over
 
 ### 7. Antigravity Support
 
-`node scripts/sync-antigravity-agent-dir.cjs` generates `.agent/` and `GEMINI.md` from `.claude/` and `CLAUDE.md`. Workflows drop the `rig:` prefix. `rig:remote` and `rig:team` are Claude Code only. Details: [Antigravity vs Claude Code](../explanation/antigravity-vs-claude-code.md).
+`node scripts/sync-antigravity-agent-dir.cjs` generates `.agent/` and `GEMINI.md` from `plugins/rig/` and `CLAUDE.md`. Workflows drop the `rig:` prefix. `rig:remote` and `rig:team` are Claude Code only. Details: [Antigravity vs Claude Code](../explanation/antigravity-vs-claude-code.md).
 
 ## Technical Requirements
 
@@ -176,9 +175,10 @@ Run plan phases and test commands on other machines (macOS, Windows, Linux) over
 - Create clean PR descriptions
 
 **FR6: Installation**
-- Install into a project `.claude/` or globally into `~/.claude/`
-- Merge `settings.json` hooks and permissions without dropping user entries
-- Run one copy of each hook when installed globally and in a project
+- Install as one Claude Code plugin from the `rig-marketplace` marketplace; no copies in projects
+- Setup verbs (`rig-init --runtime`, `--permissions`, `--deps`) change `~/.claude/settings.json` only after a y/N in a terminal, never inside a session
+- Migrate 1.x copies with a journaled, restorable `rig-init --migrate`, without dropping user entries
+- Run one copy of each hook: the plugin yields to a 1.x registration
 
 **FR7: Multi-Machine Execution (`rig:remote`)**
 - Dispatch a plan phase to a named worker machine
@@ -243,7 +243,7 @@ Run plan phases and test commands on other machines (macOS, Windows, Linux) over
 **1. Agent Framework**
 - Agent definition files (Markdown with frontmatter)
 - File-based handoffs (`plans/`, `plans/reports/`)
-- Rules in `.claude/rules/`
+- Rules in `plugins/rig/rules/`
 
 **2. Skills**
 - `SKILL.md` plus `references/` and `scripts/` per skill
@@ -251,7 +251,7 @@ Run plan phases and test commands on other machines (macOS, Windows, Linux) over
 
 **3. Hooks**
 - Four context hooks, Node.js `.cjs`
-- Config in `.rig.json` (schema in `.claude/schemas/`)
+- Config in `.rig.json` (schema in `plugins/rig/schemas/`)
 
 **4. Documentation System**
 - Diataxis layout, migrator and validator (`/rig:docs`)
@@ -262,7 +262,7 @@ Run plan phases and test commands on other machines (macOS, Windows, Linux) over
 - Code review (`code-reviewer` agent, `/rig:code-review`)
 
 **6. Release System**
-- `scripts/prepare-release-assets.cjs`, GitHub Releases with `rig.zip`
+- `scripts/release-plugin.cjs`: marketplace pin (ref, sha) per tag; CI `--check-ref`
 
 Architecture details: [system architecture](../explanation/architecture.md).
 
