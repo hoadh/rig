@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Tests for bash-process-kill-rule.cjs (run through the rule engine).
- * Run: node --test .claude/hooks/lib/__tests__/bash-process-kill-rule.test.cjs
+ * Run: node --test plugins/rig/hooks/lib/__tests__/bash-process-kill-rule.test.cjs
  */
 const { describe, it } = require('node:test');
 const assert = require('node:assert');

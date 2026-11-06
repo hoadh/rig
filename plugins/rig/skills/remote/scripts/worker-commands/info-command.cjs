@@ -6,15 +6,13 @@ const path = require('path');
 const { PROTOCOL_VERSION } = require('../lib/rig-json-nonce-framing.cjs');
 const { selfMachineId } = require('../lib/machine-registry.cjs');
 
-/** Rig version from .claude/metadata.json or package.json when discoverable, else "unknown". */
+/** Rig version from the plugin manifest (.claude-plugin/plugin.json), else "unknown". */
 function readRigVersion() {
-  const claudeDir = path.resolve(__dirname, '..', '..', '..', '..'); // worker-commands -> scripts -> remote -> skills -> .claude
-  for (const f of [path.join(claudeDir, 'metadata.json'), path.join(claudeDir, '..', 'package.json')]) {
-    try {
-      const v = JSON.parse(fs.readFileSync(f, 'utf8')).version;
-      if (typeof v === 'string') return v;
-    } catch { /* try next */ }
-  }
+  const pluginRoot = path.resolve(__dirname, '..', '..', '..', '..'); // worker-commands -> scripts -> remote -> skills -> plugin root
+  try {
+    const v = JSON.parse(fs.readFileSync(path.join(pluginRoot, '.claude-plugin', 'plugin.json'), 'utf8')).version;
+    if (typeof v === 'string') return v;
+  } catch { /* no manifest next to the scripts */ }
   return 'unknown';
 }
 

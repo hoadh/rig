@@ -97,7 +97,7 @@ function writeIfChanged(dest, content, mode, dryRun) {
 
 /** Computes merged settings.json content; throws on a bad user file before anything is written. */
 function prepareSettings(item, ctx) {
-  let raw = fs.readFileSync(item.src, 'utf8');
+  let raw = item.content !== undefined ? item.content : fs.readFileSync(item.src, 'utf8');
   if (ctx.isGlobal) raw = rewriteContentForGlobalInstall(raw).content;
   const existing = ctx.forceSettings ? null : readJsonOrNull(item.dest);
   const { merged, stats } = mergeKitSettings(JSON.parse(raw), existing, ctx.isGlobal);

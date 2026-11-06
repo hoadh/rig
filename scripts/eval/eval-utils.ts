@@ -125,7 +125,7 @@ export function getChangedSkills(root: string): string[] {
   const changed = result.stdout.split("\n").filter(Boolean);
   const skillDirs = new Set<string>();
   for (const file of changed) {
-    const m = file.match(/^\.claude\/skills\/([^/]+)\//);
+    const m = file.match(/^plugins\/rig\/skills\/([^/]+)\//);
     if (m) skillDirs.add(m[1]);
   }
   return [...skillDirs];

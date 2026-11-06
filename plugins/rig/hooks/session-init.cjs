@@ -28,7 +28,7 @@ try {
   } = require('./lib/rig-config-utils.cjs');
   const { createHookTimer, logHookCrash } = require('./lib/hook-logger.cjs');
   const { buildReminderContext, clearReminderState } = require('./lib/context-builder.cjs');
-  const { yieldsToProjectCopy } = require('./lib/global-hook-yields-to-project-copy.cjs');
+  const { yieldsToProjectCopy, isPluginCopy } = require('./lib/global-hook-yields-to-project-copy.cjs');
 
   // Early exit if hook disabled in config
   if (!isHookEnabled('session-init')) {
@@ -73,6 +73,23 @@ function detectAgentTeam() {
     return null;
   } catch {
     return null;
+  }
+}
+
+// additionalContext is capped by Claude Code (10,000 characters); stay inside it.
+const CORE_RULES_MAX_CHARS = 10000;
+
+/**
+ * Reads plugins/rig/rules/core-rules.md when this hook runs from a plugin install.
+ * @returns {string} rules text capped at CORE_RULES_MAX_CHARS, or '' (not a plugin, missing file)
+ */
+function readPluginCoreRules() {
+  try {
+    if (!isPluginCopy(__filename)) return '';
+    const text = fs.readFileSync(path.join(__dirname, '..', 'rules', 'core-rules.md'), 'utf8').trim();
+    return text.length > CORE_RULES_MAX_CHARS ? text.slice(0, CORE_RULES_MAX_CHARS) : text;
+  } catch {
+    return '';
   }
 }
 
@@ -159,32 +176,35 @@ async function main() {
       writeEnv(envFile, 'RIG_GIT_BRANCH', gitBranch || '');
     }
 
-    // Agent Teams detection — shown in console output only
+    // Everything below is collected and printed once as additionalContext JSON.
+    const out = [];
+
+    // Agent Teams detection
     const teamInfo = detectAgentTeam();
 
-    console.log(`Session ${source}. ${buildContextOutput(config, detections, resolved, gitRoot)}`);
+    out.push(`Session ${source}. ${buildContextOutput(config, detections, resolved, gitRoot)}`);
 
     // Static paths, printed once per session start (the per-prompt reminder no longer repeats them)
     try {
       const { sections } = buildReminderContext({
         sessionId, config, baseDir: process.env.CLAUDE_PROJECT_DIR || process.cwd()
       });
-      console.log(sections.paths.join('\n').trimEnd());
+      out.push(sections.paths.join('\n').trimEnd());
     } catch (e) {
       // paths are a convenience; never fail session start over them
     }
 
     // Agent Teams: Show team context if running inside a team (uses cached result)
     if (teamInfo) {
-      console.log(`[i] Agent Team detected: "${teamInfo.teamName}" (${teamInfo.memberCount} members)`);
-      console.log(`    Team config: ~/.claude/teams/${teamInfo.teamName}/config.json`);
-      console.log(`    Use /rig:team skill for orchestration templates.`);
+      out.push(`[i] Agent Team detected: "${teamInfo.teamName}" (${teamInfo.memberCount} members)`);
+      out.push(`    Team config: ~/.claude/teams/${teamInfo.teamName}/config.json`);
+      out.push(`    Use /rig:team skill for orchestration templates.`);
     }
 
     // Info: Show git root when running from subdirectory (Issue #327: now supported)
     if (gitRoot && !samePath(gitRoot, process.cwd())) {
-      console.log(`📁 Subdirectory mode: Plans/docs will be created in current directory`);
-      console.log(`   Git root: ${gitRoot}`);
+      out.push(`📁 Subdirectory mode: Plans/docs will be created in current directory`);
+      out.push(`   Git root: ${gitRoot}`);
     }
 
     // MITIGATION: Issue #277 - Auto-compact can bypass AskUserQuestion approval gates
@@ -192,18 +212,27 @@ async function main() {
     // This warning reminds Claude to verify if user approval was pending before proceeding.
     // Upstream bug: Claude Code CLI should preserve pending interactive state during compaction.
     if (source === 'compact') {
-      console.log(`\n⚠️ CONTEXT COMPACTED - APPROVAL STATE CHECK:`);
-      console.log(`If you were waiting for user approval via AskUserQuestion (e.g., Step 4 review gate),`);
-      console.log(`you MUST re-confirm with the user before proceeding. Do NOT assume approval was given.`);
-      console.log(`Use AskUserQuestion to verify: "Context was compacted. Please confirm approval to continue."`);
+      out.push(`\n⚠️ CONTEXT COMPACTED - APPROVAL STATE CHECK:`);
+      out.push(`If you were waiting for user approval via AskUserQuestion (e.g., Step 4 review gate),`);
+      out.push(`you MUST re-confirm with the user before proceeding. Do NOT assume approval was given.`);
+      out.push(`Use AskUserQuestion to verify: "Context was compacted. Please confirm approval to continue."`);
     }
 
     if (config.assertions?.length > 0) {
-      console.log(`\nUser Assertions:`);
+      out.push(`\nUser Assertions:`);
       config.assertions.forEach((assertion, i) => {
-        console.log(`  ${i + 1}. ${assertion}`);
+        out.push(`  ${i + 1}. ${assertion}`);
       });
     }
+
+    // Plugin mode only: a plugin cannot ship .claude/rules, so inject the core rules here.
+    // File installs (1.x) get them natively from .claude/rules/.
+    const coreRules = readPluginCoreRules();
+    if (coreRules) out.push(`\n${coreRules}`);
+
+    process.stdout.write(JSON.stringify({
+      hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: out.join('\n') }
+    }));
 
     timer.end({ status: 'ok', exit: 0, note: source || 'session-start' });
     process.exit(0);

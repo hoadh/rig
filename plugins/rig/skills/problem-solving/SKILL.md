@@ -1,5 +1,5 @@
 ---
-name: rig:problem-solving
+name: problem-solving
 description: "Apply systematic problem-solving techniques. Use when stuck: complexity spirals, innovation blocks, recurring patterns, scale uncertainty."
 argument-hint: "[problem description]"
 metadata:

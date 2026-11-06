@@ -3,7 +3,7 @@
  * git skill against a temp bare remote, so docs and behaviour cannot drift.
  *
  * Source of truth: the <!-- push-proof --> fenced block in
- * .claude/skills/git/references/workflow-push.md (copies in workflow-commit.md
+ * plugins/rig/skills/git/references/workflow-push.md (copies in workflow-commit.md
  * and pr/SKILL.md must be byte-identical) and the <!-- commit-proof --> block
  * in workflow-commit.md.
  */
@@ -13,11 +13,11 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
-const ROOT = path.resolve(__dirname, '..', '..', '..');
+const ROOT = path.resolve(__dirname, '..', '..', '..', '..');
 const DOCS = {
-  push: '.claude/skills/git/references/workflow-push.md',
-  commit: '.claude/skills/git/references/workflow-commit.md',
-  pr: '.claude/skills/pr/SKILL.md',
+  push: 'plugins/rig/skills/git/references/workflow-push.md',
+  commit: 'plugins/rig/skills/git/references/workflow-commit.md',
+  pr: 'plugins/rig/skills/pr/SKILL.md',
 };
 
 function extractBlock(file, tag) {
@@ -145,9 +145,9 @@ const scenarios = {
   'commit-proof block is self-contained and mirrored in git SKILL.md / git-operator'() {
     assert.ok(COMMIT_PROOF.startsWith('PRE=$(git rev-parse HEAD);'), 'PRE capture must be inside the block');
     assert.ok(COMMIT_PROOF.includes('git commit'), 'commit must be inside the block');
-    const skill = fs.readFileSync(path.join(ROOT, '.claude/skills/git/SKILL.md'), 'utf8');
+    const skill = fs.readFileSync(path.join(ROOT, 'plugins/rig/skills/git/SKILL.md'), 'utf8');
     assert.ok(skill.includes(COMMIT_PROOF), 'git/SKILL.md commit step drifted from the commit-proof block');
-    const agent = fs.readFileSync(path.join(ROOT, '.claude/agents/git-operator.md'), 'utf8');
+    const agent = fs.readFileSync(path.join(ROOT, 'plugins/rig/agents/git-operator.md'), 'utf8');
     assert.match(agent, /ONE Bash call/);
   },
 };

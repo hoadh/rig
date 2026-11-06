@@ -1,5 +1,5 @@
 ---
-name: rig:ui-styling
+name: ui-styling
 description: "Style UIs with shadcn/ui (Radix UI + Tailwind CSS). Use for accessible components, themes, dark mode, responsive layouts."
 paths:
   - "**/*.tsx"

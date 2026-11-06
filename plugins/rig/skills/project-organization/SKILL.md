@@ -1,5 +1,5 @@
 ---
-name: rig:project-organization
+name: project-organization
 description: "Organize files, directories and content structure. Use when creating files, choosing output paths or standardizing project layout."
 argument-hint: "[directories or files to organize]"
 metadata:

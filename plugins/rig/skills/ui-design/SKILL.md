@@ -1,5 +1,5 @@
 ---
-name: rig:ui-design
+name: ui-design
 description: "UI/UX design intelligence for web, mobile and desktop, with searchable styles, palettes, fonts and UX guidelines. Use when designing, building or reviewing interfaces."
 paths:
   - "**/*.tsx"

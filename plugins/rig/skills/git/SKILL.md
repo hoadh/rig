@@ -1,5 +1,5 @@
 ---
-name: rig:git
+name: git
 description: "Git operations with conventional commits: stage, commit, push, merge; splits commits by type and scans for secrets. Use when asked to commit, push or merge. Pull requests: /rig:pr."
 argument-hint: "cm|cp|merge [args]"
 metadata:

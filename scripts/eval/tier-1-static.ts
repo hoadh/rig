@@ -26,9 +26,9 @@ import {
 import { validateAlwaysLoadedShoutingMarkers } from "./checks/always-loaded-shouting-markers.ts";
 
 const ROOT = projectRoot();
-const SKILLS_DIR = join(ROOT, ".claude/skills");
-const AGENTS_DIR = join(ROOT, ".claude/agents");
-const HOOKS_DIR = join(ROOT, ".claude/hooks");
+const SKILLS_DIR = join(ROOT, "plugins/rig/skills");
+const AGENTS_DIR = join(ROOT, "plugins/rig/agents");
+const HOOKS_DIR = join(ROOT, "plugins/rig/hooks");
 const RIG_JSON = join(ROOT, ".claude/.rig.json");
 
 // ── Print helpers ─────────────────────────────────────────────────────────────

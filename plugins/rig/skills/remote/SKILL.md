@@ -1,5 +1,5 @@
 ---
-name: rig:remote
+name: remote
 description: "Run commands and plan phases on other machines (Mac, Linux, Windows) over ssh: dispatch, track, review, collect. Use for multi-machine plans or testing on another OS."
 argument-hint: "register|setup|doctor|run|dispatch|status|cancel|collect|takeover|review [args]"
 metadata:

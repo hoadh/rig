@@ -5,9 +5,9 @@
  *   node scripts/sync-antigravity-agent-dir.cjs
  *
  * Source (git-tracked files only, so .env files and venvs never leak):
- *   .claude/skills/  → .agent/skills/     (minus Claude Code-only skills; rig-plan → plan, ...)
- *   .claude/agents/  → .agent/agents/     (role files the rules point to; Antigravity has no subagents)
- *   .claude/rules/   → .agent/rules/      (+ project-instructions.md from CLAUDE.md, + concept mapping rule)
+ *   plugins/rig/skills/  → .agent/skills/     (minus Claude Code-only skills)
+ *   plugins/rig/agents/  → .agent/agents/     (role files the rules point to; Antigravity has no subagents)
+ *   plugins/rig/rules/   → .agent/rules/      (+ project-instructions.md from CLAUDE.md, + concept mapping rule)
  *   user-invocable skills → .agent/workflows/<name>.md  (`/<name>` loads the skill)
  *   CLAUDE.md        → GEMINI.md
  * .agent/README.md is hand-written and kept. Everything else under .agent/ is replaced.
@@ -20,6 +20,9 @@ const t = require('./antigravity/claude-to-antigravity-text-rewrite.cjs');
 const ROOT = path.resolve(__dirname, '..');
 const AGENT_DIR = path.join(ROOT, '.agent');
 const CONCEPT_RULE = path.join(__dirname, 'antigravity', 'claude-code-concepts-in-antigravity.md');
+const PLUGIN_ROOT = 'plugins/rig';
+// Skill dirs the 1.x kit called rig-plan / rig-debug: text that still names the old dirs maps to the new ones.
+const LEGACY_SKILL_DIR_RENAMES = [['rig-plan', 'plan'], ['rig-debug', 'debug']];
 const GENERATED = ['skills', 'workflows', 'agents', 'rules', 'schemas', '.agent.json', '.mcp.json.example'];
 // Files that explain the mapping and may name .claude/ on purpose; skipped by the leftover check.
 const HAND_WRITTEN = new Set([path.join(AGENT_DIR, 'README.md'), path.join(AGENT_DIR, 'rules', path.basename(CONCEPT_RULE))]);
@@ -59,7 +62,7 @@ function flushOutputs() {
 function collectSkills(skillFiles) {
   const skills = [];
   for (const rel of skillFiles) {
-    const m = /^\.claude\/skills\/([^/]+)\/SKILL\.md$/.exec(rel);
+    const m = /^plugins\/rig\/skills\/([^/]+)\/SKILL\.md$/.exec(rel);
     if (!m || t.CLAUDE_ONLY_SKILL_DIRS.has(m[1])) continue;
     const fm = t.parseFrontmatter(readText(rel));
     const name = t.agentSkillName(fm.name, m[1]);
@@ -85,16 +88,16 @@ function findLeftovers(dir, found = []) {
 }
 
 function main() {
-  const skillFiles = trackedFiles('.claude/skills');
+  const skillFiles = trackedFiles(`${PLUGIN_ROOT}/skills`);
   const skills = collectSkills(skillFiles);
   const byDir = new Map(skills.map((s) => [s.dir, s]));
-  const renames = new Map(skills.filter((s) => s.name !== s.dir).map((s) => [s.dir, s.name]));
+  const renames = new Map([...LEGACY_SKILL_DIR_RENAMES, ...skills.filter((s) => s.name !== s.dir).map((s) => [s.dir, s.name])]);
   const rewrite = t.createTextRewriter(renames, new Set(skills.map((s) => s.name)));
   const rewriteSkillText = (text) => t.dropClaudeOnlyFileLines(rewrite(text));
 
   let skillFileCount = 0;
   for (const rel of skillFiles) {
-    const parts = rel.split('/').slice(2); // drop ".claude/skills"
+    const parts = rel.split('/').slice(3); // drop "plugins/rig/skills"
     if (parts.length > 1 && t.CLAUDE_ONLY_SKILL_DIRS.has(parts[0])) continue;
     if (t.CLAUDE_ONLY_SKILL_FILES.has(parts.join('/'))) continue;
     const skill = parts.length > 1 ? byDir.get(parts[0]) : null;
@@ -105,11 +108,11 @@ function main() {
     skillFileCount++;
   }
 
-  const agentFiles = trackedFiles('.claude/agents').filter((rel) => rel.endsWith('.md'));
+  const agentFiles = trackedFiles(`${PLUGIN_ROOT}/agents`).filter((rel) => rel.endsWith('.md'));
   for (const rel of agentFiles) copyRewritten(rel, path.join(AGENT_DIR, 'agents', path.basename(rel)), rewrite);
 
   const rulesDir = path.join(AGENT_DIR, 'rules');
-  for (const file of t.SYNCED_RULE_FILES) writeFile(path.join(rulesDir, file), t.convertRule(readText(`.claude/rules/${file}`), rewrite));
+  for (const file of t.SYNCED_RULE_FILES) writeFile(path.join(rulesDir, file), t.convertRule(readText(`${PLUGIN_ROOT}/rules/${file}`), rewrite));
   const claudeMd = readText('CLAUDE.md');
   writeFile(path.join(rulesDir, 'project-instructions.md'), t.convertProjectInstructions(claudeMd, rewrite, 'Project Instructions'));
   writeFile(path.join(rulesDir, path.basename(CONCEPT_RULE)), fs.readFileSync(CONCEPT_RULE, 'utf8'));

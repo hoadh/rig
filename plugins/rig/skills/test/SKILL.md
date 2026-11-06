@@ -1,5 +1,5 @@
 ---
-name: rig:test
+name: test
 description: "Run unit, integration, e2e and UI tests. Use for test execution, coverage analysis, build verification, QA reports."
 argument-hint: "[context] OR ui [url]"
 metadata:

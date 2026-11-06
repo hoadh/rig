@@ -1,0 +1,6 @@
+# Executable and supply-chain-sensitive paths of the plugin: changes need the owner's review.
+# Enable "Require review from Code Owners" in the main branch protection to enforce it.
+plugins/rig/hooks/**    @hoadh
+plugins/rig/bin/**      @hoadh
+plugins/rig/scripts/**  @hoadh
+.claude-plugin/**       @hoadh

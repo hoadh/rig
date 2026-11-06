@@ -1,5 +1,5 @@
 ---
-name: rig:code-review
+name: code-review
 description: "Review code with adversarial rigor: pending changes, PR number, commit or codebase scan; red-team for security holes and failure modes. Use before merging."
 argument-hint: "[#PR | COMMIT | --pending | codebase [parallel]]"
 metadata:

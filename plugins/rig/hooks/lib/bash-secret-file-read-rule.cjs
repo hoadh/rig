@@ -13,7 +13,7 @@
  *        (`ls .env`, `echo .env`, `git add .env.example`)
  *
  * Secret path set: the union of a built-in fallback list and the `Read(...)` entries of `permissions.ask` in the
- * settings.json that sits next to the hooks directory (entries are normalised: `~/`, `//abs`, `/x`, `./x`, bare
+ * settings.json that sits next to the hooks directory, when there is one (entries are normalised: `~/`, `//abs`, `/x`, `./x`, bare
  * names and `{a,b}` braces). Heredoc bodies are text, not commands, and are skipped.
  * Known limits (not chased): interpreters (`python -c open('.env')`, perl), `find -exec cat`, `xargs`, editors,
  * `grep -r KEY .` over a directory, `git diff`/`git log -p` of a secret, `curl -K`, variables other than a
@@ -26,8 +26,13 @@ const os = require('os');
 const path = require('path');
 const { commandName, expandHome, skipHeredocBodies, readHeredocDelimiter } = require('./bash-command-segment-tokenizer.cjs');
 
+// A plugin cannot ship `permissions.ask` rules, so this list is the protection for plugin installs and
+// mirrors the `Read(...)` ask entries of the 1.x settings.json.
 const FALLBACK_GLOBS = [
-  '**/.env', '**/.env.local', '**/.env.*.local', '**/*.pem', '**/*.key', '**/id_rsa*', '**/id_ed25519*',
+  '**/.env', '**/.env.local', '**/.env.*.local', '**/.env.development', '**/.env.production', '**/.env.staging',
+  '**/.env.test', '**/.env.dev', '**/.env.prod', '**/.env.stage', '**/.env.qa',
+  '**/*.pem', '**/*.key', '**/*.p12', '**/*.pfx', '**/id_rsa*', '**/id_ed25519*',
+  '**/*credentials*.json', '**/secret.y*ml', '**/secrets.y*ml',
 ];
 // Representative secret basenames, used to decide whether a shell glob argument (`.env*`) could hit one.
 const SAMPLE_NAMES = [

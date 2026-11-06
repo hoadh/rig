@@ -1,5 +1,5 @@
 ---
-name: rig:mermaidjs-v11
+name: mermaidjs-v11
 description: "Create Mermaid.js v11 diagrams: flowcharts, sequence, class, ER, Gantt, state, timelines. Use when a diagram is requested."
 argument-hint: "[diagram-type or description]"
 metadata:

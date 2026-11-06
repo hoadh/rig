@@ -1,7 +1,7 @@
 /**
  * hook-logger.cjs - Zero-dependency structured logger for hooks
  *
- * Logs to .claude/hooks/.logs/hook-log.jsonl (JSON Lines format)
+ * Logs to ${CLAUDE_PLUGIN_DATA}/logs/hook-log.jsonl, or hooks/.logs/hook-log.jsonl when unset (JSON Lines format)
  * Auto-creates .logs/ directory and handles rotation (1000 lines max → 500 last)
  * Uses only Node builtins (fs, path) — no external dependencies
  *
@@ -11,7 +11,10 @@
 const fs = require('fs');
 const path = require('path');
 
-const LOG_DIR = path.join(__dirname, '..', '.logs');
+const { logDir } = require('./plugin-data-dir.cjs');
+
+// Plugin mode: ${CLAUDE_PLUGIN_DATA}/logs. Otherwise the legacy hooks/.logs dir.
+const LOG_DIR = logDir(path.join(__dirname, '..', '.logs'));
 const LOG_FILE = path.join(LOG_DIR, 'hook-log.jsonl');
 const LOCK_FILE = path.join(LOG_DIR, 'hook-log.lock');
 const MAX_LINES = 1000;

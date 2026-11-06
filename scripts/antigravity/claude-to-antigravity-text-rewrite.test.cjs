@@ -62,5 +62,5 @@ test('setFrontmatterName replaces only the name line', () => {
 test('dropClaudeOnlyFileLines removes only lines naming a Claude Code-only file', () => {
   const text = 'keep\nLoad: `references/multi-machine-planning.md`.\nalso keep';
   assert.strictEqual(t.dropClaudeOnlyFileLines(text), 'keep\nalso keep');
-  assert.ok(t.CLAUDE_ONLY_SKILL_FILES.has('rig-plan/references/multi-machine-planning.md'));
+  assert.ok(t.CLAUDE_ONLY_SKILL_FILES.has('plan/references/multi-machine-planning.md'));
 });

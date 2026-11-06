@@ -4,7 +4,7 @@
 /**
  * Comprehensive Tests for Statusline Implementation
  * Modules tested: colors, transcript-parser, config-counter, statusline
- * Run: node .claude/hooks/lib/__tests__/statusline.test.cjs
+ * Run: node plugins/rig/hooks/lib/__tests__/statusline.test.cjs
  */
 
 const path = require('path');

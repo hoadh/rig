@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Tests for rig-config-utils.cjs - Config and path utilities
- * Run: node --test .claude/hooks/__tests__/rig-config-utils.test.cjs
+ * Run: node --test plugins/rig/hooks/__tests__/rig-config-utils.test.cjs
  *
  * Covers:
  * - Config loading and merging
@@ -531,7 +531,7 @@ describe('rig-config-utils.cjs', () => {
     it('uses cwd parameter for resolution', () => {
       const currentRoot = getGitRoot();
       if (currentRoot) {
-        const subdirPath = path.join(currentRoot, '.claude', 'hooks');
+        const subdirPath = path.join(currentRoot, 'plugins', 'rig', 'hooks');
         if (fs.existsSync(subdirPath)) {
           const result = getGitRoot(subdirPath);
           assert.strictEqual(result, currentRoot, 'Should resolve to same root');

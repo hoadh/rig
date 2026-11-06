@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Tests for subagent-init.cjs hook - monorepo and edge case handling (Issue #291)
- * Run: node --test .claude/hooks/__tests__/subagent-init.test.cjs
+ * Run: node --test plugins/rig/hooks/__tests__/subagent-init.test.cjs
  *
  * Issue #291: Plan paths should be explicit using git root
  * Key scenarios:
@@ -271,8 +271,8 @@ describe('subagent-init.cjs', () => {
         return;
       }
 
-      // Use .claude/hooks as subdirectory
-      const subdirPath = path.join(gitRoot, '.claude', 'hooks');
+      // Use plugins/rig/hooks as subdirectory
+      const subdirPath = path.join(gitRoot, 'plugins', 'rig', 'hooks');
       if (!fs.existsSync(subdirPath)) {
         console.log('  → Skipped: subdirectory does not exist');
         return;

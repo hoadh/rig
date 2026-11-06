@@ -14,6 +14,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { stateDir } = require('./plugin-data-dir.cjs');
 const { execSync } = require('child_process');
 const {
   loadConfig,
@@ -134,7 +135,7 @@ function wasRecentlyInjected(transcriptPath) {
  * @returns {string}
  */
 function getReminderStatePath(sessionId) {
-  return path.join(os.tmpdir(), `rig-reminder-${String(sessionId).replace(/[^A-Za-z0-9_-]/g, '_')}.json`);
+  return path.join(stateDir(), `rig-reminder-${String(sessionId).replace(/[^A-Za-z0-9_-]/g, '_')}.json`);
 }
 
 /**

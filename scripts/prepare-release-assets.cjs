@@ -5,8 +5,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 /**
- * Generate metadata.json aligned with the package version and
- * bundle the release archive (dist/rig.zip) for a GitHub Release.
+ * Bundle the release archive (dist/rig.zip) for a GitHub Release.
  */
 (function main() {
   const version = process.argv[2];
@@ -18,8 +17,6 @@ const { execSync } = require('child_process');
 
   const projectRoot = process.cwd();
   const packageJsonPath = path.join(projectRoot, 'package.json');
-  const claudeDir = path.join(projectRoot, '.claude');
-  const metadataPath = path.join(claudeDir, 'metadata.json');
   const distDir = path.join(projectRoot, 'dist');
   const archivePath = path.join(distDir, 'rig.zip');
   const manifestPath = path.join(projectRoot, 'release-manifest.json');
@@ -52,34 +49,6 @@ const { execSync } = require('child_process');
     if (missingFields.length > 0) {
       throw new Error(`Missing required fields in package.json: ${missingFields.join(', ')}`);
     }
-
-    if (!fs.existsSync(claudeDir)) {
-      fs.mkdirSync(claudeDir, { recursive: true });
-    }
-
-    // Read existing metadata to preserve ALL custom fields
-    let existingMetadata = {};
-    if (fs.existsSync(metadataPath)) {
-      try {
-        existingMetadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
-      } catch {
-        console.warn('⚠️ Could not parse existing metadata.json, starting fresh');
-      }
-    }
-
-    const metadata = {
-      // Preserve ALL existing fields first
-      ...existingMetadata,
-      // Generated fields override existing (always update these)
-      version: packageJson.version,
-      name: packageJson.name,
-      description: packageJson.description,
-      buildDate: new Date().toISOString(),
-      repository: packageJson.repository,
-    };
-
-    fs.writeFileSync(metadataPath, `${JSON.stringify(metadata, null, 2)}\n`, 'utf8');
-    console.log(`✓ Generated metadata.json with version ${metadata.version}`);
 
     // Regenerate the Antigravity copy (.agent/ and GEMINI.md) from the Claude Code kit
     console.log('Syncing Antigravity .agent/ directory...');

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Tests for bash-secret-file-read-rule.cjs (run through the rule engine).
- * Run: node --test .claude/hooks/lib/__tests__/bash-secret-file-read-rule.test.cjs
+ * Run: node --test plugins/rig/hooks/lib/__tests__/bash-secret-file-read-rule.test.cjs
  */
 const { describe, it } = require('node:test');
 const assert = require('node:assert');

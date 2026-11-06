@@ -1,6 +1,6 @@
 /**
  * Tests for rig-config-utils edge case handling
- * Run: node .claude/hooks/lib/__tests__/rig-config-utils.test.cjs
+ * Run: node plugins/rig/hooks/lib/__tests__/rig-config-utils.test.cjs
  */
 
 const path = require('path');

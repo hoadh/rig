@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Tests for dev-rules-reminder.cjs hook - output sections and path resolution
- * Run: node --test .claude/hooks/__tests__/dev-rules-reminder.test.cjs
+ * Run: node --test plugins/rig/hooks/__tests__/dev-rules-reminder.test.cjs
  *
  * Paths anchor to CLAUDE_PROJECT_DIR (CWD fallback, Issue #327)
  * Key scenarios:
@@ -132,7 +132,7 @@ describe('dev-rules-reminder.cjs', () => {
 
     it('anchors paths to CLAUDE_PROJECT_DIR when the CWD is a subdirectory', async () => {
       if (!gitRoot) return;
-      const subdir = path.join(gitRoot, '.claude', 'hooks');
+      const subdir = path.join(gitRoot, 'plugins', 'rig', 'hooks');
       const result = await runHook({ user_prompt: 'test' }, { cwd: subdir, env: projectEnv });
       assert.ok(result.stdout.includes(`Plan dir: \`${path.join(gitRoot, 'plans')}/`), result.stdout);
       assert.ok(!result.stdout.includes(path.join(subdir, 'plans')), 'Must not resolve plans under the subdirectory');
@@ -140,7 +140,7 @@ describe('dev-rules-reminder.cjs', () => {
 
     it('never repeats the project dir inside a path', async () => {
       if (!gitRoot) return;
-      const subdir = path.join(gitRoot, '.claude', 'hooks');
+      const subdir = path.join(gitRoot, 'plugins', 'rig', 'hooks');
       const result = await runHook({ user_prompt: 'test' }, { cwd: subdir, env: projectEnv });
       const relRoot = gitRoot.replace(/^[\\/]/, '');
       assert.ok(!result.stdout.includes(path.join(gitRoot, relRoot)), result.stdout);

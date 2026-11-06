@@ -2,7 +2,7 @@
 /**
  * Tests for lib/global-hook-yields-to-project-copy.cjs: the global copy of a hook exits only when
  * the project install registers the same hook for the same event and matcher.
- * Run: node --test .claude/hooks/__tests__/global-hook-yields-to-project-copy.test.cjs
+ * Run: node --test plugins/rig/hooks/__tests__/global-hook-yields-to-project-copy.test.cjs
  */
 const test = require('node:test');
 const assert = require('node:assert');
@@ -149,7 +149,70 @@ test('end to end: installed global hook stays silent only when the project runs 
   const run = () => spawnSync(process.execPath, [path.join(globalHooks, 'dev-rules-reminder.cjs')], {
     input: JSON.stringify({ hook_event_name: 'UserPromptSubmit', prompt: 'hi' }),
     cwd: t.project,
-    env: { ...process.env, HOME: t.home, USERPROFILE: t.home, CLAUDE_PROJECT_DIR: t.project },
+    // RIG_SESSION_ID cleared: a leaked id from the outer Claude session would trip the reminder's delta mode
+    env: { ...process.env, HOME: t.home, USERPROFILE: t.home, CLAUDE_PROJECT_DIR: t.project, RIG_SESSION_ID: '' },
+    encoding: 'utf8',
+  }).stdout;
+
+  assert.match(run(), /## Rig Session/, 'runs when the project does not register it');
+  t.writeSettings({ UserPromptSubmit: [{ hooks: [{ type: 'command', command: PROJECT_CMD('dev-rules-reminder.cjs') }] }] });
+  assert.strictEqual(run(), '', 'silent when the project copy runs');
+});
+
+// --- plugin mode: the plugin copy (<root>/hooks/x.cjs + <root>/.claude-plugin/plugin.json) yields like the global copy ---
+
+/** A fake plugin install next to the fake project; the hook file is `<plugin>/hooks/x.cjs`. */
+function setupPlugin() {
+  const t = setup();
+  const pluginRoot = path.join(t.root, 'plugin-cache', 'rig');
+  fs.mkdirSync(path.join(pluginRoot, 'hooks'), { recursive: true });
+  fs.mkdirSync(path.join(pluginRoot, '.claude-plugin'), { recursive: true });
+  fs.writeFileSync(path.join(pluginRoot, '.claude-plugin', 'plugin.json'), JSON.stringify({ name: 'rig', version: '0.0.0' }));
+  fs.writeFileSync(path.join(pluginRoot, 'hooks', 'x.cjs'), '');
+  return { ...t, pluginRoot, pluginHook: path.join(pluginRoot, 'hooks', 'x.cjs') };
+}
+
+test('plugin copy yields when the project still registers its own 1.x copy of the hook', () => {
+  const t = setupPlugin();
+  t.writeSettings({ PreToolUse: [{ matcher: 'Bash|Write', hooks: [{ type: 'command', command: PROJECT_CMD('x.cjs') }] }] });
+  assert.strictEqual(check(t, preWrite, t.pluginHook), true);
+});
+
+test('plugin copy keeps running when the project registers nothing, another event or another matcher', () => {
+  const t = setupPlugin();
+  assert.strictEqual(check(t, preWrite, t.pluginHook), false, 'no settings');
+  t.writeSettings({ PostToolUse: [{ matcher: 'Write', hooks: [{ type: 'command', command: PROJECT_CMD('x.cjs') }] }] });
+  assert.strictEqual(check(t, preWrite, t.pluginHook), false, 'other event');
+  t.writeSettings({ PreToolUse: [{ matcher: 'Edit', hooks: [{ type: 'command', command: PROJECT_CMD('x.cjs') }] }] });
+  assert.strictEqual(check(t, preWrite, t.pluginHook), false, 'other matcher');
+});
+
+test('a hooks directory without a plugin manifest is not a plugin copy and never yields', () => {
+  const t = setupPlugin();
+  fs.rmSync(path.join(t.pluginRoot, '.claude-plugin'), { recursive: true });
+  t.writeSettings({ PreToolUse: [{ matcher: 'Write', hooks: [{ type: 'command', command: PROJECT_CMD('x.cjs') }] }] });
+  assert.strictEqual(check(t, preWrite, t.pluginHook), false);
+});
+
+test('plugin copy keeps running when the project has no copy of that hook file', () => {
+  const t = setupPlugin();
+  fs.unlinkSync(path.join(t.project, '.claude', 'hooks', 'x.cjs'));
+  t.writeSettings({ PreToolUse: [{ matcher: 'Write', hooks: [{ type: 'command', command: PROJECT_CMD('x.cjs') }] }] });
+  assert.strictEqual(check(t, preWrite, t.pluginHook), false);
+});
+
+test('end to end: the plugin hooks yield to a project copy and run without one', () => {
+  const t = setup();
+  const pluginRoot = path.join(t.root, 'plugin-cache', 'rig');
+  fs.cpSync(HOOKS_DIR, path.join(pluginRoot, 'hooks'), { recursive: true, filter: (src) => !/[\\/](__tests__|tests|\.logs)$/.test(src) });
+  fs.cpSync(path.join(HOOKS_DIR, '..', '.claude-plugin'), path.join(pluginRoot, '.claude-plugin'), { recursive: true });
+  fs.cpSync(path.join(HOOKS_DIR, '..', 'rules'), path.join(pluginRoot, 'rules'), { recursive: true });
+  fs.cpSync(HOOKS_DIR, path.join(t.project, '.claude', 'hooks'), { recursive: true, filter: (src) => !/[\\/](__tests__|tests|\.logs)$/.test(src) });
+  const run = () => spawnSync(process.execPath, [path.join(pluginRoot, 'hooks', 'dev-rules-reminder.cjs')], {
+    input: JSON.stringify({ hook_event_name: 'UserPromptSubmit', prompt: 'hi' }),
+    cwd: t.project,
+    env: { ...process.env, HOME: t.home, USERPROFILE: t.home, CLAUDE_PROJECT_DIR: t.project, RIG_SESSION_ID: '',
+      CLAUDE_PLUGIN_ROOT: pluginRoot, CLAUDE_PLUGIN_DATA: path.join(t.root, 'plugin-data') },
     encoding: 'utf8',
   }).stdout;
 

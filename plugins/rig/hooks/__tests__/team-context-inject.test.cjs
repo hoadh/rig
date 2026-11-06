@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Tests for team-context-inject.cjs hook - Team Agent Context Injection
- * Run: node --test .claude/hooks/__tests__/team-context-inject.test.cjs
+ * Run: node --test plugins/rig/hooks/__tests__/team-context-inject.test.cjs
  *
  * Tests coverage:
  * - Team membership detection (name@team-name pattern)

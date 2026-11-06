@@ -1,5 +1,5 @@
 ---
-name: rig:plan
+name: plan
 description: "Plan implementations and architectures with detailed phases. Use for feature planning, system design, implementation strategy, roadmaps."
 argument-hint: "[task] OR [archive|red-team|validate]"
 license: MIT

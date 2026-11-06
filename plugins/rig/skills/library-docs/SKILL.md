@@ -1,5 +1,5 @@
 ---
-name: rig:library-docs
+name: library-docs
 description: "Look up library and framework docs via llms.txt (context7.com). Use for API docs, GitHub repo analysis, latest library features."
 argument-hint: "[library-name] [topic]"
 metadata:

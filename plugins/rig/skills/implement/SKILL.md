@@ -1,5 +1,5 @@
 ---
-name: rig:implement
+name: implement
 description: "Implement a feature or plan end-to-end: plan, code, test, review. Use for Standard and Large tasks; Trivial one-file fixes are done directly."
 argument-hint: "[task|plan-path] [--interactive|--fast|--full|--parallel|--auto|--no-test]"
 metadata:

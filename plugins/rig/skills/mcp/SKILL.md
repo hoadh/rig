@@ -1,5 +1,5 @@
 ---
-name: rig:mcp
+name: mcp
 description: "Manage MCP servers: discover, analyze and run tools, prompts and resources. Use for MCP integrations and multi-server tool selection."
 argument-hint: "[task or server-name]"
 metadata:

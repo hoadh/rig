@@ -5,18 +5,18 @@
  * Aggregate runner for statusline test suites.
  *
  * Run:
- *   node .claude/hooks/lib/__tests__/statusline-suite.cjs
+ *   node plugins/rig/hooks/lib/__tests__/statusline-suite.cjs
  */
 
 const path = require('path');
 const { spawnSync } = require('child_process');
 
-const ROOT = path.resolve(__dirname, '../../../..');
+const ROOT = path.resolve(__dirname, '../../../../..');
 
 const SUITES = [
-  '.claude/hooks/lib/__tests__/statusline.test.cjs',
-  '.claude/hooks/lib/__tests__/statusline-integration.test.cjs',
-  '.claude/hooks/lib/__tests__/statusline-scenarios.test.cjs'
+  'plugins/rig/hooks/lib/__tests__/statusline.test.cjs',
+  'plugins/rig/hooks/lib/__tests__/statusline-integration.test.cjs',
+  'plugins/rig/hooks/lib/__tests__/statusline-scenarios.test.cjs'
 ];
 
 let failed = 0;

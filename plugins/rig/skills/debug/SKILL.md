@@ -1,5 +1,5 @@
 ---
-name: rig:debug
+name: debug
 description: "Find the root cause before any fix (full fix workflow: /rig:fix). Use for bugs, test failures, performance issues, logs, CI/CD failures, database diagnostics."
 languages: all
 argument-hint: "[error or issue description]"

@@ -1,5 +1,5 @@
 ---
-name: rig:brainstorm
+name: brainstorm
 description: "Brainstorm solutions with trade-off analysis and honest critique. Use for ideation, architecture decisions, technical debates, feasibility checks."
 license: MIT
 argument-hint: "[topic or problem]"

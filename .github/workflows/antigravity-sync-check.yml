@@ -1,7 +1,7 @@
 name: Antigravity Sync Check
 
 # Fails when .agent/ or GEMINI.md no longer match what
-# scripts/sync-antigravity-agent-dir.cjs generates from .claude/ and CLAUDE.md.
+# scripts/sync-antigravity-agent-dir.cjs generates from plugins/rig/ and CLAUDE.md.
 
 on:
   push:
@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   check:
-    name: .agent/ matches .claude/
+    name: .agent/ matches plugins/rig/
     runs-on: ubuntu-latest
 
     steps:
@@ -42,4 +42,4 @@ jobs:
             echo "::error::.agent/ or GEMINI.md is out of date. Run 'node scripts/sync-antigravity-agent-dir.cjs' and commit the result."
             exit 1
           fi
-          echo "✓ .agent/ and GEMINI.md match .claude/"
+          echo "✓ .agent/ and GEMINI.md match plugins/rig/"

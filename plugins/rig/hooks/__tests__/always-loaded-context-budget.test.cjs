@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Static budget for text that is always loaded into context (Rig 1.1 context reduction).
- * Run: node --test .claude/hooks/__tests__/always-loaded-context-budget.test.cjs
+ * Run: node --test plugins/rig/hooks/__tests__/always-loaded-context-budget.test.cjs
  *
  * - core-rules.md and CLAUDE.md are loaded every session; core-rules.md is also injected into every subagent
  * - agent and skill descriptions sit in the catalog of every session
@@ -13,8 +13,8 @@ const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
 
-const ROOT = path.join(__dirname, '..', '..', '..');
-const CLAUDE_DIR = path.join(ROOT, '.claude');
+const ROOT = path.join(__dirname, '..', '..', '..', '..');
+const CLAUDE_DIR = path.join(ROOT, 'plugins', 'rig'); // kit root (plugin); CLAUDE.md stays at the repo root
 
 const LIMITS = {
   coreRulesBytes: 1800,

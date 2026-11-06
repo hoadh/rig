@@ -1,5 +1,5 @@
 ---
-name: rig:context-engineering
+name: context-engineering
 description: "Check context usage, rate limits and time remaining; optimize token use, debug context failures. Use when asked about context percentage or usage warnings."
 argument-hint: "[topic or question]"
 metadata:

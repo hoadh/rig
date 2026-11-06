@@ -1,5 +1,5 @@
 ---
-name: rig:team
+name: team
 description: "Orchestrate Agent Teams for parallel multi-session work. Use for research, implementation, review or debug workflows needing independent teammates."
 argument-hint: "<research|implement|review|debug> <context> [--devs|--researchers|--reviewers|--debuggers N] [--plan-approval] [--delegate]"
 metadata:

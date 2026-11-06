@@ -1,5 +1,5 @@
 ---
-name: rig:browser
+name: browser
 description: "Automate browsers with Puppeteer CLI scripts. Use for screenshots, web scraping, form automation, network monitoring, JavaScript debugging."
 license: Apache-2.0
 argument-hint: "[url or task]"

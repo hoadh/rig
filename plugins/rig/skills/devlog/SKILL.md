@@ -1,5 +1,5 @@
 ---
-name: rig:devlog
+name: devlog
 description: "Write devlog entries on recent changes: shipped work, decisions, impact, lessons. Use after finishing a feature or fix."
 argument-hint: "[topic or reflection]"
 metadata:

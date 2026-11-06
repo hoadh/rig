@@ -3,7 +3,7 @@
  * Integration tests for the verify-completion-guard Stop hook: spawns a COPY of the hook installed
  * in a temp HOME (isolated hook log + global ~/.claude/.rig.json) with Stop JSON on stdin.
  * HOME and USERPROFILE are both set (Windows uses the latter); RIG_SESSION_ID is cleared.
- * Run: node --test .claude/hooks/__tests__/verify-completion-guard.test.cjs
+ * Run: node --test plugins/rig/hooks/__tests__/verify-completion-guard.test.cjs
  */
 const test = require('node:test');
 const assert = require('node:assert');

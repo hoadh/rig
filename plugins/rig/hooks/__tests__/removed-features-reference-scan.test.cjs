@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Guards against references to features Rig 1.1 removed (built-in duplicates and the broken team API).
- * Run: node --test .claude/hooks/__tests__/removed-features-reference-scan.test.cjs
+ * Run: node --test plugins/rig/hooks/__tests__/removed-features-reference-scan.test.cjs
  *
  * Case-insensitive; also flags links to the deleted skill reference files.
  * Scans .claude/, .agent/, .github/, docs/ (not docs/devlog, not changelog files), guide/, README.md, AGENTS.md,
@@ -15,7 +15,7 @@ const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
 
-const ROOT = path.join(__dirname, '..', '..', '..');
+const ROOT = path.join(__dirname, '..', '..', '..', '..');
 // Removed features plus the basenames of deleted skill reference files (a dangling link to one is a bug)
 const DELETED_REFERENCES = [
   'internal-exploration', 'task-management-exploration', 'code-review-reception', 'requesting-code-review',
@@ -49,7 +49,7 @@ function collect(target, out) {
 describe('removed features are not referenced', () => {
   it('has no references to sequential-thinking, TeamCreate/TeamDelete, notify.cjs, codingLevel, coding-level or output-styles', () => {
     const files = [];
-    for (const target of ['.claude', '.agent', '.github', 'docs', 'guide', 'README.md', 'AGENTS.md', 'CLAUDE.md', 'GEMINI.md']) collect(path.join(ROOT, target), files);
+    for (const target of ['.claude', 'plugins/rig', '.claude-plugin', '.agent', '.github', 'docs', 'guide', 'README.md', 'AGENTS.md', 'CLAUDE.md', 'GEMINI.md']) collect(path.join(ROOT, target), files);
     assert.ok(files.length > 50, 'scan found the kit files');
 
     const hits = [];

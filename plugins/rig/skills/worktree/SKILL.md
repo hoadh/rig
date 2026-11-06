@@ -1,5 +1,5 @@
 ---
-name: rig:worktree
+name: worktree
 description: "Create an isolated git worktree for parallel development. Use when starting a feature that must not touch the current checkout."
 argument-hint: "[feature-description] OR [project] [feature]"
 metadata:

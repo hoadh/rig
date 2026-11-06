@@ -1,5 +1,5 @@
 ---
-name: rig:markdown-viewer
+name: markdown-viewer
 description: "View markdown files in a calm, book-like reader over a local HTTP server. Use for long documents, doc preview, reports."
 argument-hint: "[file-or-directory]"
 metadata:

@@ -1,5 +1,5 @@
 ---
-name: rig:progress
+name: progress
 description: "Track progress from plan phase tables, todo checkboxes and LIVE items; update plan statuses and report. Use for status checks and plan completion."
 argument-hint: "[task: status, sync, report]"
 metadata:

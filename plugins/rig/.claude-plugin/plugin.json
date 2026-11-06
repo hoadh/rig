@@ -1,0 +1,10 @@
+{
+  "name": "rig",
+  "version": "2.0.0-beta.1",
+  "description": "Rig — an Agentic-Driven Development toolkit for Claude Code: agents, skills, hooks and workflows that plan, build, test and review software.",
+  "author": { "name": "Alex Dang" },
+  "homepage": "https://github.com/hoadh/rig#readme",
+  "repository": "https://github.com/hoadh/rig",
+  "license": "MIT",
+  "keywords": ["claude-code", "ai-agents", "agentic-driven-development", "workflow", "automation"]
+}

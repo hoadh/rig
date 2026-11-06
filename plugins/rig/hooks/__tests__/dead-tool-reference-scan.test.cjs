@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
  * Guards against tool names Claude Code no longer ships (or that are off by default) in kit agents, skills and docs.
- * Run: node --test .claude/hooks/__tests__/dead-tool-reference-scan.test.cjs
+ * Run: node --test plugins/rig/hooks/__tests__/dead-tool-reference-scan.test.cjs
  *
- * Scans Markdown under .claude/ and .agent/ (agents, skills, rules). Code files are out of scope: they may legitimately
+ * Scans Markdown under plugins/rig/ and .agent/ (agents, skills, rules). Code files are out of scope: they may legitimately
  * name OS concepts such as a Windows "Scheduled Task". History files (changelogs, devlog) are excluded.
  * Flagged: MultiEdit, BashOutput, KillBash, the LS tool (in `tools:` lists or "LS tool" prose), `Task(...)` call/spec syntax
  * (use `Agent(...)` or the built-in Explore agent), and "Task tool" wording (the tool is the Agent tool).
@@ -15,7 +15,7 @@ const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
 
-const ROOT = path.join(__dirname, '..', '..', '..');
+const ROOT = path.join(__dirname, '..', '..', '..', '..');
 const SKIP_DIRS = new Set(['node_modules', '.git', '.venv', '.logs', 'devlog', '__pycache__', '__tests__']);
 const SKIP_FILES = new Set(['CHANGELOG.md', 'changelog.md']);
 
@@ -50,7 +50,7 @@ const TASK_GUARD = /(if|only if|when)\s+`?Task\w+`?\s+(is|are)\s+available|`?Tas
 
 describe('Tasks API is optional in skills', () => {
   it('every skill file mentioning TaskCreate/TaskUpdate guards it with an "if available" note first', () => {
-    const files = collect(path.join(ROOT, '.claude', 'skills'), []).filter((f) => !f.includes(`${path.sep}skills${path.sep}team${path.sep}`));
+    const files = collect(path.join(ROOT, 'plugins', 'rig', 'skills'), []).filter((f) => !f.includes(`${path.sep}skills${path.sep}team${path.sep}`));
     const hits = [];
     for (const file of files) {
       const paragraphs = fs.readFileSync(file, 'utf8').split(/\r?\n\s*\r?\n/);
@@ -68,9 +68,9 @@ describe('Tasks API is optional in skills', () => {
 });
 
 describe('dead tool names are not referenced', () => {
-  it('has no MultiEdit, LS, BashOutput, KillBash, Task( or "Task tool" in .claude/ and .agent/ Markdown', () => {
+  it('has no MultiEdit, LS, BashOutput, KillBash, Task( or "Task tool" in plugins/rig/ and .agent/ Markdown', () => {
     const files = [];
-    for (const target of ['.claude', '.agent']) collect(path.join(ROOT, target), files);
+    for (const target of ['plugins/rig', '.agent']) collect(path.join(ROOT, target), files);
     assert.ok(files.length > 50, 'scan found the kit files');
 
     const hits = [];

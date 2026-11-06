@@ -1,13 +1,13 @@
 /**
- * Pure text rewrites that turn Claude Code kit files (.claude/) into the Antigravity copy (.agent/).
+ * Pure text rewrites that turn Claude Code kit files (plugins/rig/) into the Antigravity copy (.agent/).
  * No file system access, so every rule can be unit-tested.
  */
 
 // Skills that only work inside Claude Code (headless `claude -p` workers, Agent Teams).
 const CLAUDE_ONLY_SKILL_DIRS = new Set(['remote', 'team']);
-// Files inside synced skills that only drive Claude Code-only skills (paths under .claude/skills/).
+// Files inside synced skills that only drive Claude Code-only skills (paths under plugins/rig/skills/).
 // They are not copied, and lines naming them are dropped from the synced text.
-const CLAUDE_ONLY_SKILL_FILES = new Set(['rig-plan/references/multi-machine-planning.md']);
+const CLAUDE_ONLY_SKILL_FILES = new Set(['plan/references/multi-machine-planning.md']);
 
 // Rules copied into .agent/rules/. Task-specific rules live in skill references and ship with the skills.
 const SYNCED_RULE_FILES = ['core-rules.md'];

@@ -1,5 +1,5 @@
 ---
-name: rig:explore
+name: explore
 description: "Explore the codebase fast with parallel agents. Use for file discovery, gathering task context, quick searches across directories."
 argument-hint: "[search-target] [ext]"
 metadata:

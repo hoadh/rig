@@ -1,7 +1,7 @@
 /**
  * Tier 1 check: always-loaded instruction files must not use shouting markers.
  *
- * CLAUDE.md, AGENTS.md and .claude/rules/*.md load into every session. Emphasis
+ * CLAUDE.md, AGENTS.md and the plugin core rules (plugins/rig/rules/*.md) load into every session. Emphasis
  * words like NON-NEGOTIABLE cause over-triggering on current models; state the
  * rule plainly with a one-line reason instead.
  */
@@ -14,7 +14,7 @@ const SHOUTING = /NON-NEGOTIABLE|NO EXCEPTIONS|MANDATORY/;
 
 export function validateAlwaysLoadedShoutingMarkers(root: string): CheckResult {
   const files = ["CLAUDE.md", "AGENTS.md"].map((f) => join(root, f));
-  const rulesDir = join(root, ".claude/rules");
+  const rulesDir = join(root, "plugins/rig/rules");
   if (existsSync(rulesDir)) {
     for (const f of readdirSync(rulesDir).sort()) {
       if (f.endsWith(".md")) files.push(join(rulesDir, f));

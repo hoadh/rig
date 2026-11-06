@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Integration tests for Issue #327: Path Resolution
- * Run: node --test .claude/hooks/__tests__/integration/path-resolution.test.cjs
+ * Run: node --test plugins/rig/hooks/__tests__/integration/path-resolution.test.cjs
  *
  * Tests the full workflow of path resolution across all hooks:
  * - session-init.cjs

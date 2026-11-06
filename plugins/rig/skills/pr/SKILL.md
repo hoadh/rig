@@ -1,5 +1,5 @@
 ---
-name: rig:pr
+name: pr
 description: "Open a pull request in one command: merge main, test, review, commit, push, PR URL. Use for official or beta releases from a feature branch."
 argument-hint: "[official|beta] [--skip-tests] [--skip-review] [--skip-devlog] [--skip-docs] [--dry-run]"
 license: MIT

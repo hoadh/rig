@@ -3,7 +3,7 @@
  * Discovers and runs every Node test file in the repo and exits non-zero if any fails.
  * Used by `npm test` and CI; run it before a release.
  *
- * Discovery: every *.test.cjs / *.test.js under .claude/ and scripts/ (node_modules,
+ * Discovery: every *.test.cjs / *.test.js under plugins/ and scripts/ (node_modules,
  * .venv, .git and worktrees are ignored; .agent/ is a generated mirror and is not scanned).
  * Test files are plain Node scripts (some use node:test, some print their own results);
  * each one is run as `node <file>` and judged by its exit code.
@@ -22,7 +22,7 @@ const path = require('path');
 const { spawn, spawnSync } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
-const SCAN_DIRS = [path.join(ROOT, '.claude'), path.join(ROOT, 'scripts')];
+const SCAN_DIRS = [path.join(ROOT, 'plugins'), path.join(ROOT, 'scripts')];
 const IGNORED_DIRS = new Set(['node_modules', '.venv', '.git', 'worktrees']);
 // Per-file timeout. Windows runners spawn git/node/powershell 10-15x slower than Linux: the rig:remote
 // loopback e2e takes ~13 s on ubuntu-latest and ~180 s on windows-latest, so one limit cannot fit both.
@@ -35,8 +35,8 @@ const CONCURRENCY = Math.max(2, Math.min(os.cpus().length, 8));
 const TEST_FILE = /\.test\.(cjs|js)$/;
 
 // Run alone, after the parallel batch: hook-logger.test.cjs truncates
-// .claude/hooks/.logs/hook-log.jsonl, which other hooks append to.
-const SERIAL_FILES = new Set(['.claude/hooks/__tests__/hook-logger.test.cjs']);
+// plugins/rig/hooks/.logs/hook-log.jsonl, which other hooks append to.
+const SERIAL_FILES = new Set(['plugins/rig/hooks/__tests__/hook-logger.test.cjs']);
 
 // Test files that cannot run under plain `node <file>`. Each entry needs a reason;
 // it is printed on every run so the skip stays visible.
@@ -46,9 +46,9 @@ const SKIPPED_FILES = new Map([
 // Custom-framework suites: they rely on the `describe` global installed by
 // tests/test-framework.cjs, so `node <file>` fails. They run through their own runner,
 // which is executed once in place of the listed files.
-const MARKDOWN_VIEWER_RUNNER = '.claude/skills/markdown-viewer/tests/run-tests.cjs';
+const MARKDOWN_VIEWER_RUNNER = 'plugins/rig/skills/markdown-viewer/tests/run-tests.cjs';
 const COVERED_BY_RUNNER = new Map([
-  ['.claude/skills/markdown-viewer/tests/http-server.test.cjs', MARKDOWN_VIEWER_RUNNER],
+  ['plugins/rig/skills/markdown-viewer/tests/http-server.test.cjs', MARKDOWN_VIEWER_RUNNER],
 ]);
 
 const toPosix = (p) => p.split(path.sep).join('/');
@@ -125,7 +125,7 @@ function extractSelfReportedSkips(output) {
 async function main() {
   const discovered = SCAN_DIRS.flatMap(findTestFiles);
   if (discovered.length === 0) {
-    console.error('No test files found under .claude/ or scripts/');
+    console.error('No test files found under plugins/ or scripts/');
     process.exitCode = 1;
     return;
   }

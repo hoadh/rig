@@ -14,7 +14,7 @@
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const os = require('os');
+const { stateDir } = require('./plugin-data-dir.cjs');
 
 // Cache TTL: the only freshness mechanism (no hook invalidates the cache after edits),
 // so keep it short enough that the statusline catches up within a few seconds.
@@ -68,7 +68,7 @@ function getCachePath(cwd) {
     .update(cwd)
     .digest('hex')
     .slice(0, 8);
-  return path.join(os.tmpdir(), `rig-git-cache-${hash}.json`);
+  return path.join(stateDir(), `rig-git-cache-${hash}.json`);
 }
 
 /**

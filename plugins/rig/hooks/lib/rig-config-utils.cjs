@@ -8,6 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { stateDir } = require('./plugin-data-dir.cjs');
 
 const LOCAL_CONFIG_PATH = '.claude/.rig.json';
 const GLOBAL_CONFIG_PATH = path.join(os.homedir(), '.claude', '.rig.json');
@@ -132,7 +133,7 @@ function loadConfigFromPath(configPath) {
  * @returns {string} Path to session temp file
  */
 function getSessionTempPath(sessionId) {
-  return path.join(os.tmpdir(), `rig-session-${sessionId}.json`);
+  return path.join(stateDir(), `rig-session-${sessionId}.json`);
 }
 
 /**

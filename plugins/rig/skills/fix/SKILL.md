@@ -1,5 +1,5 @@
 ---
-name: rig:fix
+name: fix
 description: "Fix a bug end-to-end: explore, diagnose, fix, verify, review. Use for any bug, error, failing test, CI failure, type or lint error. For root-cause analysis only, use /rig:debug."
 argument-hint: "[issue] --auto|--review|--quick|--parallel"
 metadata:

@@ -3,7 +3,7 @@
  * Tests for the bash-safety-guard PreToolUse hook (entry script, rule contract, config, logging).
  * Each test installs a COPY of the hook into a temp HOME so the hook log and the global
  * ~/.claude/.rig.json are isolated; HOME and USERPROFILE are both set (Windows uses the latter).
- * Run: node --test .claude/hooks/__tests__/bash-safety-guard.test.cjs
+ * Run: node --test plugins/rig/hooks/__tests__/bash-safety-guard.test.cjs
  * Env: RIG_SKIP_PERF=1 skips the latency test on slow CI.
  */
 const test = require('node:test');

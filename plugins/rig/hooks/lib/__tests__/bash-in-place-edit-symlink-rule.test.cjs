@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Tests for bash-in-place-edit-symlink-rule.cjs (run through the rule engine).
- * Run: node --test .claude/hooks/lib/__tests__/bash-in-place-edit-symlink-rule.test.cjs
+ * Run: node --test plugins/rig/hooks/lib/__tests__/bash-in-place-edit-symlink-rule.test.cjs
  */
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert');

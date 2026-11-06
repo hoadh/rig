@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Tests for bash-command-segment-tokenizer.cjs
- * Run: node --test .claude/hooks/lib/__tests__/bash-command-segment-tokenizer.test.cjs
+ * Run: node --test plugins/rig/hooks/lib/__tests__/bash-command-segment-tokenizer.test.cjs
  */
 const { describe, it } = require('node:test');
 const assert = require('node:assert');

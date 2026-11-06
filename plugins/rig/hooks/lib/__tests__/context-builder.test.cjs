@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Tests for context-builder.cjs - the per-prompt reminder
- * Run: node --test .claude/hooks/lib/__tests__/context-builder.test.cjs
+ * Run: node --test plugins/rig/hooks/lib/__tests__/context-builder.test.cjs
  *
  * Key scenarios:
  * - Only dynamic sections are emitted (no static rules/usage/modularization text)

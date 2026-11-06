@@ -1,5 +1,5 @@
 ---
-name: rig:research
+name: research
 description: "Research technical solutions and architectures. Use for technology evaluation, best practices, solution design, security or scalability analysis."
 license: MIT
 argument-hint: "[topic]"

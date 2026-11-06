@@ -3,7 +3,7 @@
  * Hooks must be unaffected by rig:remote multi-machine plan fields
  * (orchestrator:, machine:, owns:, dependsOn:, reviewedSha:, reviewScore:).
  * subagent-init only assembles plan paths/guidance and never parses plan files.
- * Run: node .claude/hooks/__tests__/multi-machine-plan-frontmatter.test.cjs
+ * Run: node plugins/rig/hooks/__tests__/multi-machine-plan-frontmatter.test.cjs
  */
 'use strict';
 

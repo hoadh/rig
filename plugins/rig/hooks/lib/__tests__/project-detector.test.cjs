@@ -14,7 +14,7 @@ const path = require('path');
 const os = require('os');
 
 // Minimal Jest-style expect on node:assert, covering only the matchers this file uses.
-// Run: node --test .claude/hooks/lib/__tests__/project-detector.test.cjs
+// Run: node --test plugins/rig/hooks/lib/__tests__/project-detector.test.cjs
 function expect(actual) {
   const matchers = (negate) => {
     const check = (ok, message) => assert.ok(negate ? !ok : ok, negate ? `not: ${message}` : message);

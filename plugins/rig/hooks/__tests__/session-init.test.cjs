@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Tests for session-init.cjs hook - specifically the compact mitigation (Issue #277)
- * Run: node --test .claude/hooks/__tests__/session-init.test.cjs
+ * Run: node --test plugins/rig/hooks/__tests__/session-init.test.cjs
  *
  * Issue #277: Auto-compact bypasses AskUserQuestion approval gates
  * Mitigation: When source=compact, inject warning to re-verify approval state
@@ -299,8 +299,8 @@ describe('session-init.cjs', () => {
       const gitRoot = require('child_process')
         .execSync('git rev-parse --show-toplevel', { encoding: 'utf8' }).trim();
 
-      // Use .claude/hooks as subdirectory (guaranteed to exist)
-      const subdirPath = require('path').join(gitRoot, '.claude', 'hooks');
+      // Use plugins/rig/hooks as subdirectory (guaranteed to exist)
+      const subdirPath = require('path').join(gitRoot, 'plugins', 'rig', 'hooks');
 
       const result = await new Promise((resolve, reject) => {
         const proc = spawn('node', [HOOK_PATH], {

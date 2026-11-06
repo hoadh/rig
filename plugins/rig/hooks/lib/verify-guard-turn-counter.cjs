@@ -18,8 +18,8 @@
  */
 const crypto = require('crypto');
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
+const { stateDir } = require('./plugin-data-dir.cjs');
 
 const PREFIX = 'rig-verify-guard-';
 const STALE_MS = 24 * 60 * 60 * 1000;
@@ -28,7 +28,7 @@ const MAX_PRUNE_SCAN = 500;
 /** Session ids become part of a file name: keep a safe charset, bounded length. */
 function stateFile(sessionId) {
   const safe = String(sessionId || 'no-session').replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 80);
-  return path.join(os.tmpdir(), `${PREFIX}${safe}.json`);
+  return path.join(stateDir(), `${PREFIX}${safe}.json`);
 }
 
 function readState(sessionId) {
@@ -87,7 +87,7 @@ function resetChain(sessionId) {
 /** Removes `rig-verify-guard-*` files in tmpdir not modified for 24h. Best effort, bounded. */
 function pruneStaleStateFiles(now = Date.now()) {
   try {
-    const dir = os.tmpdir();
+    const dir = stateDir();
     for (const name of fs.readdirSync(dir).slice(0, MAX_PRUNE_SCAN)) {
       if (!name.startsWith(PREFIX)) continue;
       const file = path.join(dir, name);

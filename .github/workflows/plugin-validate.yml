@@ -1,0 +1,61 @@
+name: Plugin validate
+
+# Validates the Claude Code plugin (plugins/rig) and the marketplace manifest (.claude-plugin/marketplace.json)
+# with the real `claude plugin validate`, on the Claude Code floor Rig supports and on the latest release.
+# The version-bump job fails a PR that changes plugins/rig/** without a plugin.json version change.
+# The node tests (hooks.json targets, bump logic) run in ci.yml on ubuntu, macOS and Windows.
+
+on:
+  push:
+    branches: [main]
+  # No path filter, so the jobs always report and can be required status checks.
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: plugin-validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: validate (claude ${{ matrix.claude }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        # Floor: first release with `plugin install --marketplace` (see the 2.0 plan). Raise it deliberately.
+        claude: ['2.1.292', 'latest']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+      - name: Install Claude Code ${{ matrix.claude }}
+        run: |
+          npm install -g "@anthropic-ai/claude-code@${{ matrix.claude }}"
+          # Newer npm may not run the package's postinstall (it fetches the native binary); run it when needed.
+          claude --version || node "$(npm root -g)/@anthropic-ai/claude-code/install.cjs"
+          claude --version
+      - name: Validate plugin (strict)
+        run: claude plugin validate ./plugins/rig --strict
+      - name: Validate marketplace
+        run: claude plugin validate .
+
+  version-bump:
+    name: plugin version bump
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+      - name: Require a plugin.json version change when plugins/rig/** changed
+        run: node scripts/check-plugin-version-bump.cjs --base "origin/${{ github.base_ref }}"
