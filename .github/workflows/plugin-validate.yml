@@ -3,6 +3,7 @@ name: Plugin validate
 # Validates the Claude Code plugin (plugins/rig) and the marketplace manifest (.claude-plugin/marketplace.json)
 # with the real `claude plugin validate`, on the Claude Code floor Rig supports and on the latest release.
 # The version-bump job fails a PR or main push that changes plugins/rig/** without a greater plugin.json version.
+# The marketplace-ref job (push to main) checks the release pin against the latest v* tag.
 # The node tests (hooks.json targets, bump logic) run in ci.yml on ubuntu, macOS and Windows.
 
 on:
@@ -69,3 +70,21 @@ jobs:
           elif [ -n "$BEFORE_SHA" ] && [ "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]; then base="$BEFORE_SHA"
           else base="HEAD^1"; fi
           node scripts/check-plugin-version-bump.cjs --base "$base"
+
+  # After a release the marketplace entry is pinned to a tag + sha. On main that pin must be the latest v* tag
+  # reachable from the commit, and the sha must be that tag's commit. No ref yet = pre-release state, skipped.
+  marketplace-ref:
+    name: marketplace ref matches latest tag
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+      - name: Check the marketplace ref and sha
+        run: node scripts/release-plugin.cjs --check-ref
