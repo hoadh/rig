@@ -26,6 +26,7 @@ const ENV_FILE_PATH = /\.claude[\\/]skills[\\/](?:[^\s/`'")]+[\\/])?\.env\b/g;
 
 const ALLOWED_FILES = {
   'plugins/rig/hooks/lib/global-hook-yields-to-project-copy.cjs': { count: 6, reason: 'detects the 1.x file install by the real hook path in project and ~/.claude settings' },
+  'plugins/rig/hooks/lib/rig-1x-copy-notice.cjs': { count: 2, reason: 'detects the 1.x file install by its real hook path (migration notice)' },
   'plugins/rig/scripts/rig-init/rig-1x-owned-paths.cjs': { count: 1, reason: 'the migrator matches the 1.x kit command form `<root>/.claude/hooks/...`' },
   'plugins/rig/scripts/rig-init/rig-1x-owned-paths.json': { count: 28, reason: 'the 28 `skills/rig-plan` and `skills/rig-debug` paths (1.1 skill dirs) the migrator moves' },
   'plugins/rig/skills/create-skill/SKILL.md': { count: 2, reason: 'where a user creates their own project or user skills' },

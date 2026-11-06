@@ -78,7 +78,7 @@ function detectAgentTeam() {
 }
 
 const GLOBAL_COPY_NOTICE = 'Rig plugin is installed but the 1.x Rig hooks in ~/.claude are still registered, so the 1.x hooks run and the plugin hooks yield. ' +
-  'Remove the 1.x global hooks or run the migrator when available.';
+  'Run `rig-init --migrate` in a terminal to move the 1.x install to the plugin (preview with `rig-init --plan`).';
 
 // additionalContext is capped by Claude Code (10,000 characters); stay inside it.
 const CORE_RULES_MAX_CHARS = 10000;
@@ -128,7 +128,12 @@ async function main() {
       process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: GLOBAL_COPY_NOTICE } }));
       process.exit(0);
     }
-    if (yielded) process.exit(0);
+    if (yielded) {
+      // Project copy handles the session; the plugin copy only says once that a migration is pending
+      const notice = isPluginCopy(__filename) ? require('./lib/rig-1x-copy-notice.cjs').rig1xCopyNotice({ self: __filename }) : '';
+      if (notice) process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: notice } }));
+      process.exit(0);
+    }
     pruneStaleState();
     refreshRuntimeCopy();
     const envFile = process.env.CLAUDE_ENV_FILE;
@@ -253,10 +258,17 @@ async function main() {
       });
     }
 
+    // Plugin mode: 1.x files left in ~/.claude or the project (not registered, or yielding) get one migration line
+    if (isPluginCopy(__filename)) {
+      const notice = require('./lib/rig-1x-copy-notice.cjs').rig1xCopyNotice({ self: __filename });
+      if (notice) out.push(`\n${notice}`);
+    }
+
     // Plugin mode only: a plugin cannot ship rules files, so inject the core rules here.
     // File installs (1.x) get them natively from their rules dir.
     const coreRules = readPluginCoreRules();
     if (coreRules) out.push(`\n${coreRules}`);
+
 
     // Hard cap on the whole context: the rules are already capped, so only an unusually long
     // assertion list or path block can reach it; the tail (lowest priority) is what gets cut.

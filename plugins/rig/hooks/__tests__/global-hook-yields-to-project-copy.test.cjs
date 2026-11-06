@@ -301,7 +301,9 @@ test('end to end: with a global 1.x copy registered, the plugin session-init pri
   const prompt = { hook_event_name: 'UserPromptSubmit', prompt: 'hi' };
 
   // Not registered globally yet: both hooks run normally.
-  assert.match(run('session-init.cjs', sessionStart), /Session startup/);
+  const unregistered = run('session-init.cjs', sessionStart);
+  assert.match(unregistered, /Session startup/);
+  assert.match(unregistered, /Run `rig-init --migrate` in a terminal/, '1.x files on disk get the migration line');
   assert.match(run('dev-rules-reminder.cjs', prompt), /## Rig Session/);
 
   writeHomeSettings(t, {
@@ -310,7 +312,7 @@ test('end to end: with a global 1.x copy registered, the plugin session-init pri
   });
   const notice = JSON.parse(run('session-init.cjs', sessionStart)).hookSpecificOutput.additionalContext;
   assert.match(notice, /1\.x Rig hooks in ~\/\.claude are still registered/);
-  assert.match(notice, /Remove the 1\.x global hooks or run the migrator when available/);
+  assert.match(notice, /Run `rig-init --migrate` in a terminal/);
   assert.ok(!notice.includes('Session startup'), 'one-line notice only, no duplicated session context');
   assert.strictEqual(run('dev-rules-reminder.cjs', prompt), '', 'other hooks yield silently');
 });

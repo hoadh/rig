@@ -8,6 +8,8 @@
  *     common names (node, python, claude, ...)
  *   - secret-file-read: readers/copiers (cat, grep, source, cp, curl @file, `< .env`, ...) of the
  *     secret paths in settings.json permissions.ask Read entries (ask only)
+ *   - rig-init-destructive-verbs: `rig-init --migrate|--resume|--restore|--permissions|--runtime|--deps` (ask only;
+ *     the CLI itself also refuses inside a Claude Code session)
  * Rules live in lib/bash-*-rule.cjs; the shared command tokenizer is
  * lib/bash-command-segment-tokenizer.cjs and the rule runner is lib/bash-safety-rule-engine.cjs.
  *
@@ -33,6 +35,7 @@ try {
     require('./lib/bash-in-place-edit-symlink-rule.cjs'),
     require('./lib/bash-process-kill-rule.cjs'),
     require('./lib/bash-secret-file-read-rule.cjs'),
+    require('./lib/bash-rig-init-destructive-verbs-rule.cjs'),
   ];
 
   const cmdHash = (command) => crypto.createHash('sha256').update(command).digest('hex').slice(0, 12);

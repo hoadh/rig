@@ -3,8 +3,8 @@
  * No file system access, so every rule can be unit-tested.
  */
 
-// Skills that only work inside Claude Code (headless `claude -p` workers, Agent Teams).
-const CLAUDE_ONLY_SKILL_DIRS = new Set(['remote', 'team']);
+// Skills that only work inside Claude Code (headless `claude -p` workers, Agent Teams, plugin setup via rig-init).
+const CLAUDE_ONLY_SKILL_DIRS = new Set(['remote', 'setup', 'team']);
 // Files inside synced skills that only drive Claude Code-only skills (paths under plugins/rig/skills/).
 // They are not copied, and lines naming them are dropped from the synced text.
 const CLAUDE_ONLY_SKILL_FILES = new Set(['plan/references/multi-machine-planning.md']);

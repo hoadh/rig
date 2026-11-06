@@ -307,3 +307,13 @@ test('placeholder xargs, while-read and assignment pgrep->kill forms are denied 
     assert.strictEqual(runHook(w, bash(cmd, w)).out.permissionDecision, 'deny', cmd);
   }
 });
+
+test('asks before a rig-init apply verb, passes --plan, and honors the per-rule switch', () => {
+  const w = setup();
+  const ask = runHook(w, bash('rig-init --migrate --global', w)).out;
+  assert.strictEqual(ask.permissionDecision, 'ask');
+  assert.match(ask.permissionDecisionReason, /terminal/);
+  assert.strictEqual(runHook(w, bash('rig-init --plan --json', w)).out, null);
+  const off = setup({ bashSafetyGuard: { rules: { rigInitDestructiveVerbs: false } } });
+  assert.strictEqual(runHook(off, bash('rig-init --migrate', off)).out, null);
+});
