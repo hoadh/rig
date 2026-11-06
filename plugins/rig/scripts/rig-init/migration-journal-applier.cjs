@@ -23,11 +23,12 @@ const {
   backupsDirFor,
 } = require('./backup-restore-standalone.cjs');
 const { stripRigSettings } = require('./settings-rig-entries-stripper.cjs');
-const { backupGroupDir } = require('./migration-planner.cjs');
+const { backupGroupDir, planTarget, findIncompleteBackup } = require('./migration-planner.cjs');
 const { acquireLock, releaseLock } = require('../../hooks/lib/dir-lock-with-owner-token.cjs');
 
 const STANDALONE_SOURCE = path.join(__dirname, 'backup-restore-standalone.cjs');
 const LOCK_STALE_MS = 10 * 60 * 1000;
+const MOVED_LIST_FILE = 'moved-paths.txt';
 
 function timestamp(date) {
   const p = (n) => String(n).padStart(2, '0');
@@ -55,6 +56,12 @@ function createBackupDir(group, now) {
   }
 }
 
+/** Refresh the lock dir's mtime: the stale-lock takeover judges by age, and a slow copy must not look dead. */
+function heartbeat(lockDir) {
+  if (!lockDir) return;
+  try { const now = new Date(); fs.utimesSync(lockDir, now, now); } catch { /* lock gone: the owner-token check on release handles it */ }
+}
+
 /** Atomic journal save (readers and a crash never see half a journal). */
 function saveJournal(backupDir, journal) {
   writeJsonAtomic(path.join(backupDir, JOURNAL_FILE), journal, 0o600);
@@ -74,7 +81,7 @@ function pruneEmptyDirs(claudeDir, rels) {
  * Runs the remaining steps of a journal. `hooks.afterStep(name)` is called after every step has been made durable
  * (tests throw from it to simulate a crash at that exact point).
  */
-function runJournal({ backupDir, journal, hooks = {} }) {
+function runJournal({ backupDir, journal, hooks = {}, lockDir = null }) {
   const step = (name) => { if (hooks.afterStep) hooks.afterStep(name); };
   const claudeDir = journal.claudeDir;
   const target = { kind: journal.kind, root: journal.root };
@@ -108,17 +115,23 @@ function runJournal({ backupDir, journal, hooks = {} }) {
     step(`write-settings:${entry.file}`);
   }
 
-  // 4. moves; sorted order, filesystem state decides what is left (a moved path no longer exists at its source)
+  // 4. moves; sorted order, filesystem state decides what is left (a moved path no longer exists at its source).
+  // Any failure of one move (file in use, a path that resolves outside the target) leaves THAT path pending, never aborts the run.
   const blocked = [];
+  let moved = 0;
   const filesDir = path.join(backupDir, FILES_DIR);
   for (const move of journal.moves) {
-    const src = containedPath(claudeDir, move.rel, 'migration source');
-    const dest = containedPath(filesDir, move.rel, 'backup destination');
-    let exists = true;
-    try { fs.lstatSync(src); } catch { exists = false; }
-    if (!exists) continue;
+    heartbeat(lockDir); // a long run must not look like a stale lock
     try {
-      (hooks.movePath || movePath)(src, dest); // hooks.movePath: test seam for a path that is in use
+      const src = containedPath(claudeDir, move.rel, 'migration source');
+      const dest = containedPath(filesDir, move.rel, 'backup destination');
+      let exists = true;
+      try { fs.lstatSync(src); } catch { exists = false; }
+      if (exists) {
+        // `copied` is set once a cross-device copy is complete: from then on resume only finishes removing the source
+        (hooks.movePath || movePath)(src, dest, { copyDone: move.copied === true, onCopied: () => { move.copied = true; saveJournal(backupDir, journal); } });
+        moved++;
+      }
     } catch (err) {
       blocked.push({ rel: move.rel, code: err.code || 'ERROR', message: err.message });
     }
@@ -132,7 +145,7 @@ function runJournal({ backupDir, journal, hooks = {} }) {
   journal.finishedAt = blocked.length ? null : new Date().toISOString();
   saveJournal(backupDir, journal);
   step('finish');
-  return { backupDir, status: journal.status, blocked, moved: journal.moves.length - blocked.length, settingsChanged: journal.settings.filter((s) => s.removedHooks.length || s.removedStatusLine).length };
+  return { backupDir, status: journal.status, blocked, moved, settingsChanged: journal.settings.filter((s) => s.removedHooks.length || s.removedStatusLine).length };
 }
 
 /** Runs `fn` while holding the per-target lock; refuses a second concurrent migration of the same target. */
@@ -142,7 +155,7 @@ function withTargetLock(group, fn) {
   const token = acquireLock(lockDir, LOCK_STALE_MS);
   if (!token) throw new Error(`another rig-init is migrating this target (lock ${lockDir}); wait for it, or remove the lock dir if no rig-init is running`);
   try {
-    return fn();
+    return fn(lockDir);
   } finally {
     releaseLock(lockDir, token);
   }
@@ -152,12 +165,25 @@ function withTargetLock(group, fn) {
  * Start a migration of one planned target.
  * @param {{plan: object, home: string, rigVersion: string, now?: Date, hooks?: {afterStep?: Function}}} opts
  */
-function applyMigration({ plan, home, rigVersion, now = new Date(), hooks = {} }) {
-  if (!plan.detected) throw new Error('nothing to migrate');
+/**
+ * A fresh plan for the target, or an error: an interrupted migration, no Rig 1.x marker, or a blocker (symlinked dir,
+ * unparsable settings, a settings entry that still runs a moved file) all refuse. The plan handed in was made before the
+ * confirmation prompt (and maybe before another run crashed), so only the plan made now says what is true.
+ */
+function freshPlanOrThrow({ kind, root, home }) {
+  const pending = findIncompleteBackup({ home, kind, root });
+  if (pending) throw new Error(`an earlier migration was interrupted (${pending}); run rig-init --migrate --resume`);
+  const plan = planTarget({ kind, root, home });
+  if (!plan || !plan.detected) throw new Error('nothing to migrate (no Rig 1.x install marker, or the install changed since the plan was made)');
   if (plan.blockers.length) throw new Error(`cannot migrate: ${plan.blockers.join('; ')}`);
-  if (plan.pendingBackup) throw new Error(`an earlier migration was interrupted (${plan.pendingBackup}); run rig-init --migrate --resume`);
-  const group = backupGroupDir(home, plan.kind, plan.root);
-  return withTargetLock(group, () => {
+  return plan;
+}
+
+function applyMigration({ plan: staleCopy, home, rigVersion, now = new Date(), hooks = {} }) {
+  const group = backupGroupDir(home, staleCopy.kind, staleCopy.root);
+  freshPlanOrThrow({ kind: staleCopy.kind, root: staleCopy.root, home }); // before any directory is created
+  return withTargetLock(group, (lockDir) => {
+    const plan = freshPlanOrThrow({ kind: staleCopy.kind, root: staleCopy.root, home }); // again under the lock
     privateDir(backupsDirFor(home));
     const backupDir = createBackupDir(group, now);
     const target = { kind: plan.kind, root: plan.root };
@@ -173,13 +199,14 @@ function applyMigration({ plan, home, rigVersion, now = new Date(), hooks = {} }
     writeJsonAtomic(path.join(backupDir, MARKER_FILE), marker, 0o600);
     fs.copyFileSync(STANDALONE_SOURCE, path.join(backupDir, 'restore.cjs'));
     fs.writeFileSync(path.join(backupDir, 'README.txt'), `Rig 1.x files moved out of ${claudeDir} by rig-init.\nTo put them back: disable the Rig plugin, then run in a terminal:\n  node ${path.join(backupDir, 'restore.cjs')}\n`);
+    fs.writeFileSync(path.join(backupDir, MOVED_LIST_FILE), `${plan.moves.map((m) => m.rel).join('\n')}\n`);
     const journal = {
       schema: 1, id, status: 'in-progress', kind: plan.kind, root: plan.root, claudeDir, rigVersion, startedAt: now.toISOString(),
       settings, moves: plan.moves.map((m) => ({ rel: m.rel, type: m.type })), blocked: [], finishedAt: null,
     };
     saveJournal(backupDir, journal);
     if (hooks.afterStep) hooks.afterStep('journal');
-    return runJournal({ backupDir, journal, hooks });
+    return { ...runJournal({ backupDir, journal, hooks, lockDir }), listFile: path.join(backupDir, MOVED_LIST_FILE) };
   });
 }
 
@@ -192,8 +219,8 @@ function resumeMigration({ backupDir, home, hooks = {} }) {
   if (!marker || marker.createdBy !== 'rig-init' || !journal || journal.id !== marker.id) throw new Error(`refusing ${backupDir}: not a rig-init backup`);
   const expected = marker.kind === 'global' ? path.join(path.resolve(home), '.claude') : path.join(path.resolve(String(marker.root)), '.claude');
   if (norm(journal.claudeDir) !== norm(expected) && norm(journal.claudeDir) !== norm(fs.realpathSync(expected))) throw new Error(`refusing ${backupDir}: recorded target does not match`);
-  if (journal.status === 'done') return { backupDir: real, status: 'done', blocked: [], moved: journal.moves.length, settingsChanged: 0 };
-  return withTargetLock(path.dirname(real), () => runJournal({ backupDir: real, journal, hooks }));
+  if (journal.status === 'done') return { backupDir: real, status: 'done', blocked: [], moved: 0, settingsChanged: 0 };
+  return withTargetLock(path.dirname(real), (lockDir) => runJournal({ backupDir: real, journal, hooks, lockDir }));
 }
 
 module.exports = { applyMigration, resumeMigration, runJournal, timestamp, createBackupDir, privateDir };

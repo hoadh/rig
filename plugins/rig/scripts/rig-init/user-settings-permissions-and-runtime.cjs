@@ -37,6 +37,7 @@ function missingRules(settings) {
   const current = (settings && settings.permissions) || {};
   const missing = {};
   for (const list of LISTS) {
+    if (current[list] !== undefined && !Array.isArray(current[list])) throw new Error(`permissions.${list} in ${'settings.json'} is not an array; fix it first, rig-init will not replace your value`);
     const have = new Set(Array.isArray(current[list]) ? current[list] : []);
     missing[list] = template[list].filter((rule) => !have.has(rule));
   }

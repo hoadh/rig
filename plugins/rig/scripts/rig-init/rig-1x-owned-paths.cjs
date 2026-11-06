@@ -10,19 +10,25 @@
  * backup, never deleted. Everything else under `.claude/` (the user's own hooks, skills, agents, settings keys,
  * `.env` files, `.rig.json`) is never touched, even when it sits inside a Rig directory.
  */
+const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const data = require('./rig-1x-owned-paths.json');
 
 const OWNED_FILES = new Set(data.files);
 // Directories the installer or its skills created at run time; removed with the install (moved into the backup).
-const GENERATED_DIR_PATHS = ['skills/.venv', 'hooks/.logs'];
+// `skills/.venv` is deliberately NOT here: other skill kits and user skills share that venv (reported, never moved).
+const GENERATED_DIR_PATHS = ['hooks/.logs'];
+const SHARED_VENV_PATH = 'skills/.venv';
+// node_modules / __pycache__ count as Rig's only beside an owned package.json / owned .py file (see the planner)
 const GENERATED_DIR_NAMES = new Set(['node_modules', '__pycache__']);
 const GENERATED_FILES = ['skills/.install-state.json'];
 // Directories that may hold owned files; only these are scanned for the "kept, not Rig's" report.
 const SCAN_TOP_DIRS = ['hooks', 'agents', 'rules', 'scripts', 'output-styles', 'skills', 'schemas'];
 
-const IS_WIN = process.platform === 'win32';
-const norm = (p) => { const s = path.resolve(p).replace(/\\/g, '/'); return IS_WIN ? s.toLowerCase() : s; };
+const FOLD_CASE = process.platform === 'win32' || process.platform === 'darwin';
+const FOLD_CASE_FLAG = FOLD_CASE ? 'gi' : 'g';
+const norm = (p) => { const s = path.resolve(p).replace(/\\/g, '/'); return FOLD_CASE ? s.toLowerCase() : s; };
 
 const isOwnedFile = (rel) => OWNED_FILES.has(rel);
 
@@ -37,40 +43,73 @@ function ownedUnitDirs() {
   return dirs;
 }
 
+const escapeRe = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** Root spellings that point at the target's `.claude` dir, as regex sources (matched after quotes are removed). */
+function rootPrefixes(target) {
+  const abs = (p) => { const out = [p]; try { out.push(fs.realpathSync(p)); } catch { /* not on disk */ } return out; };
+  const slashes = (p) => escapeRe(p.replace(/\\/g, '/')).replace(/\//g, '[/\\\\]');
+  if (target.kind === 'global') {
+    const home = [...abs(target.root), os.homedir()].filter(Boolean);
+    return {
+      // `<prefix>/.claude/<rest>`
+      underDotClaude: ['\\$\\{?HOME\\}?', '\\$\\{?USERPROFILE\\}?', '%USERPROFILE%', '~', ...home.map(slashes)],
+      // `<prefix>/<rest>` where the prefix already is the `.claude` dir
+      direct: ['\\$\\{?CLAUDE_CONFIG_DIR\\}?', '%CLAUDE_CONFIG_DIR%', ...home.map((h) => slashes(`${h}/.claude`))],
+    };
+  }
+  const proj = abs(target.root);
+  return {
+    underDotClaude: ['\\$\\{?CLAUDE_PROJECT_DIR\\}?', '%CLAUDE_PROJECT_DIR%', ...proj.map(slashes)],
+    direct: [...proj.map((h) => slashes(`${h}/.claude`))],
+    relative: true,
+  };
+}
+
 /**
- * The relative `.claude/` path (`hooks/session-init.cjs`, `statusline.cjs`) a hook/statusLine command runs, when the
- * command is exactly the 1.x kit form for THIS target; otherwise null. The form is
- * `node <root>/.claude/<owned file>` where `<root>` is the target's own root: `$CLAUDE_PROJECT_DIR`, `.`, nothing or the
- * absolute project dir for a project; `$HOME`, `~`, `%USERPROFILE%` or the absolute home for the global target.
- * A basename alone never matches, and neither does another project's `.claude/hooks/` path.
- * @param {string} command
- * @param {{kind: 'global'|'project', root: string}} target root = home dir (global) or project dir (project)
+ * Every path below the target's `.claude` dir that `text` (a hook command, an env value, an mcpServers entry) refers to,
+ * as posix paths relative to `.claude`. Quotes are dropped, `$HOME` / `${HOME}` / `%USERPROFILE%` / `~` /
+ * `$CLAUDE_CONFIG_DIR` / `$CLAUDE_PROJECT_DIR` / absolute (also after realpath) / project-relative `.claude/...` roots
+ * are understood, either separator works, and it does not matter what runs the path (`node`, `node.exe`, an absolute
+ * node, flags, a `NODE_OPTIONS=` prefix, python, a shell). Paths that climb out with `..` are ignored.
+ * @param {string} text
+ * @param {{kind: 'global'|'project', root: string}} target
+ * @returns {string[]}
+ */
+function referencedRels(text, target) {
+  if (typeof text !== 'string' || text === '') return [];
+  const clean = text.replace(/["']/g, '');
+  const roots = rootPrefixes(target);
+  const flags = FOLD_CASE_FLAG;
+  const tail = '([^\\s;&|)<>]+)';
+  const lead = '(?<=^|[\\s=:(;&|,])'; // a root starts a word: `/mnt/home/u/.claude` is another place
+  const found = [];
+  const add = (rest) => {
+    const rel = path.posix.normalize(rest.replace(/\\/g, '/').replace(/^\/+/, '').replace(/[,.]+$/, ''));
+    if (rel && rel !== '.' && !rel.startsWith('../') && rel !== '..') found.push(rel);
+  };
+  for (const prefix of roots.underDotClaude) {
+    for (const m of clean.matchAll(new RegExp(`${lead}${prefix}[/\\\\]\\.claude[/\\\\]${tail}`, flags))) add(m[1]);
+  }
+  for (const prefix of roots.direct) {
+    for (const m of clean.matchAll(new RegExp(`${lead}${prefix}[/\\\\]${tail}`, flags))) add(m[1]);
+  }
+  if (roots.relative) {
+    for (const m of clean.matchAll(new RegExp(`(?:^|[\\s=:])(?:\\.[/\\\\])?\\.claude[/\\\\]${tail}`, flags))) add(m[1]);
+  }
+  return [...new Set(found)];
+}
+
+/**
+ * The owned relative path (`hooks/session-init.cjs`, `statusline.cjs`) a hook/statusLine command runs, or null.
+ * A command is Rig's when any path it mentions resolves to an owned file under this target (see referencedRels).
+ * A path in another project, a user hook elsewhere, or a not-owned file under `.claude` never matches.
  */
 function rigCommandRel(command, target) {
-  if (typeof command !== 'string') return null;
-  const m = /^node\s+(.+)$/s.exec(command.trim());
-  if (!m) return null;
-  // First shell word of the arguments: quotes may start and stop inside it ("$DIR"/.claude/x.cjs)
-  let word = '';
-  let quote = null;
-  for (const ch of m[1]) {
-    if (quote) { if (ch === quote) quote = null; else word += ch; } else if (ch === '"' || ch === "'") quote = ch;
-    else if (/\s/.test(ch)) break;
-    else word += ch;
-  }
-  const split = /^(.*?)(?:^|[/\\])\.claude[/\\](.+)$/s.exec(word);
-  if (!split) return null;
-  const [, prefix, tail] = split;
-  const rel = tail.replace(/\\/g, '/');
-  if (!isOwnedFile(rel) || !(rel === 'statusline.cjs' || /^hooks\/.+\.cjs$/.test(rel))) return null;
-  const forms = target.kind === 'global'
-    ? ['$HOME', '${HOME}', '~', '%USERPROFILE%']
-    : ['', '.', '$CLAUDE_PROJECT_DIR', '${CLAUDE_PROJECT_DIR}', '%CLAUDE_PROJECT_DIR%'];
-  if (forms.includes(prefix)) return rel;
-  return path.isAbsolute(prefix) && norm(prefix) === norm(target.root) ? rel : null;
+  return referencedRels(command, target).find(isOwnedFile) || null;
 }
 
 module.exports = {
-  OWNED_FILES, GENERATED_DIR_PATHS, GENERATED_DIR_NAMES, GENERATED_FILES, SCAN_TOP_DIRS,
-  isOwnedFile, ownedUnitDirs, rigCommandRel, norm,
+  OWNED_FILES, GENERATED_DIR_PATHS, SHARED_VENV_PATH, GENERATED_DIR_NAMES, GENERATED_FILES, SCAN_TOP_DIRS,
+  isOwnedFile, ownedUnitDirs, rigCommandRel, referencedRels, norm,
 };

@@ -21,9 +21,19 @@ describe('rig-init-destructive-verbs', () => {
     ]) assert.strictEqual(decision(command), 'ask', command);
   });
 
+  it('asks for the evasion forms of the review (H1): script, xargs, npx, variables, python, node -e, cmd shims, restore.cjs by cd', () => {
+    for (const command of [
+      "script -qc 'rig-init --migrate' /dev/null", 'echo --migrate | xargs rig-init', 'npx rig-init --migrate', 'V=--migrate; rig-init $V',
+      'bash /p/bin/rig-init --migrate', 'rig-init.cmd --migrate', `python3 -c "import subprocess;subprocess.run(['rig-init','--migrate'])"`,
+      `node -e "require('/p/scripts/rig-init/cli.cjs')._mainWithIo({argv:['--migrate'],env:{},stdinIsTTY:true,ask:async()=>true})"`,
+      'cd ~/.claude/rig-backups/global/x && node restore.cjs', 'node ./restore.cjs', 'env -u CLAUDECODE rig-init --runtime',
+      '(sleep 2; printf y) | script -qec "env -u CLAUDECODE node /p/bin/rig-init --migrate --global" /dev/null',
+    ]) assert.strictEqual(decision(command), 'ask', command);
+  });
+
   it('allows the read-only plan and unrelated commands that only mention the words', () => {
-    for (const command of ['rig-init --plan', 'rig-init --plan --json', 'rig-init --help', 'rig-init', 'echo rig-init --migrate-notes.txt', 'git commit -m "docs: rig-init"',
-      'ls ~/.claude/rig-backups', 'cat restore.cjs', 'npm run migrate', 'some-tool --migrate']) {
+    for (const command of ['rig-init --plan', 'rig-init --plan --json', 'rig-init --help', 'rig-init', 'git commit -m "docs: rig-init"',
+      'ls ~/.claude/rig-backups', 'npm run migrate', 'some-tool --migrate']) {
       assert.strictEqual(decision(command), null, command);
     }
   });

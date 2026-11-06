@@ -24,7 +24,9 @@ describe('planTarget', () => {
     assert.ok(plan.settings[0].removeStatusLine.includes('statusline.cjs'));
     const rels = new Set(plan.moves.map((x) => x.rel));
     for (const rel of m.rels) assert.ok(rels.has(rel), `owned ${rel} planned`);
-    assert.ok(rels.has('skills/.venv') && rels.has('skills/browser/scripts/node_modules') && rels.has('skills/browser/scripts/package-lock.json'), 'generated state');
+    assert.ok(!rels.has('skills/.venv'), 'the shared venv is never moved');
+    assert.ok(plan.leftInPlace.some((x) => x.startsWith('skills/.venv')));
+    assert.ok(rels.has('skills/browser/scripts/node_modules') && rels.has('skills/browser/scripts/package-lock.json'), 'generated state');
     for (const keep of ['hooks/my-own-hook.sh', 'skills/my-skill/SKILL.md', '.rig.json', 'settings.json', 'skills/.env']) assert.ok(!rels.has(keep), `${keep} is not moved`);
     assert.deepStrictEqual(plan.kept, ['hooks/my-own-hook.sh']);
     assert.ok(plan.backupGroup.endsWith(path.join('rig-backups', 'global')));

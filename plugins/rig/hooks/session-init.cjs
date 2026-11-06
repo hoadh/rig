@@ -269,7 +269,6 @@ async function main() {
     const coreRules = readPluginCoreRules();
     if (coreRules) out.push(`\n${coreRules}`);
 
-
     // Hard cap on the whole context: the rules are already capped, so only an unusually long
     // assertion list or path block can reach it; the tail (lowest priority) is what gets cut.
     const context = out.join('\n');

@@ -39,7 +39,8 @@ describe('applyMigration', () => {
 
     // owned paths gone, user files kept
     for (const rel of m.rels) assert.ok(!fs.existsSync(path.join(claude(m), ...rel.split('/'))), `${rel} moved`);
-    assert.ok(!fs.existsSync(path.join(claude(m), 'skills', '.venv')));
+    assert.ok(fs.existsSync(path.join(claude(m), 'skills', '.venv', 'pyvenv.cfg')), 'the shared venv is never moved');
+    assert.ok(!fs.existsSync(path.join(claude(m), 'skills', 'browser', 'scripts', 'node_modules')), 'Rig node_modules moved with its skill');
     for (const keep of ['hooks/my-own-hook.sh', 'skills/my-skill/SKILL.md', '.rig.json', 'skills/.env']) assert.ok(fs.existsSync(path.join(claude(m), keep)), keep);
     // settings: user hook and keys stay, Rig entries gone
     const settings = JSON.parse(fs.readFileSync(path.join(claude(m), 'settings.json'), 'utf8'));
@@ -54,7 +55,9 @@ describe('applyMigration', () => {
     assert.ok(fs.existsSync(path.join(backup, 'restore.cjs')) && fs.existsSync(path.join(backup, 'rig-backup.json')));
     assert.strictEqual(fs.readFileSync(path.join(backup, 'settings', 'settings.json'), 'utf8'), original);
     assert.match(fs.readFileSync(path.join(backup, 'files', 'skills', 'fix', 'SKILL.md'), 'utf8'), /my own change/);
-    assert.ok(fs.existsSync(path.join(backup, 'files', 'skills', '.venv', 'pyvenv.cfg')));
+    assert.ok(!fs.existsSync(path.join(backup, 'files', 'skills', '.venv')));
+    assert.ok(fs.existsSync(path.join(backup, 'files', 'skills', 'browser', 'scripts', 'node_modules', 'dep', 'index.js')));
+    assert.ok(fs.readFileSync(path.join(backup, 'moved-paths.txt'), 'utf8').includes('skills/fix/SKILL.md'));
     if (process.platform !== 'win32') {
       for (const dir of [backup, path.dirname(backup), path.join(m.home, '.claude', 'rig-backups')]) assert.strictEqual(fs.statSync(dir).mode & 0o777, 0o700, dir);
     }

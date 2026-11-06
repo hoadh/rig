@@ -5,7 +5,7 @@ const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
-const { main, parseArgs } = require('../cli.cjs');
+const { _mainWithIo: main, parseArgs } = require('../cli.cjs');
 const { applyPermissions, applyRuntime, planPermissions, missingRules } = require('../user-settings-permissions-and-runtime.cjs');
 const { checkClaudeCodeVersion, describeVersionCheck } = require('../cc-version-check.cjs');
 const { installerCommand, runSkillsInstaller } = require('../skills-dependency-installer-runner.cjs');
@@ -24,7 +24,7 @@ async function run(m, argv, { env = {}, tty = true, answer = true, cwd, hooks, r
   const err = [];
   const asked = [];
   const code = await main({
-    argv, env, home: m.home, cwd: cwd || m.project, stdinIsTTY: tty, stdoutIsTTY: tty, pluginRoot: PLUGIN_ROOT, hooks, runInstaller,
+    argv, env, home: m.home, cwd: cwd || m.project, ancestors: [], stdinIsTTY: tty, stdoutIsTTY: tty, pluginRoot: PLUGIN_ROOT, hooks, runInstaller,
     stdout: (s) => out.push(s), stderr: (s) => err.push(s),
     ask: async (q) => { asked.push(q); return answer; },
     checkVersion: () => ({ status: 'ok', version: '2.1.318', min: '2.1.292' }),
@@ -231,6 +231,7 @@ describe('--deps and the version check', () => {
     const ok = await run(m, ['--deps'], { runInstaller: (o) => { calls.push(o.pluginRoot); return 0; } });
     assert.strictEqual(ok.code, 0);
     assert.strictEqual(calls.length, 1);
+    assert.match(ok.out, /run `rig-init --deps` again after every plugin update/);
     const declined = await run(m, ['--deps'], { answer: false, runInstaller: () => assert.fail('must not run') });
     assert.strictEqual(declined.code, 0);
     const bad = await run(m, ['--deps'], { runInstaller: () => 7 });

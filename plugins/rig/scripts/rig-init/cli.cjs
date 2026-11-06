@@ -82,15 +82,17 @@ function scopeTargets(o, { home, cwd }) {
 }
 
 /**
- * @param {object} io { argv, env, home, cwd, stdout, stderr, stdinIsTTY, stdoutIsTTY, ask, pluginRoot, checkVersion, hooks }
+ * Internal entry with injectable streams, env, TTY flags, answers and ancestry: for tests only. The bin and `main()` never
+ * use it, and the apply path runs the same gate (CLAUDECODE, Claude Code ancestry, TTY, prompt) wherever it is called from.
+ * @param {object} io { argv, env, home, cwd, stdout, stderr, stdinIsTTY, stdoutIsTTY, ask, ancestors, pluginRoot, checkVersion, hooks, runInstaller }
  * @returns {Promise<number>} exit code: 0 ok, 1 error, 2 refused (not a terminal / inside Claude Code) or bad usage, 3 migration incomplete
  */
-async function main(io = {}) {
+async function mainWithIo(io = {}) {
   const {
     argv = process.argv.slice(2), env = process.env, home = os.homedir(), cwd = process.cwd(),
     stdout = (s) => process.stdout.write(`${s}\n`), stderr = (s) => process.stderr.write(`${s}\n`),
     stdinIsTTY = Boolean(process.stdin.isTTY), stdoutIsTTY = Boolean(process.stdout.isTTY),
-    ask = askYesNo, pluginRoot = PLUGIN_ROOT, checkVersion = checkClaudeCodeVersion, hooks = {}, runInstaller = runSkillsInstaller,
+    ask = askYesNo, pluginRoot = PLUGIN_ROOT, checkVersion = checkClaudeCodeVersion, hooks = {}, runInstaller = runSkillsInstaller, ancestors,
   } = io;
   let o;
   try {
@@ -104,7 +106,7 @@ async function main(io = {}) {
   try {
     if (o.verb === '--plan') return await runPlan(o, { home, cwd, stdout, pluginRoot, checkVersion });
 
-    const refusal = applyRefusal({ env, stdinIsTTY, stdoutIsTTY, command: `rig-init ${argv.map(quote).join(' ')}` });
+    const refusal = applyRefusal({ env, stdinIsTTY, stdoutIsTTY, ancestors, command: `rig-init ${argv.map(quote).join(' ')}` });
     if (refusal) { stderr(refusal.trimEnd()); return 2; }
     const versionWarning = describeVersionCheck(checkVersion());
     if (versionWarning) stderr(versionWarning);
@@ -140,8 +142,18 @@ async function runPlan(o, { home, cwd, stdout, pluginRoot, checkVersion }) {
 
 async function runMigrate({ o, home, cwd, stdout, stderr, confirm, hooks }) {
   const plans = scopeTargets(o, { home, cwd });
+  const interrupted = plans.filter((p) => p.pendingBackup);
+  if (!o.resume && interrupted.length) {
+    stderr(`rig-init: an earlier migration was interrupted (${interrupted.map((p) => p.pendingBackup).join(', ')}). Finish it first: rig-init --migrate --resume`);
+    return 1;
+  }
   const todo = plans.filter((p) => (o.resume ? p.pendingBackup : p.detected));
-  if (!todo.length) { stdout(o.resume ? 'No interrupted migration to resume.' : 'No 1.x Rig files found, nothing to migrate.'); return 0; }
+  if (!todo.length) {
+    const unmarked = plans.filter((p) => !p.identified && p.unmarkedMatches > 0);
+    for (const p of unmarked) stdout(`${describeTarget(p)}\n`);
+    stdout(o.resume ? 'No interrupted migration to resume.' : unmarked.length ? 'Nothing was migrated: no Rig 1.x install marker.' : 'No 1.x Rig files found, nothing to migrate.');
+    return 0;
+  }
   for (const p of todo) stdout(`${describeTarget(p)}\n`);
   if (todo.some((p) => p.blockers.length)) { stderr('rig-init: fix the blockers above first.'); return 1; }
   if (!(await confirm(o.resume ? 'Resume the interrupted migration?' : 'Apply this migration?'))) return 0;
@@ -150,6 +162,7 @@ async function runMigrate({ o, home, cwd, stdout, stderr, confirm, hooks }) {
   for (const p of todo) {
     const result = o.resume ? resumeMigration({ backupDir: p.pendingBackup, home, hooks }) : applyMigration({ plan: p, home, rigVersion, hooks });
     stdout(`${p.kind === 'global' ? 'Global' : `Project ${p.root}`}: ${result.status}, ${result.moved} path(s) moved to ${result.backupDir}`);
+    if (result.listFile) stdout(`  full list of moved paths: ${result.listFile}`);
     if (result.blocked.length) {
       code = 3;
       stderr(`  ${result.blocked.length} path(s) are in use and stay in place: ${result.blocked.slice(0, 5).map((b) => `${b.rel} (${b.code})`).join(', ')}\n  Close Claude Code sessions that use them (an open statusline holds files on Windows), then run: rig-init --migrate --resume`);
@@ -191,11 +204,17 @@ async function runDeps({ stdout, stderr, confirm, pluginRoot, runInstaller }) {
   if (!(await confirm('Run the skills dependency installer?'))) return 0;
   const status = runInstaller({ pluginRoot });
   if (status !== 0) { stderr(`rig-init: the installer exited with status ${status}`); return 1; }
+  stdout('Done. The npm dependencies were installed inside the plugin directory: run `rig-init --deps` again after every plugin update.');
   return 0;
+}
+
+/** The real CLI: process argv, env, TTY and prompt, whatever the caller passes. */
+function main() {
+  return mainWithIo({});
 }
 
 if (require.main === module) {
   main().then((code) => { process.exitCode = code; });
 }
 
-module.exports = { main, parseArgs, HELP };
+module.exports = { main, parseArgs, HELP, _mainWithIo: mainWithIo };

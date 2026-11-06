@@ -39,11 +39,18 @@ function settingsFor(cmd) {
  * user hook, a user skill, a generated venv and node_modules, plus settings.json.
  * @returns {{rels: string[]}} owned rels written
  */
-function install1x({ claudeDir, cmd, limit = Infinity, extraSettings = {} }) {
-  const hooks = new Set([...HOOK_FILES, 'statusline.cjs', 'skills/plan/SKILL.md', 'skills/rig-plan/SKILL.md', 'metadata.json']);
+function install1x({ claudeDir, cmd, limit = Infinity, extraSettings = {}, marker = true }) {
+  const hooks = new Set([...HOOK_FILES, 'statusline.cjs', 'skills/plan/SKILL.md', 'skills/rig-plan/SKILL.md', 'metadata.json', 'hooks/lib/rig-config-utils.cjs']);
   const owned = [...OWNED_FILES].sort();
-  const rels = limit === Infinity ? owned : [...new Set([...hooks].filter((r) => OWNED_FILES.has(r)).concat(owned.filter((r) => !hooks.has(r)).slice(0, limit)))];
+  const markerRels = new Set(['metadata.json', 'hooks/lib/rig-config-utils.cjs']);
+  const all = limit === Infinity ? owned : [...new Set([...hooks].filter((r) => OWNED_FILES.has(r)).concat(owned.filter((r) => !hooks.has(r)).slice(0, limit)))];
+  const rels = marker ? all : all.filter((r) => !markerRels.has(r));
   for (const rel of rels) write(path.join(claudeDir, ...rel.split('/')), `// 1.x ${rel}\n`);
+  // The Rig 1.x identity markers (metadata.json named rig, hooks/lib/rig-config-utils.cjs) unless a test builds a foreign install
+  if (marker) {
+    write(path.join(claudeDir, 'metadata.json'), '{"name":"rig","version":"1.1.0"}\n');
+    write(path.join(claudeDir, 'hooks', 'lib', 'rig-config-utils.cjs'), '// 1.x rig-config-utils\n');
+  }
   write(path.join(claudeDir, 'hooks', 'my-own-hook.sh'), '#!/bin/sh\necho mine\n');
   write(path.join(claudeDir, 'skills', 'my-skill', 'SKILL.md'), '---\nname: my-skill\n---\n');
   write(path.join(claudeDir, 'skills', '.venv', 'pyvenv.cfg'), 'home = /usr/bin\n');
@@ -59,15 +66,15 @@ const globalCmd = (rel) => `node "$HOME/.claude/${rel}"`;
 const projectCmd = (rel) => `node "$CLAUDE_PROJECT_DIR"/.claude/${rel}`;
 
 /** A fixture HOME (global 1.x install) and a project dir (project 1.x install) beside it. */
-function makeMachine({ global = true, project = true, limit = Infinity } = {}) {
+function makeMachine({ global = true, project = true, limit = Infinity, marker = true } = {}) {
   const root = tmpDir();
   const home = path.join(root, 'home');
   const proj = path.join(root, 'proj');
   fs.mkdirSync(home, { recursive: true });
   fs.mkdirSync(proj, { recursive: true });
   const out = { root, home, project: proj, rels: [], cleanup: () => fs.rmSync(root, { recursive: true, force: true }) };
-  if (global) out.rels = install1x({ claudeDir: path.join(home, '.claude'), cmd: globalCmd, limit }).rels;
-  if (project) install1x({ claudeDir: path.join(proj, '.claude'), cmd: projectCmd, limit });
+  if (global) out.rels = install1x({ claudeDir: path.join(home, '.claude'), cmd: globalCmd, limit, marker }).rels;
+  if (project) install1x({ claudeDir: path.join(proj, '.claude'), cmd: projectCmd, limit, marker });
   return out;
 }
 

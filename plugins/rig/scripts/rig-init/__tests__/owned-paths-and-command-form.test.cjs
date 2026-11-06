@@ -27,7 +27,11 @@ describe('owned path list', () => {
   it('is the current union of the v1.0.0 and v1.1.0 tags (skipped when the tags are not in this clone)', (t) => {
     try {
       for (const tag of ['v1.0.0', 'v1.1.0']) execFileSync('git', ['rev-parse', '--verify', '--quiet', `${tag}^{commit}`], { cwd: REPO, stdio: 'ignore' });
-    } catch { return t.skip('git tags v1.0.0 / v1.1.0 not available'); }
+    } catch {
+      // CI checks out full history with tags (ci.yml fetch-depth: 0): a skip there would make this check vacuous
+      if (process.env.CI) assert.fail('git tags v1.0.0 / v1.1.0 are missing in CI; the node-tests checkout needs fetch-depth: 0');
+      return t.skip('git tags v1.0.0 / v1.1.0 not available');
+    }
     execFileSync(process.execPath, [path.join(REPO, 'scripts', 'generate-rig-1x-owned-paths.cjs'), '--check'], { cwd: REPO, stdio: 'pipe' });
   });
 });
@@ -51,7 +55,7 @@ describe('rigCommandRel (the full 1.x kit command form)', () => {
 
   it('never matches by basename, another project, a user hook or a non-owned file', () => {
     for (const cmd of ['node /opt/tools/session-init.cjs', 'node "/other/project/.claude/hooks/session-init.cjs"', 'node /home/u/.claude/hooks/my-own-hook.cjs',
-      'python3 "$HOME/.claude/hooks/session-init.cjs"', 'node "$HOME/.claude/hooks/../../evil.cjs"', 'session-init.cjs', '', undefined]) {
+      'node "$HOME/.claude/hooks/../../evil.cjs"', 'session-init.cjs', '', undefined]) {
       assert.strictEqual(owned.rigCommandRel(cmd, GLOBAL), null, String(cmd));
     }
   });

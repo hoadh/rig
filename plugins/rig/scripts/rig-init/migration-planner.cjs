@@ -16,6 +16,7 @@ const { execFileSync } = require('child_process');
 const owned = require('./rig-1x-owned-paths.cjs');
 const { readJsonFile, backupsDirFor } = require('./backup-restore-standalone.cjs');
 const { stripRigSettings } = require('./settings-rig-entries-stripper.cjs');
+const { hasRig1xMarker } = require('../../hooks/lib/rig-1x-copy-notice.cjs');
 
 const SETTINGS_FILES = ['settings.json', 'settings.local.json'];
 const SIZE_WALK_CAP = 200000; // entries; a node_modules tree is sized approximately beyond this
@@ -46,9 +47,25 @@ function sizeOf(p, budget) {
   return total;
 }
 
+/** Directories (relative to `.claude`) that hold an owned `.py` file: only there is a `__pycache__` Rig's. */
+function ownedPythonDirs() {
+  const dirs = new Set();
+  for (const rel of owned.OWNED_FILES) if (rel.endsWith('.py')) dirs.add(path.posix.dirname(rel));
+  return dirs;
+}
+const OWNED_PY_DIRS = ownedPythonDirs();
+
+/** A generated dir is Rig's only beside the owned file that makes it: node_modules next to an owned package.json, __pycache__ next to an owned .py. */
+function isRigGeneratedDir(parentRel, name, childRel) {
+  if (owned.GENERATED_DIR_PATHS.includes(childRel)) return true;
+  if (name === 'node_modules') return owned.isOwnedFile(`${parentRel}/package.json`);
+  if (name === '__pycache__') return OWNED_PY_DIRS.has(parentRel);
+  return false;
+}
+
 /**
- * Walk a directory below `.claude`: owned files become moves (already known by the list), generated dirs become dir
- * moves, anything else is "kept". `rel` is the posix path below `.claude`.
+ * Walk a directory below `.claude`: Rig-generated dirs become dir moves, files off the owned list are "kept" (the
+ * user's own); a symlinked entry is never followed. `rel` is the posix path below `.claude`.
  */
 function walk(claudeDir, rel, out) {
   const abs = path.join(claudeDir, ...rel.split('/'));
@@ -59,8 +76,8 @@ function walk(claudeDir, rel, out) {
     const st = lstatOrNull(path.join(abs, name));
     if (!st) continue;
     if (st.isDirectory() && !st.isSymbolicLink()) {
-      if (owned.GENERATED_DIR_NAMES.has(name) || owned.GENERATED_DIR_PATHS.includes(childRel)) out.generated.push(childRel);
-      else walk(claudeDir, childRel, out);
+      if (isRigGeneratedDir(rel, name, childRel)) out.generated.push(childRel);
+      else if (!owned.GENERATED_DIR_NAMES.has(name)) walk(claudeDir, childRel, out); // someone else's node_modules is not walked
     } else if (name === 'package-lock.json' && owned.isOwnedFile(`${rel}/package.json`)) {
       out.generatedFiles.push(childRel); // written by the `npm install` of a Rig skill
     } else if (!owned.isOwnedFile(childRel) && !owned.GENERATED_FILES.includes(childRel) && !/^(\.DS_Store|Thumbs\.db)$/.test(name)) {
@@ -93,6 +110,77 @@ function findIncompleteBackup({ home, kind, root }) {
   return null;
 }
 
+/** Directories under `.claude` that hold owned files: top dirs and Rig skill dirs. A symlink or junction there is a blocker. */
+function ownedParentDirs() {
+  return [...owned.SCAN_TOP_DIRS, ...[...owned.ownedUnitDirs()].filter((d) => d.startsWith('skills/'))];
+}
+
+function symlinkBlockers(claudeDir) {
+  const blockers = [];
+  const claudeSt = lstatOrNull(claudeDir);
+  if (claudeSt && claudeSt.isSymbolicLink()) blockers.push(`${claudeDir} is a symlink or junction; rig-init does not follow it. Migrate by hand or replace it with a real directory.`);
+  let realClaude = claudeDir;
+  try { realClaude = fs.realpathSync(claudeDir); } catch { /* checked above */ }
+  for (const rel of ownedParentDirs()) {
+    const abs = path.join(claudeDir, ...rel.split('/'));
+    const st = lstatOrNull(abs);
+    if (!st) continue;
+    let real = abs;
+    try { real = fs.realpathSync(abs); } catch { /* dangling: reported through the symlink test */ }
+    if (st.isSymbolicLink() || owned.norm(real) !== owned.norm(path.join(realClaude, ...rel.split('/')))) {
+      blockers.push(`.claude/${rel} is a symlink or junction (to ${real}); rig-init never moves what it points at. Replace the link with a real directory (or remove the link) and run the plan again.`);
+    }
+  }
+  return blockers;
+}
+
+/** Every string under `value`, with its JSON path, skipping the `permissions` rules (patterns, not commands). */
+function* stringsOf(value, trail = '') {
+  if (typeof value === 'string') yield [trail, value];
+  else if (Array.isArray(value)) for (const [i, v] of value.entries()) yield* stringsOf(v, `${trail}[${i}]`);
+  else if (value && typeof value === 'object') {
+    for (const [k, v] of Object.entries(value)) if (k !== 'permissions') yield* stringsOf(v, trail ? `${trail}.${k}` : k);
+  }
+}
+
+/** Files other than settings that can start a Rig file: the project's .mcp.json, and mcpServers in ~/.claude.json (global). */
+function mcpSources(kind, targetRoot) {
+  const out = [];
+  const read = (file) => { try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return null; } };
+  if (kind === 'project') {
+    const j = read(path.join(targetRoot, '.mcp.json'));
+    if (j) out.push({ file: '.mcp.json', value: j });
+  } else {
+    const j = read(path.join(targetRoot, '.claude.json'));
+    if (j) {
+      const servers = { user: j.mcpServers || {}, ...Object.fromEntries(Object.entries(j.projects || {}).map(([k, v]) => [k, (v && v.mcpServers) || {}])) };
+      out.push({ file: '.claude.json', value: { mcpServers: servers } });
+    }
+  }
+  return out;
+}
+
+/**
+ * Settings that still mention a path the migration moves, after the Rig entries are removed (a hook that fails with
+ * MODULE_NOT_FOUND on every event is the failure the journal order exists to prevent). Each one is a blocker: the user
+ * removes or repoints it; nothing is left in place silently.
+ */
+function dangling(target, claudeDir, moveRels, strippedSettings, mcp) {
+  const dirs = moveRels.dirs;
+  const isMoved = (rel) => moveRels.files.has(rel) || dirs.some((d) => rel === d || rel.startsWith(`${d}/`));
+  const blockers = [];
+  const scan = (file, value) => {
+    for (const [trail, text] of stringsOf(value)) {
+      for (const rel of owned.referencedRels(text, target)) {
+        if (isMoved(rel)) blockers.push(`${file} ${trail} runs or reads .claude/${rel}, which the migration moves into the backup. Remove or repoint it, then run the plan again.`);
+      }
+    }
+  };
+  for (const { file, settings } of strippedSettings) scan(`.claude/${file}`, settings);
+  for (const { file, value } of mcp) scan(file, value);
+  return [...new Set(blockers)];
+}
+
 /**
  * @param {{kind: 'global'|'project', root: string, home: string}} opts root = the project dir (project) or ignored (global)
  * @returns {object|null} null when there is no `.claude` dir
@@ -102,9 +190,11 @@ function planTarget({ kind, root, home }) {
   const claudeDir = path.join(targetRoot, '.claude');
   if (!lstatOrNull(claudeDir)) return null;
   const target = { kind, root: targetRoot };
-  const blockers = [];
+  const blockers = symlinkBlockers(claudeDir);
+  const identified = hasRig1xMarker(claudeDir);
 
   const settings = [];
+  const stripped = [];
   for (const file of SETTINGS_FILES) {
     const abs = path.join(claudeDir, file);
     let read;
@@ -115,7 +205,8 @@ function planTarget({ kind, root, home }) {
       continue;
     }
     if (!read.exists) continue;
-    const { removedHooks, removedStatusLine } = stripRigSettings(read.value, target);
+    const { settings: after, removedHooks, removedStatusLine } = stripRigSettings(read.value, target);
+    stripped.push({ file, settings: after });
     if (removedHooks.length || removedStatusLine) {
       settings.push({
         file,
@@ -151,14 +242,24 @@ function planTarget({ kind, root, home }) {
     const bytes = sizeOf(path.join(claudeDir, ...rel.split('/')), { left: SIZE_WALK_CAP });
     moves.push({ rel, type: 'dir', bytes, generated: true });
   }
-  const detected = moves.length > 0 || settings.length > 0;
+  const leftInPlace = lstatOrNull(path.join(claudeDir, ...owned.SHARED_VENV_PATH.split('/')))
+    ? [`${owned.SHARED_VENV_PATH} (shared venv: other kits and your skills may use it; delete it by hand if unused)`] : [];
+
+  // Without a Rig 1.x marker the Rig-looking names are somebody else's files (other kits ship the same agent/hook names)
+  const detected = identified && (moves.length > 0 || settings.length > 0);
+  if (identified) {
+    const moveRels = { files: new Set(moves.map((m) => m.rel)), dirs: moves.filter((m) => m.type === 'dir').map((m) => m.rel) };
+    blockers.push(...dangling(target, claudeDir, moveRels, stripped, mcpSources(kind, targetRoot)));
+  }
   const plan = {
-    kind, root: targetRoot, claudeDir, detected, settings, moves, kept: found.kept.sort(), blockers,
+    kind, root: targetRoot, claudeDir, detected, identified, settings, moves, kept: found.kept.sort(), leftInPlace, blockers,
+    unmarkedMatches: identified ? 0 : moves.length + settings.length,
     bytes: moves.reduce((sum, m) => sum + m.bytes, 0),
     backupGroup: backupGroupDir(home, kind, targetRoot),
     pendingBackup: findIncompleteBackup({ home, kind, root: targetRoot }),
   };
-  if (kind === 'project') {
+  if (!identified) { plan.settings = []; plan.moves = []; plan.bytes = 0; plan.blockers = []; plan.kept = []; plan.leftInPlace = []; }
+  if (kind === 'project' && detected) {
     const tracked = trackedClaudeFiles(targetRoot);
     const committedMoves = moves.filter((m) => tracked.has(m.rel)).length;
     const committedSettings = settings.some((s) => tracked.has(s.file));
@@ -171,6 +272,17 @@ function planTarget({ kind, root, home }) {
   return plan;
 }
 
+/** The project root for a working dir: the dir itself when it has `.claude`, else the git top-level (run from `app/src`, `app/.claude` counts). */
+function projectRootFor(dir) {
+  if (lstatOrNull(path.join(dir, '.claude'))) return dir;
+  try {
+    const top = execFileSync('git', ['-C', dir, 'rev-parse', '--show-toplevel'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    return top ? fs.realpathSync(top) : dir;
+  } catch {
+    return dir;
+  }
+}
+
 /** Targets to look at for `cwd`: the global install, and the project at cwd unless cwd is the home dir. */
 function planAll({ home = os.homedir(), cwd = process.cwd() } = {}) {
   const targets = [];
@@ -179,6 +291,7 @@ function planAll({ home = os.homedir(), cwd = process.cwd() } = {}) {
   let realCwd = cwd;
   let realHome = home;
   try { realCwd = fs.realpathSync(cwd); realHome = fs.realpathSync(home); } catch { /* use as given */ }
+  realCwd = projectRootFor(realCwd);
   if (owned.norm(realCwd) !== owned.norm(realHome)) {
     const project = planTarget({ kind: 'project', root: realCwd, home });
     if (project) targets.push(project);
@@ -192,18 +305,39 @@ function formatBytes(n) {
   return `${(n / 1024 / 1024).toFixed(1)} MB`;
 }
 
+/** Moved paths grouped by top-level dir (skills by skill dir) with counts: what the confirmation prompt shows. */
+function groupMoves(moves) {
+  const groups = new Map();
+  for (const m of moves) {
+    const parts = m.rel.split('/');
+    const key = parts.length === 1 ? '(top level files)' : parts[0] === 'skills' && parts.length > 2 ? `skills/${parts[1]}` : parts[0];
+    groups.set(key, (groups.get(key) || 0) + 1);
+  }
+  return [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+}
+
 /** Human summary of one target plan (the terminal prompt and `--plan` without --json). */
 function describeTarget(plan) {
   const lines = [`${plan.kind === 'global' ? 'Global' : `Project ${plan.root}`} install: ${plan.claudeDir}`];
-  if (!plan.detected) return `${lines[0]}\n  no 1.x Rig files found`;
-  const hooks = plan.settings.flatMap((s) => s.removeHooks.map((h) => `${s.file}: ${h.event}`));
-  lines.push(`  settings: remove ${hooks.length} Rig hook registration(s)${plan.settings.some((s) => s.removeStatusLine) ? ' and the Rig statusLine' : ''} (your other settings stay)`);
-  lines.push(`  move ${plan.moves.length} Rig path(s), ${formatBytes(plan.bytes)}, into ${plan.backupGroup}/<timestamp>/ (nothing is deleted, edits you made to Rig files are kept in the backup; restore.cjs there puts it all back)`);
+  if (!plan.identified && plan.unmarkedMatches > 0) {
+    lines.push(`  found ${plan.unmarkedMatches} file(s) or settings entries with Rig 1.x names, but no Rig 1.x install marker (metadata.json named "rig", hooks/lib/rig-config-utils.cjs).`);
+    lines.push('  They look like another kit\'s files (or your own), so rig-init leaves them alone.');
+  } else if (!plan.detected) {
+    lines.push('  no 1.x Rig files found');
+  } else {
+    const hooks = plan.settings.flatMap((s) => s.removeHooks.map((h) => `${s.file}: ${h.event}`));
+    lines.push(`  settings: remove ${hooks.length} Rig hook registration(s)${plan.settings.some((s) => s.removeStatusLine) ? ' and the Rig statusLine' : ''} (your other settings stay)`);
+    lines.push(`  move ${plan.moves.length} Rig path(s), ${formatBytes(plan.bytes)}, into ${plan.backupGroup}/<timestamp>/ (nothing is deleted, edits you made to Rig files are kept in the backup; restore.cjs there puts it all back)`);
+    lines.push('  paths by directory:');
+    for (const [dir, count] of groupMoves(plan.moves)) lines.push(`    ${dir}  ${count}`);
+    lines.push('  the full list is written to <backup>/moved-paths.txt, and its path is printed.');
+    if (plan.hint) lines.push(`  note: ${plan.hint}`);
+    if (plan.pendingBackup) lines.push(`  an interrupted migration exists: ${plan.pendingBackup} (use --migrate --resume)`);
+  }
   if (plan.kept.length) lines.push(`  not Rig's, left in place (${plan.kept.length}): ${plan.kept.slice(0, 8).join(', ')}${plan.kept.length > 8 ? ', ...' : ''}`);
-  if (plan.hint) lines.push(`  note: ${plan.hint}`);
-  if (plan.pendingBackup) lines.push(`  an interrupted migration exists: ${plan.pendingBackup} (use --migrate --resume)`);
+  for (const item of plan.leftInPlace || []) lines.push(`  left in place: ${item}`);
   for (const b of plan.blockers) lines.push(`  BLOCKED: ${b}`);
   return lines.join('\n');
 }
 
-module.exports = { planTarget, planAll, describeTarget, projectHash, backupGroupDir, findIncompleteBackup, formatBytes, SETTINGS_FILES };
+module.exports = { planTarget, planAll, describeTarget, groupMoves, projectRootFor, projectHash, backupGroupDir, findIncompleteBackup, formatBytes, SETTINGS_FILES };
