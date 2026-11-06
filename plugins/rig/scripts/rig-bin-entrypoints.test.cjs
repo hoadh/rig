@@ -120,8 +120,9 @@ describe('rig-python venv resolution', () => {
       calls.push([cmd, ...args]);
       if (args.includes('--version')) return { status: 0 };
       if (args[0] === '-m' && args[1] === 'venv') {
-        fs.mkdirSync(path.dirname(resolver.venvPythonPath(args[2])), { recursive: true });
-        fs.writeFileSync(resolver.venvPythonPath(args[2]), '');
+        // the code under test runs with platform 'linux' in these tests, so the fake venv uses the POSIX layout on every host
+        fs.mkdirSync(path.dirname(resolver.venvPythonPath(args[2], 'linux')), { recursive: true });
+        fs.writeFileSync(resolver.venvPythonPath(args[2], 'linux'), '');
         return { status: 0 };
       }
       if (args[1] === 'pip') { if (onPip) onPip(cmd); return { status: pipStatus }; }

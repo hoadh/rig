@@ -56,7 +56,8 @@ function build() {
 if (require.main === module) {
   const text = `${JSON.stringify(build(), null, 1)}\n`;
   if (process.argv.includes('--check')) {
-    if (fs.readFileSync(OUT, 'utf8') !== text) {
+    // A CRLF checkout (core.autocrlf) must not read as drift
+    if (fs.readFileSync(OUT, 'utf8').replace(/\r\n/g, '\n') !== text) {
       console.error('rig-1x-owned-paths.json is out of date; run node scripts/generate-rig-1x-owned-paths.cjs');
       process.exit(1);
     }

@@ -174,6 +174,7 @@ function containedPath(base, rel, label) {
 // ---------- consent ----------
 
 const MAX_ANCESTRY_DEPTH = 40;
+const PS_QUERY_TIMEOUT_MS = 30000;
 const baseName = (p) => path.basename(String(p || '').replace(/\\/g, '/')).toLowerCase().replace(/\.exe$/, '');
 
 /** True when a process looks like Claude Code: the `claude` binary, or node/bun running the claude CLI package. */
@@ -186,7 +187,7 @@ function isClaudeCodeProcess({ name = '', args = [] }) {
 
 /**
  * The chain of ancestor processes of this one, nearest first: Linux /proc, macOS `ps`, Windows one PowerShell/CIM
- * query (5 s timeout). Throws when the chain cannot be read, so the caller fails closed.
+ * query (30 s timeout: a cold PowerShell start plus a full CIM process listing exceeded 5 s on a CI runner). Throws when the chain cannot be read, so the caller fails closed.
  */
 function readAncestry({ platform = process.platform, startPid = process.pid, run = spawnSync, readFile = fs.readFileSync } = {}) {
   const chain = [];
@@ -209,7 +210,7 @@ function readAncestry({ platform = process.platform, startPid = process.pid, run
   }
   if (platform === 'win32') {
     const res = run('powershell', ['-NoProfile', '-NonInteractive', '-Command',
-      'Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,Name,CommandLine | ConvertTo-Json -Compress'], { encoding: 'utf8', timeout: 5000, windowsHide: true });
+      'Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,Name,CommandLine | ConvertTo-Json -Compress'], { encoding: 'utf8', timeout: PS_QUERY_TIMEOUT_MS, windowsHide: true });
     if (res.error || res.status !== 0) throw new Error(`process query failed: ${res.error ? res.error.message : `exit ${res.status}`}`);
     const rows = [].concat(JSON.parse(res.stdout));
     const byPid = new Map(rows.map((r) => [r.ProcessId, r]));

@@ -13,8 +13,11 @@ const { execFileSync } = require('child_process');
 const { release, latestTag, tagArgs, pinnedEntry, checkMarketplaceRef } = require('./release-plugin.cjs');
 const { compareSemver } = require('./check-plugin-version-bump.cjs');
 
-// Isolate from the developer's git config (signing, hooks, identity)
-const GIT_ENV = { ...process.env, GIT_CONFIG_GLOBAL: os.devNull, GIT_CONFIG_NOSYSTEM: '1' };
+// Isolate from the developer's git config (signing, hooks, identity). GIT_CONFIG_GLOBAL must be a real file: git cannot open
+// Windows' os.devNull (\\.\nul).
+const EMPTY_GLOBAL_CONFIG = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'rig-release-gitcfg-')), 'gitconfig');
+fs.writeFileSync(EMPTY_GLOBAL_CONFIG, '');
+const GIT_ENV = { ...process.env, GIT_CONFIG_GLOBAL: EMPTY_GLOBAL_CONFIG, GIT_CONFIG_NOSYSTEM: '1' };
 delete GIT_ENV.CLAUDECODE;
 const URL = 'https://github.com/example/rig.git';
 const tmpDirs = [];

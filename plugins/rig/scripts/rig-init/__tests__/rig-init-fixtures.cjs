@@ -85,6 +85,9 @@ function snapshot(dir) {
     for (const name of fs.readdirSync(abs).sort()) {
       const full = path.join(abs, name);
       const r = rel ? `${rel}/${name}` : name;
+      // Windows PowerShell (the consent gate's ancestry query) creates AppData\Roaming under a fixture USERPROFILE: its
+      // profile bootstrap, not a rig-init write, so it is not state
+      if (process.platform === 'win32' && rel === 'home' && name === 'AppData') continue;
       const st = fs.lstatSync(full);
       if (st.isDirectory()) { out[`${r}/`] = 'dir'; walk(full, r); } else out[r] = st.isSymbolicLink() ? `-> ${fs.readlinkSync(full)}` : fs.readFileSync(full, 'utf8');
     }

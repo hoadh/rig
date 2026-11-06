@@ -495,7 +495,8 @@ describe('lows', () => {
     execFileSync('git', ['-C', m.project, 'init', '-q']);
     const sub = path.join(m.project, 'src', 'deep');
     fs.mkdirSync(sub, { recursive: true });
-    assert.strictEqual(projectRootFor(fs.realpathSync(sub)), fs.realpathSync(m.project));
+    // .native: git reports the long form of a Windows 8.3 temp path; plain realpathSync keeps the short one
+    assert.strictEqual(projectRootFor(fs.realpathSync.native(sub)), fs.realpathSync.native(m.project));
     assert.deepStrictEqual(planAll({ home: m.home, cwd: sub }).map((p) => p.kind), ['project']);
   });
 

@@ -6,3 +6,4 @@ plugins/rig/skills/ui-design/data/** text eol=lf
 bin/* text eol=lf
 plugins/*/bin/** text eol=lf
 plugins/rig/bin/* text eol=lf
+/plugins/rig/scripts/rig-init/rig-1x-owned-paths.json text eol=lf
