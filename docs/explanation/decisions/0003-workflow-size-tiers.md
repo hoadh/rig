@@ -2,14 +2,14 @@
 
 **Status**: Accepted
 **Date**: 2026-11-04
-**Relates to**: [ADR 0001](./0001-agent-state-lives-in-files.md) (plans and reports stay in files). Tier rules live in [orchestration protocol](../../../.claude/skills/implement/references/orchestration-protocol.md) (moved out of `primary-workflow.md` in 1.1); this ADR records why.
+**Relates to**: [ADR 0001](./0001-agent-state-lives-in-files.md) (plans and reports stay in files). Tier rules live in [orchestration protocol](../../../plugins/rig/skills/implement/references/orchestration-protocol.md) (moved out of `primary-workflow.md` in 1.1); this ADR records why.
 
 ## Context
 
 Rig ran every change through one pipeline: `planner`, parallel `researcher` agents, plan files, `tester`, `code-reviewer`, `docs-maintainer`. The 2026-11-04 self-assessment found two costs:
 
 - A one-file fix paid the full pipeline in tokens and wall time.
-- The rules leaned on absolute wording ("MANDATORY. NON-NEGOTIABLE. NO EXCEPTIONS.") and gave few reasons. The always-loaded files (`CLAUDE.md`, `AGENTS.md`, `.claude/rules/*.md`) were 25,603 bytes.
+- The rules leaned on absolute wording ("MANDATORY. NON-NEGOTIABLE. NO EXCEPTIONS.") and gave few reasons. The always-loaded files (`CLAUDE.md`, `AGENTS.md`, `plugins/rig/rules/*.md`) were 25,603 bytes.
 
 No evidence showed that the full pipeline beats plain Claude Code on small tasks. The benchmark harness in `scripts/benchmark/` exists to measure that. Its first full run is not done yet.
 
@@ -30,7 +30,7 @@ Rules that go with the table:
 - **The main agent does the work.** Subagents are used for context isolation, parallelism, or a review that is not anchored on the agent's own reasoning. They are not the default.
 - **Hard limits do not change with the tier.** Failing tests are never skipped or weakened, and secrets are never committed.
 
-The tier table is defined once, in `.claude/skills/implement/references/orchestration-protocol.md` (it was `primary-workflow.md` until 1.1; `core-rules.md` carries a one-line form). `CLAUDE.md`, `AGENTS.md` and the implement skill point to it.
+The tier table is defined once, in `plugins/rig/skills/implement/references/orchestration-protocol.md` (it was `primary-workflow.md` until 1.1; `core-rules.md` carries a one-line form). `CLAUDE.md`, `AGENTS.md` and the implement skill point to it.
 
 ## Why small work runs without subagents
 
@@ -52,7 +52,7 @@ Limits of this evidence:
 
 - One run per tier. It shows the routing, not a rate.
 - The Large run did not spawn `planner` or researchers. It read the plan skill and wrote the files in the main session. The research and red-team steps of the Large row are not yet confirmed by a run.
-- The always-loaded text fell from 25,603 to 13,223 bytes (-48%). Emphasis markers (`NON-NEGOTIABLE`, `NO EXCEPTIONS`, `MANDATORY`) fell from 2 to 0. Tier 1 eval (`always-loaded-shouting-markers.ts`) now fails if they return to `CLAUDE.md`, `AGENTS.md` or `.claude/rules/*.md`.
+- The always-loaded text fell from 25,603 to 13,223 bytes (-48%). Emphasis markers (`NON-NEGOTIABLE`, `NO EXCEPTIONS`, `MANDATORY`) fell from 2 to 0. Tier 1 eval (`always-loaded-shouting-markers.ts`) now fails if they return to `CLAUDE.md`, `AGENTS.md` or `plugins/rig/rules/*.md`.
 
 ## Consequences
 

@@ -6,13 +6,13 @@ import tseslint from 'typescript-eslint';
 export default tseslint.config(
   {
     ignores: [
-      '.agent/**', // generated mirror of .claude/ (see sync-antigravity-agent-dir.cjs)
+      '.agent/**', // generated mirror of plugins/rig/ (see sync-antigravity-agent-dir.cjs)
       '**/node_modules/**',
       '**/.venv/**',
       '**/worktrees/**',
       'plans/**',
-      '.claude/skills/ui-design/data/**', // vendored data
-      '.claude/skills/**/assets/**', // vendored browser assets
+      'plugins/rig/skills/ui-design/data/**', // vendored data
+      'plugins/rig/skills/**/assets/**', // vendored browser assets
       '**/dist/**', // compiled output (mcp skill)
     ],
   },
@@ -35,12 +35,12 @@ export default tseslint.config(
   },
   {
     // Puppeteer scripts pass callbacks to page.evaluate(), which run in the browser (document, window)
-    files: ['.claude/skills/browser/scripts/**/*.js'],
+    files: ['plugins/rig/skills/browser/scripts/**/*.js'],
     languageOptions: { globals: { ...globals.node, ...globals.browser } },
   },
   {
     // markdown-viewer suites get describe/it from tests/test-framework.cjs (run via tests/run-tests.cjs)
-    files: ['.claude/skills/markdown-viewer/tests/*.test.cjs'],
+    files: ['plugins/rig/skills/markdown-viewer/tests/*.test.cjs'],
     languageOptions: { globals: { ...globals.node, describe: 'readonly', it: 'readonly', before: 'readonly', after: 'readonly' } },
   },
   {
@@ -50,7 +50,7 @@ export default tseslint.config(
   },
   {
     // MCP protocol payloads and tool schemas are arbitrary JSON; `any` is the honest type here.
-    files: ['.claude/skills/mcp/scripts/*.ts'],
+    files: ['plugins/rig/skills/mcp/scripts/*.ts'],
     rules: { '@typescript-eslint/no-explicit-any': 'off' },
   },
 );

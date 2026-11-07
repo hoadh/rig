@@ -1,0 +1,4 @@
+#!/usr/bin/env node
+'use strict';
+// rig:remote orchestrator CLI.
+require('../scripts/rig-bin-launcher.cjs').runNodeScript(__filename, 'skills/remote/scripts/remote.cjs');

@@ -33,7 +33,7 @@ The script will:
 Run as Administrator:
 
 ```powershell
-cd .claude\skills
+cd .agent\skills
 Set-ExecutionPolicy Bypass -Scope Process -Force
 .\install.ps1
 ```
@@ -58,7 +58,7 @@ The script will:
 From Git Bash/MSYS/Cygwin, `install.sh` exits with a hint; run the installer from PowerShell instead:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .claude\skills\install.ps1
+powershell -ExecutionPolicy Bypass -File .agent\skills\install.ps1
 ```
 
 On Windows use `python` (not `python3`, which is a Microsoft Store stub) and `.venv\Scripts\python.exe` (not `.venv/bin/python3`).
@@ -115,7 +115,7 @@ pip install -r requirements.txt
 
 Most skills use only Python standard library. Only **media** requires external packages:
 
-**media** (`.agent/skills/media/scripts/requirements.txt`):
+**media** (`scripts/requirements.txt` of the `media` skill):
 - `google-genai>=0.1.0` - Google Gemini API
 - `pypdf>=4.0.0` - PDF processing
 - `python-docx>=1.0.0` - DOCX conversion
@@ -196,7 +196,7 @@ python -m venv .venv
 .venv\Scripts\activate
 
 # Python packages (media only)
-cd .claude\skills\media\scripts
+cd .agent\skills\media\scripts
 pip install -r requirements.txt
 
 # System tools via Chocolatey

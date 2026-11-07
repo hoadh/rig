@@ -1,10 +1,12 @@
 # Extend Rig with Agents and Skills
 
-Add your own agent, skill, or workflow to Rig. Edit files in your Rig clone (not the installed copy in `~/.claude`), then reinstall. Layer model: [System Components](../reference/system-components.md). Authoring rules: [Agent, Skill & Hook Authoring Standards](../reference/agent-skill-hook-authoring-standards.md).
+Add your own agent or skill to Rig. Edit files in your Rig clone under `plugins/rig/`, test them with `--plugin-dir`, then ship them as a release. Do not edit the installed copy in the plugin cache.
+
+Layer model: [System Components](../reference/system-components.md). Authoring rules: [Agent, Skill & Hook Authoring Standards](../reference/agent-skill-hook-authoring-standards.md).
 
 ## Add an agent
 
-1. Create `.claude/agents/my-agent.md` with frontmatter:
+1. Create `plugins/rig/agents/my-agent.md` with frontmatter:
    ```yaml
    ---
    name: my-agent
@@ -14,29 +16,33 @@ Add your own agent, skill, or workflow to Rig. Edit files in your Rig clone (not
    ---
    ```
 2. Below the frontmatter, write the agent's role, workflow, and output format.
-3. Name the agent in skills or rules that should delegate to it (e.g. "spawn `my-agent` to ...").
+3. Name the agent in skills that should delegate to it (for example "spawn `my-agent` to ..."). Claude Code reports plugin agents with the `rig:` prefix (`rig:my-agent`).
 
 ## Add a skill
 
-1. Create `.claude/skills/my-skill/SKILL.md` with frontmatter:
+1. Create `plugins/rig/skills/my-skill/SKILL.md` with frontmatter:
    ```yaml
    ---
-   name: rig:my-skill        # invoked as /rig:my-skill
+   name: my-skill            # the plugin adds the rig: namespace: /rig:my-skill
    description: "What it does and when to use it."
    argument-hint: "init|update"   # optional, shown in the slash menu
    ---
    ```
-2. Write the workflow in `SKILL.md`. Keep it short; move long material to `references/*.md` and scripts to `scripts/`, and link them from `SKILL.md`.
-3. For a knowledge-only skill, omit `argument-hint` and reference the skill from the agents that should load it.
+2. Write the workflow in `SKILL.md`. Keep it short. Move long material to `references/*.md` and scripts to `scripts/`, and link them from `SKILL.md`.
+3. Call other Rig scripts by their `bin/` name (`rig-worktree`, `rig-python`, `rig-skill-dir <skill>`). Do not hard-code install paths: the plugin cache path changes on every update.
+4. For a knowledge-only skill, set `user-invocable: false` and reference the skill from the agents that should load it.
 
-## Add a custom workflow
+## Add a workflow
 
-1. Create `.claude/rules/my-workflow.md` describing the steps, which agent handles each step, and what each hands off.
-2. Link it from the Workflows section of `CLAUDE.md` so sessions load it.
+Put the steps in a skill, not in a rules file. The always-loaded rules are `plugins/rig/rules/core-rules.md` and stay short. A workflow skill names which agent handles each step and what each hands off; users reach it through `/rig:<name>`.
 
-## Verify and install
+## Test and ship
 
-1. Preview the install: `node scripts/install-kit-from-local-repo.cjs --dir ../my-app --dry-run`.
-2. Install into one project first: `node scripts/install-kit-from-local-repo.cjs --dir ../my-app`.
-3. Start a new Claude Code session in `../my-app`. Agent: ask Claude to use it by name. Skill: run `/rig:my-skill` or describe a matching task.
-4. When it works, install globally with `--global`. This updates `~/.claude` for every project and merges `settings.json` (a backup is written). See [Install and update Rig](./install-and-update-rig.md).
+1. Load the plugin from your clone for one session:
+   ```bash
+   claude --plugin-dir ./plugins/rig
+   ```
+2. Validate the manifest and the marketplace entry: `claude plugin validate ./plugins/rig --strict` and `claude plugin validate .`.
+3. Start a session and call the new skill (`/rig:my-skill`), or describe a task that should load the agent.
+4. Run `npm run lint` and `npm test`. The Antigravity copy is generated: run `node scripts/sync-antigravity-agent-dir.cjs` and commit the result.
+5. Bump `version` in `plugins/rig/.claude-plugin/plugin.json` for any change under `plugins/rig/`. CI fails a change without a greater version. Users receive the change through the marketplace; see [Install and update Rig](./install-and-update-rig.md).

@@ -27,7 +27,7 @@ cd .agent/skills
 
 **Windows (PowerShell as Administrator):**
 ```powershell
-cd .claude\skills
+cd .agent\skills
 .\install.ps1
 ```
 

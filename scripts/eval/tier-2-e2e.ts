@@ -13,7 +13,7 @@ import { spawn } from "child_process";
 import { projectRoot, resolveEvalCli, getChangedSkills, allSkillNames } from "./eval-utils.ts";
 
 const ROOT = projectRoot();
-const SKILLS_DIR = join(ROOT, ".claude/skills");
+const SKILLS_DIR = join(ROOT, "plugins/rig/skills");
 const RESULTS_DIR = join(ROOT, "scripts/eval/results");
 
 const CLAUDE_TIMEOUT_MS = 60_000;

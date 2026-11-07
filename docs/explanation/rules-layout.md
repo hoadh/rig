@@ -1,21 +1,21 @@
 # Rules Layout
 
-Why `.claude/rules/` holds one file, and where the rest of the workflow guidance lives. Read this before you edit a rule.
+Why `plugins/rig/rules/` holds one file, and where the rest of the workflow guidance lives. Read this before you edit a rule.
 
 ## Why
 
-Claude Code loads every `.claude/rules/*.md` file into a session, subagents included. In 1.0.0 that was five files (about 11 KB), and most of it was task detail a given session never used. Rig 1.1 keeps the always-loaded part to one small file and moves the rest into the skill that uses it. Static always-loaded text (CLAUDE.md, rules, agent and skill descriptions) fell from 35.1 KB to 9.6 KB. The budget test `always-loaded-context-budget.test.cjs` keeps it there.
+Claude Code loads every `plugins/rig/rules/*.md` file into a session, subagents included. In 1.0.0 that was five files (about 11 KB), and most of it was task detail a given session never used. Rig 1.1 keeps the always-loaded part to one small file and moves the rest into the skill that uses it. Static always-loaded text (CLAUDE.md, rules, agent and skill descriptions) fell from 35.1 KB to 9.6 KB. The budget test `always-loaded-context-budget.test.cjs` keeps it there.
 
 ## Layout
 
 | File | Loaded when | Holds |
 |------|-------------|-------|
-| `.claude/rules/core-rules.md` (under 1.8 KB, test-enforced) | Every session and subagent | Principles, one line per size tier, naming, file size, secrets, English-only repo, verify before claiming done, privileged steps, remote hosts, language, subagent Status block |
-| `.claude/skills/implement/references/orchestration-protocol.md` | `/rig:implement` runs | Full size tiers, implementation, code quality, testing, review, commit and push, docs, debugging, delegation, chaining and parallelism, subagent status protocol, context isolation |
-| `.claude/skills/rig-plan/references/plan-organization.md` | `/rig:plan` runs | Plan directory layout, `plan.md`, phase file sections, Pending Live Verification |
-| `.claude/skills/docs/references/docs-upkeep-rules.md` | `/rig:docs` runs | When to update docs, read-first rule, roadmap and changelog upkeep, `docs-maintainer` delegation |
-| `.claude/skills/team/references/team-coordination.md` | `/rig:team` runs | Teammate file ownership, git safety, communication, task claiming, conflicts, shutdown |
-| `.claude/skills/remote/SKILL.md` | `/rig:remote` runs | SSH host resolution with `ssh -G`, the no-user flow, production hosts are read-only |
+| `plugins/rig/rules/core-rules.md` (under 1.8 KB, test-enforced) | Every session and subagent | Principles, one line per size tier, naming, file size, secrets, English-only repo, verify before claiming done, privileged steps, remote hosts, language, subagent Status block |
+| `plugins/rig/skills/implement/references/orchestration-protocol.md` | `/rig:implement` runs | Full size tiers, implementation, code quality, testing, review, commit and push, docs, debugging, delegation, chaining and parallelism, subagent status protocol, context isolation |
+| `plugins/rig/skills/plan/references/plan-organization.md` | `/rig:plan` runs | Plan directory layout, `plan.md`, phase file sections, Pending Live Verification |
+| `plugins/rig/skills/docs/references/docs-upkeep-rules.md` | `/rig:docs` runs | When to update docs, read-first rule, roadmap and changelog upkeep, `docs-maintainer` delegation |
+| `plugins/rig/skills/team/references/team-coordination.md` | `/rig:team` runs | Teammate file ownership, git safety, communication, task claiming, conflicts, shutdown |
+| `plugins/rig/skills/remote/SKILL.md` | `/rig:remote` runs | SSH host resolution with `ssh -G`, the no-user flow, production hosts are read-only |
 
 Each skill that owns a reference links to it from its `SKILL.md`. A reference nobody links to is not read.
 
@@ -35,7 +35,7 @@ Privileged steps and remote host rules are one line each in core. The full text 
 
 - Change always-loaded behavior in `core-rules.md` only, and keep it under its cap.
 - Put task detail in the reference of the skill that needs it, and link that reference from the skill.
-- Subagents already receive `.claude/rules/*.md` from Claude Code. `subagent.injectCoreRules: true` in `.rig.json` also appends `core-rules.md` to each subagent's SubagentStart context. The default is `false`. Turn it on only for an install without a rules folder.
+- In the plugin, `session-init` injects `rules/core-rules.md` at session start. `subagent.injectCoreRules: true` in `.rig.json` also appends `core-rules.md` to each subagent's SubagentStart context. The default is `false`. Turn it on only when the rules are not loaded for subagents.
 
 ## Antigravity
 

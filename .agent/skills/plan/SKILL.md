@@ -146,7 +146,7 @@ flowchart TD
 - Respond with plan file path and summary
 - Ensure self-contained plans with necessary context
 - Include code snippets/pseudocode when clarifying
-- Fully respect the `.agent/rules/core-rules.md` file
+- Fully respect the Rig core rules
 
 ## Task Management
 
@@ -172,7 +172,7 @@ Check `## Plan Context` injected by hooks:
 - **"Suggested: {path}"** → Branch hint only. Ask if activate or create new.
 - **"Plan: none"** → Create new using `Plan dir:` from `## Naming`
 
-After creating plan: `node .agent/scripts/set-active-plan.cjs {plan-dir}`
+After creating plan: no command needed: Antigravity has no active-plan marker, keep the plan path in your notes
 Reports: Active plans → plan-specific path. Suggested → default path.
 
 ### Important

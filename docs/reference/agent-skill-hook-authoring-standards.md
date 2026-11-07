@@ -1,6 +1,6 @@
 # Agent, Skill & Hook Authoring Standards
 
-Rules for writing Rig kit files: agent, command, and skill definitions, hooks, and configuration files. General code rules: [Code Standards](./code-standards.md). Step-by-step extension: [Extend Rig with Agents and Skills](../how-to/extend-rig-with-agents-and-skills.md).
+Rules for writing Rig plugin files under `plugins/rig/`: agent, command, and skill definitions, hooks, and configuration files. General code rules: [Code Standards](./code-standards.md). Step-by-step extension: [Extend Rig with Agents and Skills](../how-to/extend-rig-with-agents-and-skills.md).
 
 ## Agent-Specific Standards
 
@@ -93,14 +93,16 @@ Mistakes to avoid
 
 ## Hook Implementation Standards
 
-Rig keeps six hooks: `session-init`, `subagent-init`, `team-context-inject`, `dev-rules-reminder`, `bash-safety-guard` and `verify-completion-guard`. Use a native feature first (permission rules in `.claude/settings.json`, a rule in `.claude/rules/`, or a skill). Add a hook only when none fits.
+Rig keeps six hooks: `session-init`, `subagent-init`, `team-context-inject`, `dev-rules-reminder`, `bash-safety-guard` and `verify-completion-guard`. Use a native feature first (a permission rule in the user's settings through `rig-init --permissions`, a line in `plugins/rig/rules/core-rules.md`, or a skill). Add a hook only when none fits. A plugin cannot ship `permissions.ask` or `statusLine`.
 
 **Implementation Requirements**:
 - Pure Node.js (`.cjs`), no dependencies
 - Read stdin, validate JSON, catch errors
 - Fail open: exit 0 on internal errors so a hook never blocks Claude
-- Inject only dynamic facts (paths, plan context, date). Static rules belong in `.claude/rules/`
-- Register with the `node "$CLAUDE_PROJECT_DIR"/.claude/hooks/<name>.cjs` form
+- Inject only dynamic facts (paths, plan context, date). Static rules belong in `plugins/rig/rules/core-rules.md`, which `session-init` injects
+- Register in `plugins/rig/hooks/hooks.json` in exec form: `"command": "node", "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/<name>.cjs"]`. Do not use `$CLAUDE_PROJECT_DIR` paths: a plugin runs from its cache directory
+- Keep hook-private state and logs in `CLAUDE_PLUGIN_DATA` (see `hooks/lib/plugin-data-dir.cjs`); shared session files stay in the OS temp dir
+- Do not hard-code a path to another Rig script; call the `bin/` name, or read the plugin root from `__dirname`
 
 **Testing Standards**:
 - Test the normal output and the error path (invalid JSON, empty input, missing fields)

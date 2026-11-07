@@ -4,7 +4,7 @@ Rig ships two hooks and a few rules that stop common agent mistakes: claiming "f
 
 ## Threat model
 
-The guards catch **accidents** by a well-meaning agent. They are not a sandbox: an agent (or a repository) that is trying to evade them can. Do not rely on them against hostile input. Both hooks fail open: any internal error lets the action through and is logged to `.claude/hooks/.logs/hook-log.jsonl`.
+The guards catch **accidents** by a well-meaning agent. They are not a sandbox: an agent (or a repository) that is trying to evade them can. Do not rely on them against hostile input. Both hooks fail open: any internal error lets the action through and is logged to `plugins/rig/hooks/.logs/hook-log.jsonl`.
 
 ## What the guards catch
 
@@ -13,7 +13,7 @@ The guards catch **accidents** by a well-meaning agent. They are not a sandbox: 
 | `verify-completion-guard.cjs` | `Stop` | Code edited this turn, but no passing test, build, typecheck or lint command ran after the last edit |
 | `bash-safety-guard.cjs` | `PreToolUse` (`Bash`) | `sed -i` / `perl -i` on a symlink (replaces the link with a regular file); `pkill -f` patterns that match Claude's own shell, broad kills, kills by common names (`node`, `python`, `claude`, ...); Bash readers/copiers (`cat`, `grep`, `source`, `cp`, `curl @file`, `< file`) of secret files (the `Read(...)` entries of `permissions.ask`), ask only; templates such as `.env.example` pass |
 
-Both are registered in `.claude/settings.json` and installed by the Rig installer (project and `--global`). A global copy yields to a project copy, so nothing runs twice.
+Both are registered in the plugin's `hooks/hooks.json` and run whenever the Rig plugin is enabled. A 1.x copy of the same hooks in `~/.claude` or a project makes the plugin copy yield, so nothing runs twice; [migrate](./migrate-from-rig-1x.md) removes the 1.x copy.
 
 ## Verify guard modes
 
@@ -87,7 +87,7 @@ If you registered your own Stop notification hook, it fires when the guard nudge
 Inspect decisions in the log:
 
 ```bash
-grep -E '"hook":"(verify-completion-guard|bash-safety-guard)"' .claude/hooks/.logs/hook-log.jsonl | tail
+grep -E '"hook":"(verify-completion-guard|bash-safety-guard)"' "$CLAUDE_PLUGIN_DATA/logs/hook-log.jsonl" | tail
 ```
 
 The `note` field of the verify guard holds `unverified` (nudge or block issued; `last-check-failed` when the last check failed), `verified`, `no-edits`, `remind-cap allow`, `block-cap allow`, `transcript-lag allow`, `counter-unwritable allow`, or `skip stop-hook-active` / `skip escape-phrase` / `skip transcript-missing`. Each ends with `mode=<m> src=<default|global|project>`, plus `window-exhausted`, `boundary-unclear` or `pattern-timeout` when set. Rejected patterns log `extraCommandPatterns rejected: ...`. The bash guard writes `decision:<deny|ask> rule:<in-place-edit-symlink|process-kill|secret-file-read> cmd:<12-char hash>`.
@@ -102,7 +102,7 @@ The `debugger` agent writes `## Confirmed` (each item with its evidence) and `##
 
 ## Remote hosts, production and privileged steps
 
-Rules in `.claude/rules/core-rules.md` (detail in `.claude/skills/remote/SKILL.md` and `.claude/skills/implement/references/orchestration-protocol.md`):
+Rules in `plugins/rig/rules/core-rules.md` (detail in `plugins/rig/skills/remote/SKILL.md` and `plugins/rig/skills/implement/references/orchestration-protocol.md`):
 
 - Resolve user and host with `ssh -G <host>`. If no user is configured, Claude asks once and offers to add a `Host <alias>` entry (`HostName`, `User`) to `~/.ssh/config`. It never guesses from history or `known_hosts`.
 - Production hosts are read-only: inspection commands only, anything state-changing needs your explicit approval.

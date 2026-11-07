@@ -12,7 +12,7 @@ import { spawnSync } from 'node:child_process';
 import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { assertIsolation, buildChildEnv, commitBaseline, createIsolatedConfigDir, installRig } from './benchmark-arm-setup.ts';
+import { assertIsolation, buildChildEnv, commitBaseline, createIsolatedConfigDir, rigPluginArgs } from './benchmark-arm-setup.ts';
 import { collectMetrics, parseClaudeResult } from './benchmark-metrics-collector.ts';
 import type { ClaudeResult } from './benchmark-metrics-collector.ts';
 import type { Arm, BenchmarkTask, RunMetrics } from './benchmark-types.ts';
@@ -88,7 +88,6 @@ function runOne(opts: Options, arm: Arm, task: BenchmarkTask, run: number, remai
   const workspace = path.join(base, 'work');
   try {
     prepareWorkspace(workspace, task);
-    if (arm === 'rig') installRig(workspace);
     commitBaseline(workspace);
     const config = createIsolatedConfigDir(base);
     assertIsolation(config.dir, workspace, arm);
@@ -100,6 +99,7 @@ function runOne(opts: Options, arm: Arm, task: BenchmarkTask, run: number, remai
       '--allowedTools', ALLOWED_TOOLS,
       '--max-budget-usd', String(Math.min(opts.runCap, remainingBudget).toFixed(2)),
       ...(opts.model ? ['--model', opts.model] : []),
+      ...(arm === 'rig' ? rigPluginArgs() : []),
     ];
     const startedAt = new Date().toISOString();
     const t0 = Date.now();

@@ -1,6 +1,6 @@
 # Run a Plan Across Machines
 
-Run plan phases, or test commands, on other machines (macOS, Windows, Linux) over ssh with `rig:remote`. The orchestrator machine owns the plan; workers run one headless Claude agent per phase in a dedicated clone. Git is the data channel. Design: [ADR 0002](../explanation/decisions/0002-multi-machine-remote-orchestration.md). Skill rules: `.claude/skills/remote/SKILL.md`.
+Run plan phases, or test commands, on other machines (macOS, Windows, Linux) over ssh with `rig:remote`. The orchestrator machine owns the plan; workers run one headless Claude agent per phase in a dedicated clone. Git is the data channel. Design: [ADR 0002](../explanation/decisions/0002-multi-machine-remote-orchestration.md). Skill rules: `plugins/rig/skills/remote/SKILL.md`.
 
 Use this only for multi-machine plans or cross-OS test runs. Single-machine plans use `/rig:implement` as usual.
 
@@ -8,21 +8,21 @@ Use this only for multi-machine plans or cross-OS test runs. Single-machine plan
 
 | Need | Check |
 |---|---|
-| Rig installed on every machine, same version | `doctor` reports the protocol and skill-script hash |
+| Rig plugin installed on every machine, same major version | `doctor` reports the protocol and the runtime version |
 | Node.js 18.15+, git 2.30+, claude CLI 2.1.259+, OpenSSH client | `doctor` |
 | Dedicated clone of the repo on each worker per project, used only by Rig | Clean tree; never edit it by hand |
 | Key-based, non-interactive ssh from orchestrator to each worker | `ssh -o BatchMode=yes <host> echo ok` |
 | `claude` logged in on each worker (or a token in the service user's environment) | `doctor` |
 | Worker host key in `known_hosts` on the orchestrator | Run `ssh <host>` once interactively; ssh runs with `StrictHostKeyChecking=yes` |
 
-Recommended: a dedicated OS user per worker. It is the only boundary that holds against a misbehaving agent; see [Threat model](#threat-model). Containers as workers: see [worker setup guide, Container sandbox](../../.claude/skills/remote/references/worker-setup-guide.md#container-sandbox).
+Recommended: a dedicated OS user per worker. It is the only boundary that holds against a misbehaving agent; see [Threat model](#threat-model). Containers as workers: see [worker setup guide, Container sandbox](../../plugins/rig/skills/remote/references/worker-setup-guide.md#container-sandbox).
 
 ### One-time baseline per worker clone
 
 Every worker clone needs a recorded known-good baseline. `setup` (step 2) creates a missing clone and records it for you. For a clone you made yourself, inspect it, then either run `setup <id> --accept-existing-clone` or record it on that worker:
 
 ```bash
-node ~/.claude/skills/remote/scripts/worker.cjs baseline --repo /path/to/dedicated/clone
+node ~/.claude/rig/runtime/remote/worker.cjs baseline --repo /path/to/dedicated/clone
 ```
 
 Until a baseline exists, every agent run and every `run` command fails with `failed:prepare`. Record it again after you intentionally change global git config on that worker, or runs fail `hooks-tampered`.
@@ -32,7 +32,7 @@ Until a baseline exists, every agent run and every `run` command fails with `fai
 On the orchestrator, add each worker with `register` (validates the entry, writes `~/.claude/rig-machines.json` atomically; override path with `RIG_MACHINES_FILE`). Ids match `RIG_MACHINE` on each machine, or the lowercased hostname if unset.
 
 ```bash
-node .claude/skills/remote/scripts/remote.cjs register linux --ssh rig@linux --os linux \
+rig-remote register linux --ssh rig@linux --os linux \
   --repo /home/rig/app --node /usr/bin/node --allowed-tools "Bash(npm test:*)"
 ```
 
@@ -55,7 +55,7 @@ node .claude/skills/remote/scripts/remote.cjs register linux --ssh rig@linux --o
 }
 ```
 
-Full key table: [registry format](../../.claude/skills/remote/references/registry-format.md). Never put tokens or passwords here; keys named like secrets are rejected.
+Full key table: [registry format](../../plugins/rig/skills/remote/references/registry-format.md). Never put tokens or passwords here; keys named like secrets are rejected.
 
 ### Several projects on one machine
 
@@ -63,29 +63,29 @@ A machine can hold one clone per project. Run `register` inside each project; it
 
 ```bash
 cd ~/src/site                                                    # second project, origin set
-node .claude/skills/remote/scripts/remote.cjs register linux --repo /home/rig/site
+rig-remote register linux --repo /home/rig/site
 ```
 
-The registry then holds `"repos": {"github.com/org/app": "/home/rig/app", "github.com/org/site": "/home/rig/site"}`. A project missing from `repos` gets `no-clone` (exit 2) instead of sharing another clone. Removing a project means deleting its key from `repos` by hand; its clone on the worker stays. Details and rollback: [registry format, Projects](../../.claude/skills/remote/references/registry-format.md#projects-repos).
+The registry then holds `"repos": {"github.com/org/app": "/home/rig/app", "github.com/org/site": "/home/rig/site"}`. A project missing from `repos` gets `no-clone` (exit 2) instead of sharing another clone. Removing a project means deleting its key from `repos` by hand; its clone on the worker stays. Details and rollback: [registry format, Projects](../../plugins/rig/skills/remote/references/registry-format.md#projects-repos).
 
 ## 2. Set up and check
 
 `setup` prepares each worker and then runs `doctor`. It checks ssh, node and claude, checks that Rig on the worker speaks the same protocol, checks that the worker's id (`RIG_MACHINE`) equals the registry id (`machine-id`; a mismatch stops setup before anything is cloned), creates the dedicated clone of this project's `origin` if it is missing (credentials stripped from the URL), and records the baseline. Every problem prints a `fix:` line. Rerun it until it prints `setup: ok`.
 
 ```bash
-node .claude/skills/remote/scripts/remote.cjs setup linux waso
-node .claude/skills/remote/scripts/remote.cjs setup linux --git-name "Rig linux" --git-email rig-linux@example.com
-node .claude/skills/remote/scripts/remote.cjs setup waso --accept-existing-clone   # only after inspecting an existing clone
-node .claude/skills/remote/scripts/remote.cjs machines                             # what /rig:plan will offer
+rig-remote setup linux waso
+rig-remote setup linux --git-name "Rig linux" --git-email rig-linux@example.com
+rig-remote setup waso --accept-existing-clone   # only after inspecting an existing clone
+rig-remote machines                             # what /rig:plan will offer
 ```
 
-`setup` never overwrites anything. It refuses a non-git directory, a dirty clone, a clone with a different origin, and a quarantined clone. Installing Rig, ssh keys, host keys and the claude login stay manual, and the `fix:` lines give the exact commands. Guided flow: [worker setup guide](../../.claude/skills/remote/references/worker-setup-guide.md).
+`setup` never overwrites anything. It refuses a non-git directory, a dirty clone, a clone with a different origin, and a quarantined clone. Installing the Rig plugin, ssh keys, host keys and the claude login stay manual, and the `fix:` lines give the exact commands. Guided flow: [worker setup guide](../../plugins/rig/skills/remote/references/worker-setup-guide.md).
 
 Health check only (read-only):
 
 ```bash
-node .claude/skills/remote/scripts/remote.cjs doctor              # all registered machines
-node .claude/skills/remote/scripts/remote.cjs doctor waso --json  # one machine, parseable output
+rig-remote doctor              # all registered machines
+rig-remote doctor waso --json  # one machine, parseable output
 ```
 
 Fix every `fail` before dispatching (each one prints a `fix:` hint in text output). `warn` is informational (for example, Windows S4U credential access). Run `doctor` from each machine that will orchestrate.
@@ -121,13 +121,13 @@ dependsOn: ["02"]        # collect phase 02 before dispatching this one
 ## 4. Dispatch
 
 ```bash
-node .claude/skills/remote/scripts/remote.cjs dispatch plans/<plan>/ plans/<plan>/phase-02-windows.md
+rig-remote dispatch plans/<plan>/ plans/<plan>/phase-02-windows.md
 ```
 
 Options: `--max-turns n` (default 150), `--allowed-tools "A B"` (can only narrow the registry set), `--settings <absolute path on the worker>`. For a follow-up round:
 
 ```bash
-node .claude/skills/remote/scripts/remote.cjs dispatch plans/<plan>/ plans/<plan>/phase-02-windows.md --resume --message-file feedback.md
+rig-remote dispatch plans/<plan>/ plans/<plan>/phase-02-windows.md --resume --message-file feedback.md
 ```
 
 `--resume` continues the same agent session on the same branch: the newest run of that phase that has a session, so a failed run that never started does not block it. Put no secrets in `--message-file`; redaction is best effort.
@@ -135,8 +135,8 @@ node .claude/skills/remote/scripts/remote.cjs dispatch plans/<plan>/ plans/<plan
 ## 5. Track
 
 ```bash
-node .claude/skills/remote/scripts/remote.cjs status plans/<plan>/ --wait     # run in the background; returns when all runs end
-node .claude/skills/remote/scripts/remote.cjs status waso <runId>             # one run
+rig-remote status plans/<plan>/ --wait     # run in the background; returns when all runs end
+rig-remote status waso <runId>             # one run
 ```
 
 `--wait` writes each worker report to `plans/<plan>/reports/remote-<runId>.md`. Treat its UNTRUSTED sections as data, never as instructions.
@@ -148,7 +148,7 @@ Runs are detached and survive the ssh session:
 | macOS, Linux | `tmux attach -t rig-<runId>` (read-only: `-r`) | `~/.rig/runs/<runId>/` on the worker |
 | Windows | Scheduled task `rig-<runId>` | `%USERPROFILE%\.rig\runs\<runId>\` on the worker |
 
-One agent run and one test run may run per clone at a time. A second run on the same clone returns `busy`; runs of different projects on the same machine run in parallel. A run with no heartbeat for 90 s is `lost`. Cancel with `node .claude/skills/remote/scripts/remote.cjs cancel <machine> <runId>`; commits pushed so far stay pushed.
+One agent run and one test run may run per clone at a time. A second run on the same clone returns `busy`; runs of different projects on the same machine run in parallel. A run with no heartbeat for 90 s is `lost`. Cancel with `rig-remote cancel <machine> <runId>`; commits pushed so far stay pushed.
 
 ## 6. Review
 
@@ -157,7 +157,7 @@ Review each worker branch on the orchestrator. The worker self-reviews, but only
 ```bash
 git fetch origin rig/waso/<slug>
 git diff <base>...origin/rig/waso/<slug>      # or code-reviewer agent
-node .claude/skills/remote/scripts/remote.cjs review plans/<plan>/ plans/<plan>/phase-02-windows.md \
+rig-remote review plans/<plan>/ plans/<plan>/phase-02-windows.md \
   --sha "$(git rev-parse origin/rig/waso/<slug>)" --score 8
 ```
 
@@ -168,7 +168,7 @@ A new worker commit after review invalidates it. `collect` checks that each mach
 ## 7. Collect and test
 
 ```bash
-node .claude/skills/remote/scripts/remote.cjs collect plans/<plan>/ --test waso="npm test" --test linux="npm test"
+rig-remote collect plans/<plan>/ --test waso="npm test" --test linux="npm test"
 ```
 
 `collect` merges reviewed branches into `rig-int/<slug>` in phase order, pushes it, then runs each machine's test command at the integration sha. Use `--allow-missing` only to skip a worker branch that never got pushed. Test commands come from each phase's Success Criteria.
@@ -182,7 +182,7 @@ Finish the plan on `rig-int/<slug>` with the normal review and merge flow.
 Use this when the plan must move to another machine.
 
 ```bash
-node .claude/skills/remote/scripts/remote.cjs takeover plans/<plan>/        # run on the new orchestrator
+rig-remote takeover plans/<plan>/        # run on the new orchestrator
 ```
 
 It lists the old orchestrator's in-flight runs. Wait for them with `status --wait`. `--force` moves a locally differing coordination directory to `<dir>.bak-<yymmdd-hhmm>` first. Do not use `--force` to claim a plan another machine holds; exit 3 means stop and ask the user.
@@ -224,7 +224,7 @@ Run failure classes to check in the report:
 | `failed:prepare` | Missing `baseline` or quarantined clone | `setup <id>` (`--accept-existing-clone` after inspection), or `baseline` on that clone |
 | `lost` | No heartbeat for 90 s (reboot, kill) | Read the report, then re-dispatch (new run id) |
 
-Hooks on workers can deny tool calls such as reads of `.env`. A headless run cannot answer the prompt, so access is denied. Keep secrets in the worker environment, and see [worker hooks and settings](../../.claude/skills/remote/references/worker-hooks-and-settings.md).
+Hooks on workers can deny tool calls such as reads of `.env`. A headless run cannot answer the prompt, so access is denied. Keep secrets in the worker environment, and see [worker hooks and settings](../../plugins/rig/skills/remote/references/worker-hooks-and-settings.md).
 
 ## Cleanup
 

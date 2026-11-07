@@ -14,17 +14,11 @@ Browser automation via Puppeteer scripts with persistent sessions. All scripts o
 
 ## Skill Location
 
-Skills can exist in **project-scope** or **user-scope**. Priority: project-scope > user-scope.
+Resolve the scripts dir once (works for the plugin and for file installs; scripts use `__dirname` for their own paths):
 
 ```bash
-# Detect skill location (no cd needed - scripts use __dirname for paths)
-SKILL_DIR=""
-if [ -d ".agent/skills/browser/scripts" ]; then
-  SKILL_DIR=".agent/skills/browser/scripts"
-elif [ -d ".agent/skills/browser/scripts" ]; then
-  SKILL_DIR=".agent/skills/browser/scripts"
-fi
-# Run scripts with full path: node "$SKILL_DIR/script.js" --args
+SKILL_DIR=".agent/skills/browser/scripts"
+# Run scripts with the full path: node "$SKILL_DIR/script.js" --args   (or: node .agent/skills/browser/scripts/<script>.js --args)
 ```
 
 ## Choosing Your Approach
@@ -127,7 +121,7 @@ node "$SKILL_DIR/select-ref.js" --ref e5 --action hover
 ### Store Snapshots
 
 Skills can exist in **project-scope** or **user-scope**. Priority: project-scope > user-scope.
-Store snapshots for analysis in `<project>/.claude/browser/snapshots/`:
+Store snapshots for analysis in `<project>/.agent/browser/snapshots/`:
 
 ```bash
 # Create snapshots directory
@@ -214,7 +208,7 @@ node "$SKILL_DIR/navigate.js" --url about:blank --close true
 ## Available Scripts
 
 Skills can exist in **project-scope** or **user-scope**. Priority: project-scope > user-scope.
-All in `.agent/skills/browser/scripts/`:
+All in the browser skill's `scripts/` dir (`.agent/skills/browser/scripts`):
 
 | Script | Purpose |
 |--------|---------|
@@ -246,14 +240,14 @@ All in `.agent/skills/browser/scripts/`:
 ## Writing Custom Test Scripts
 
 Skills can exist in **project-scope** or **user-scope**. Priority: project-scope > user-scope.
-For complex automation, write scripts to `<project>/.claude/browser/tmp/`:
+For complex automation, write scripts to `<project>/.agent/browser/tmp/`:
 
 ```bash
 # Create tmp directory for test scripts
-mkdir -p $SKILL_DIR/.claude/browser/tmp
+mkdir -p $SKILL_DIR/.agent/browser/tmp
 
 # Write a test script
-cat > $SKILL_DIR/.claude/browser/tmp/login-test.js << 'EOF'
+cat > $SKILL_DIR/.agent/browser/tmp/login-test.js << 'EOF'
 import { getBrowser, getPage, disconnectBrowser, outputJSON } from '../scripts/lib/browser.js';
 
 async function loginTest() {
@@ -279,7 +273,7 @@ loginTest();
 EOF
 
 # Run the test
-node $SKILL_DIR/.claude/browser/tmp/login-test.js
+node $SKILL_DIR/.agent/browser/tmp/login-test.js
 ```
 
 **Key principles for custom scripts**:
@@ -295,7 +289,7 @@ Skills can exist in **project-scope** or **user-scope**. Priority: project-scope
 
 **IMPORTANT:** Invoke "/project-organization" skill to organize the outputs.
 
-Store screenshots for analysis in `<project>/.claude/browser/screenshots/`:
+Store screenshots for analysis in `<project>/.agent/browser/screenshots/`:
 
 ```bash
 # Basic screenshot
@@ -323,7 +317,7 @@ node "$SKILL_DIR/screenshot.js" --url https://example.com --output ./.agent/brow
 node "$SKILL_DIR/screenshot.js" --url https://example.com --output ./.agent/browser/screenshots/page.png --no-compress
 ```
 
-Store screenshots for analysis in `<project>/.claude/browser/screenshots/`.
+Store screenshots for analysis in `<project>/.agent/browser/screenshots/`.
 
 ## Console Log Collection & Analysis
 
@@ -341,7 +335,7 @@ node "$SKILL_DIR/console.js" --url https://example.com --types error,warn --dura
 
 ### Session Storage Pattern
 
-Store logs for analysis in `<project>/.claude/browser/logs/<session>/`:
+Store logs for analysis in `<project>/.agent/browser/logs/<session>/`:
 
 ```bash
 # Create session directory
@@ -392,7 +386,7 @@ If script fails:
 
 ```bash
 # 1. Capture current state (without navigating to preserve state)
-node "$SKILL_DIR/screenshot.js" --output ./.agent/skills/browser/screenshots/debug.png
+node "$SKILL_DIR/screenshot.js" --output ./.agent/browser/screenshots/debug.png
 
 # 2. Get console errors
 node "$SKILL_DIR/console.js" --url about:blank --types error --duration 1000

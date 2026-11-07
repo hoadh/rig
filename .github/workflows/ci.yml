@@ -45,6 +45,9 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history and tags: the rig-init owned-path test compares its list with the v1.0.0 and v1.1.0 trees
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
@@ -55,13 +58,13 @@ jobs:
         run: |
           git config --global user.name "rig-ci"
           git config --global user.email "rig-ci@example.invalid"
-      # Discovers every *.test.cjs / *.test.js under .claude/ and scripts/; prints
+      # Discovers every *.test.cjs / *.test.js under plugins/ and scripts/; prints
       # passed/failed/skipped (with reasons) and exits 1 on any failure.
       - run: npm test
       # Runs the three library-docs test files through their own runner.
       - name: library-docs tests
         if: matrix.os == 'ubuntu-latest'
-        working-directory: .claude/skills/library-docs/scripts
+        working-directory: plugins/rig/skills/library-docs/scripts
         run: node tests/run-tests.js
 
   eval-tier-1:
@@ -86,20 +89,20 @@ jobs:
       - name: Install test dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r .claude/skills/media/scripts/tests/requirements.txt
-          python -m pip install -r .claude/skills/ui-styling/scripts/tests/requirements.txt
+          python -m pip install -r plugins/rig/skills/media/scripts/tests/requirements.txt
+          python -m pip install -r plugins/rig/skills/ui-styling/scripts/tests/requirements.txt
       # One pytest run per skill: the suites share module/dir names (tests/), so they
       # must not be collected together. None of them calls a network or needs an API
       # key (the Gemini/MiniMax clients are mocked), so nothing is excluded.
       - name: context-engineering
-        working-directory: .claude/skills/context-engineering/scripts
+        working-directory: plugins/rig/skills/context-engineering/scripts
         run: python -m pytest tests -q
       - name: create-skill
-        working-directory: .claude/skills/create-skill/scripts
+        working-directory: plugins/rig/skills/create-skill/scripts
         run: python -m pytest tests -q
       - name: media
-        working-directory: .claude/skills/media/scripts
+        working-directory: plugins/rig/skills/media/scripts
         run: python -m pytest tests -q
       - name: ui-styling
-        working-directory: .claude/skills/ui-styling/scripts
+        working-directory: plugins/rig/skills/ui-styling/scripts
         run: python -m pytest tests -q

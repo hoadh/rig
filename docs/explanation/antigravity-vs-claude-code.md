@@ -67,26 +67,26 @@ Antigravity maintains an automatic persistent knowledge base capturing code patt
 
 **Claude Code strengths**: CI/CD integration (headless mode), deep Claude model integration, extensibility (MCP/hooks/skills), lightweight footprint, transparent file-based config, scriptability
 
-## Rig `.claude/` → Antigravity `.agent/` Sync
+## Rig plugin → Antigravity `.agent/` Sync
 
-Rig keeps one source of truth, `.claude/`. `node scripts/sync-antigravity-agent-dir.cjs` regenerates `.agent/` and `GEMINI.md` from it. Do not edit `.agent/` by hand. The release script runs the sync before it packages the kit.
+Rig keeps one source of truth, the plugin in `plugins/rig/` (plus `CLAUDE.md`). `node scripts/sync-antigravity-agent-dir.cjs` regenerates `.agent/` and `GEMINI.md` from it. Do not edit `.agent/` by hand. The sync fails if a Claude Code-only reference survives in the output (`--check-leftovers`).
 
 ### Mapping
 
 Antigravity's `.agent/` has three layers: **rules** (always on), **workflows** (`/name`) and **skills**. It has no agents, hooks or settings.
 
-| `.claude/` | `.agent/` | How the sync handles it |
+| Plugin source (`plugins/rig/`) | `.agent/` | How the sync handles it |
 |---|---|---|
-| `rules/*.md` | `rules/*.md` | Only `core-rules.md` is copied, with path rewrites. Task-specific rules now live in skills, which are synced separately |
-| `CLAUDE.md` | `GEMINI.md` and `rules/project-instructions.md` | Copied without the hook protocol section |
-| `skills/<name>/` | `skills/<name>/` | All git-tracked files copied. `rig-plan` → `plan`, `rig-debug` → `debug`. `remote` and `team` are skipped: they need `claude -p` and Agent Teams |
+| `rules/core-rules.md` | `rules/core-rules.md` | Copied with path rewrites. `rules/claude-code-concepts-in-antigravity.md` is the concept mapping |
+| `CLAUDE.md` + `rules/core-rules.md` | `GEMINI.md` | Generated: core rules, project instructions (hook section dropped), concept pointer |
+| `skills/<name>/` | `skills/<name>/` | Git-tracked files copied; Claude Code-only frontmatter keys are stripped. Bin names (`rig-worktree`, `rig-python`, ...) are rewritten to `.agent/` paths. `remote` and `team` are skipped: they need `claude -p` and Agent Teams |
 | user-invocable skills | `workflows/<name>.md` | One workflow per skill. `/plan` reads `.agent/skills/plan/SKILL.md`. No `rig:` prefix |
 | `agents/*.md` | `agents/*.md` | Kept as role files. "Delegate to `planner`" means: read `agents/planner.md` and do that role |
-| `hooks/`, `settings.json` | none | Replaced by static defaults in `rules/claude-code-concepts-in-antigravity.md` |
+| `hooks/`, `hooks.json`, `bin/rig-init` and runtime copies | none | Replaced by static defaults in `rules/claude-code-concepts-in-antigravity.md`. Session-context injection and `rig-init` have no Antigravity equivalent |
 
 Text rewrites (in `scripts/antigravity/claude-to-antigravity-text-rewrite.cjs`, unit-tested):
 
-* Project paths `.claude/` and `./.claude/` → `.agent/`. User files under `~/.claude/` stay as they are, except `~/.claude/skills/`, which points to `.agent/skills/`.
+* Project paths `plugins/rig/` and `.claude/` → `.agent/`. User files under `~/.claude/` stay as they are, except `~/.claude/skills/`, which points to `.agent/skills/`.
 * `/rig:plan`, `rig:fix` → `/plan`, `fix` for skills that exist in `.agent/`.
 * `CLAUDE.md` → `GEMINI.md` in rules.
 
@@ -110,7 +110,7 @@ The concept rule also maps tools: `Task`/`Agent` → do the role yourself, `AskU
 
 * The generated kit has not been tested end to end inside Antigravity.
 * Skill steps that call `claude -p` (for example the `create-skill` description optimizer) do not work there.
-* Some scripts build paths from the string `'.claude'` without a slash. The sync does not rewrite those, so they may look in `.claude/` first.
+* Some scripts build paths from the string `'.claude'` without a slash. The sync does not rewrite those, so they may look in `.claude/` first. The leftover check catches `.claude/` text in the output, not every runtime path.
 
 ## Sources
 - [Google Developers Blog](https://developers.googleblog.com/build-with-google-antigravity-our-new-agentic-development-platform/)

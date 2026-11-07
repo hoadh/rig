@@ -40,7 +40,8 @@ NC='\033[0m' # No Color
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VENV_DIR="$SCRIPT_DIR/.venv"
-STATE_FILE="$SCRIPT_DIR/.install-state.json"
+STATE_DIR="$SCRIPT_DIR"
+STATE_FILE="$STATE_DIR/.install-state.json"
 LOG_DIR="$VENV_DIR/logs"
 
 # Installation tracking arrays (Bash 3.2+ compatible - indexed arrays only)
@@ -195,7 +196,7 @@ OS=$(detect_os)
 # Windows shells (Git Bash/MSYS/Cygwin): this script targets Linux/macOS/WSL.
 # Redirect to install.ps1 before touching Python (python3 is a Store stub there).
 if [[ "$OS" == "msys" ]] || [[ "$OS" == "cygwin" ]]; then
-    echo "Windows detected. Run: powershell -ExecutionPolicy Bypass -File .claude\\skills\\install.ps1" >&2
+    echo "Windows detected. Run: powershell -ExecutionPolicy Bypass -File $SCRIPT_DIR\\install.ps1" >&2
     exit 1
 fi
 
@@ -827,11 +828,11 @@ setup_python_env() {
         fi
     done
 
-    # Install .agent/scripts requirements (contains pyyaml for scan_skills.py)
+    # Install scripts/ requirements (contains pyyaml for scan_skills.py)
     local SCRIPTS_REQ="$SCRIPT_DIR/../scripts/requirements.txt"
     if [ -f "$SCRIPTS_REQ" ]; then
         local SCRIPTS_LOG="$LOG_DIR/install-scripts.log"
-        print_info "Installing .agent/scripts dependencies..."
+        print_info "Installing scripts/ dependencies..."
 
         local pkg_success=0
         local pkg_fail=0
@@ -851,10 +852,10 @@ setup_python_env() {
         done < "$SCRIPTS_REQ"
 
         if [[ $pkg_fail -eq 0 ]]; then
-            print_success ".agent/scripts: all $pkg_success packages installed"
+            print_success "scripts/: all $pkg_success packages installed"
             track_success "optional" "scripts"
         else
-            print_warning ".agent/scripts: $pkg_success installed, $pkg_fail failed"
+            print_warning "scripts/: $pkg_success installed, $pkg_fail failed"
         fi
     fi
 
@@ -1126,7 +1127,7 @@ write_error_summary() {
     fi
 
     # Write to a file that CLI can read
-    local summary_file="$SCRIPT_DIR/.install-error-summary.json"
+    local summary_file="$STATE_DIR/.install-error-summary.json"
 
     # Build JSON arrays carefully for bash compatibility
     local critical_json="[]"
@@ -1213,10 +1214,10 @@ EOF
 # Print usage instructions (now just brief tips)
 print_usage() {
     echo -e "${GREEN}To use the Python virtual environment:${NC}"
-    echo -e "  source .agent/skills/.venv/bin/activate"
+    echo -e "  source $VENV_DIR/bin/activate"
     echo ""
     echo -e "${BLUE}For more information, see:${NC}"
-    echo -e "  .agent/skills/INSTALLATION.md"
+    echo -e "  $SCRIPT_DIR/INSTALLATION.md"
     echo ""
 }
 

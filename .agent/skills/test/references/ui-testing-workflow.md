@@ -27,7 +27,7 @@ Ask the user to provide one of:
 Use the `inject-auth.js` script:
 
 ```bash
-cd $SKILL_DIR  # .agent/skills/browser/scripts
+cd ".agent/skills/browser/scripts"
 
 # Option A: Inject cookies
 node inject-auth.js --url https://example.com --cookies '[{"name":"session","value":"abc123","domain":".example.com"}]'

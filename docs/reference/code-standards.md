@@ -34,15 +34,19 @@ This document defines coding standards, file organization patterns, naming conve
 
 ```
 project-root/
-├── .claude/                    # Claude Code configuration
-│   ├── agents/                # Agent definitions (*.md)
-│   ├── commands/              # Reserved compatibility directory (can be empty)
-│   ├── hooks/                # Git hooks and scripts
+├── .claude-plugin/            # marketplace.json (rig-marketplace)
+├── plugins/rig/               # The Claude Code plugin (what users install)
+│   ├── .claude-plugin/       # plugin.json (version bump per change)
+│   ├── agents/               # Agent definitions (*.md)
+│   ├── bin/                  # rig-* command entrypoints
+│   ├── hooks/                # hooks.json and hook scripts; lib/ shared modules
 │   ├── skills/               # Reusable knowledge modules
 │   │   └── [skill-name]/     # Individual skill directories
 │   │       ├── SKILL.md      # Skill definition
 │   │       └── references/   # Supporting materials
-│   └── rules/                # Development rules and protocols
+│   ├── rules/                # core-rules.md (always loaded)
+│   └── scripts/              # rig-init and shared scripts
+├── .claude/                   # Dev-only settings and templates (not shipped)
 ├── .github/                   # GitHub-specific files
 │   └── workflows/            # CI/CD workflows
 ├── docs/                      # Project documentation
@@ -63,13 +67,13 @@ project-root/
 
 ### File Naming Conventions
 
-**Agent Definitions** (`.claude/agents/`):
+**Agent Definitions** (`plugins/rig/agents/`):
 - Format: `[agent-name].md`
 - Use kebab-case: `code-reviewer.md`, `docs-maintainer.md`
 - Descriptive, role-based names
 - Examples: `planner.md`, `tester.md`, `git-operator.md`
 
-**Skills** (`.claude/skills/`):
+**Skills** (`plugins/rig/skills/`):
 - Format: `[skill-name]/SKILL.md`
 - Use kebab-case for directory names
 - Main file always named `SKILL.md`
@@ -551,7 +555,7 @@ test/integration-test-suite
 
 ### Markdown Documentation
 
-**Layout (Diataxis)**: every page in `docs/` has one primary type and lives in its dir: `tutorials/` (learning), `how-to/` (tasks), `reference/` (facts), `explanation/` (why); PDR/roadmap/changelog go in `project/`. Index: [docs/README.md](../README.md). Full rules: `.claude/skills/docs/references/diataxis-docs-layout.md`.
+**Layout (Diataxis)**: every page in `docs/` has one primary type and lives in its dir: `tutorials/` (learning), `how-to/` (tasks), `reference/` (facts), `explanation/` (why); PDR/roadmap/changelog go in `project/`. Index: [docs/README.md](../README.md). Full rules: `plugins/rig/skills/docs/references/diataxis-docs-layout.md`.
 
 **Writing**: docs-maintainer loads the `diataxis-writer` skill; mixed pages are split, not merged. Keep each file under `docs.maxLoc` (800).
 

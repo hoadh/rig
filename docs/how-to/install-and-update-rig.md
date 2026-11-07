@@ -1,61 +1,114 @@
 # Install and Update Rig
 
-Install the kit from a local clone of this repo, globally or into one project. First time? Follow [Getting started](../tutorials/getting-started.md) instead.
+Rig 2.x is a Claude Code plugin. Install it from the marketplace inside Claude Code, then run a few setup verbs in a terminal. Coming from Rig 1.x? Read [Migrate from Rig 1.x](./migrate-from-rig-1x.md) first.
 
-Requirements: [Claude Code](https://code.claude.com/docs/en/setup), Git, Node.js 18+. macOS 10.15+, Ubuntu 20.04+/Debian 10+, or Windows 10+ (WSL 1/2 or Git for Windows). 4GB+ RAM. Contributors running `npm run lint` need Node 20.19+, 22.13+ or 24+, because ESLint 10 requires it.
+First time? Follow [Getting started](../tutorials/getting-started.md) instead.
+
+**Requirements**
+
+- Claude Code **2.1.292 or newer** (`claude --version`). Older versions cannot run `plugin install --marketplace`. `rig-init` warns below this floor.
+- Node.js 18 or newer (the `bin/` entrypoints and hooks run on Node).
+- Git.
+- macOS 10.15+, Ubuntu 20.04+ / Debian 10+, or Windows 10+ (Git for Windows, or WSL).
 
 ## Install
 
-1. Clone the repo:
-   ```bash
-   git clone git@github.com:hoadh/rig.git
-   cd rig
+1. In Claude Code, add the marketplace and install the plugin:
+
+   ```text
+   /plugin marketplace add hoadh/rig
+   /plugin install rig@rig-marketplace
    ```
-2. Preview, then install to the target you want:
-   ```bash
-   node scripts/install-kit-from-local-repo.cjs --dir ../my-app --dry-run  # preview, writes nothing
-   node scripts/install-kit-from-local-repo.cjs --global                   # → ~/.claude (every project)
-   node scripts/install-kit-from-local-repo.cjs --dir ../my-app            # → ../my-app/.claude + CLAUDE.md, AGENTS.md
-   ```
-   From inside a project, run `node ../rig/scripts/install-kit-from-local-repo.cjs` with no flag: it asks global vs. this directory.
-3. Add `--install-skills` to also install skill dependencies. Run with `--help` for all options.
 
-## What the installer changes
+2. Restart Claude Code (or start a new session) so the hooks and `bin/` entrypoints load.
 
-- `settings.json` is merged: your hooks and keys are kept, kit hooks are added, kit hooks already present get the kit's `async`/`timeout` options, a timestamped backup is written.
-- `settings.json` `permissions.ask` and `permissions.deny` are merged rule by rule. Your rules come first, kit rules the file lacks are appended.
-- Hooks the kit no longer ships are removed from `settings.json` (only the kit's own command form; your hooks are kept). Retired kit files listed in `scripts/install-kit/retired-kit-hooks-and-files-cleanup.cjs` are deleted.
-- `CLAUDE.md`, `AGENTS.md`, `.gitignore`, `.mcp.json`, `.rig.json` are only created when missing.
+3. Run `/rig:setup`. It previews what Rig would change on this machine and prints the terminal commands for the rest. It never applies anything itself.
 
-## Install globally or per project, not both
+4. Apply the groups you need in a terminal, outside Claude Code (see [Setup verbs](#setup-verbs)).
 
-Choose one:
+The plugin is per user and works in every project. There is no per-project copy to keep in sync.
 
-- **Global** (`--global`): every project on this machine uses `~/.claude`.
-- **Per project** (`--dir <project>`): only that project gets a copy in its `.claude/`.
+## Setup verbs
 
-Do not install both for the same project. Rules load twice otherwise. If you installed both, remove the copy you do not want by hand; the installer does not remove the other one.
+`rig-init` is the only command that changes your Claude Code configuration (`~/.claude`). It runs **only in a terminal, outside Claude Code**. Inside a session it refuses and prints the command to run instead. Every verb except `--plan` shows what it will change and asks `y/N`. There is no flag that skips the question.
 
-Hooks that both copies register are not run twice: the global copy steps aside for a project hook with the same event and matcher. It runs anyway when the project copy is a symlink to it, the handler has an `if` condition, or the project sets `disableAllHooks`. Rules and `CLAUDE.md` have no such check.
+| Command | When | What it does |
+|---|---|---|
+| `rig-init --plan` | any time | Read-only preview of every verb below. Also runs inside Claude Code. |
+| `rig-init --runtime` | once after install | Copies the statusline and the remote worker to `~/.claude/rig/runtime` and points `statusLine` at it. A statusline you set yourself is kept. The copy also refreshes itself at each session start. |
+| `rig-init --permissions` | once | Merges the reviewed `ask`/`deny` rules for secret files and dependency dirs into `~/.claude/settings.json`. Nothing is removed. Plugins cannot ship these rules, so this is the only way they apply. |
+| `rig-init --deps` | optional | Runs the skills dependency installer (ffmpeg, ImageMagick, npm and Python packages for media, browser, mcp and markdown-viewer). It asks per step and never uses sudo. Python skills work without it: `rig-python` builds its own venv on first use. |
+| `rig-init --migrate` | only if you had Rig 1.x | Moves 1.x files out of the way. See [Migrate from Rig 1.x](./migrate-from-rig-1x.md). |
+
+Run them in the order `--runtime`, `--permissions`, then `--deps` if you want it.
+
+> **Finding `rig-init` in a terminal.** Claude Code puts the plugin's `bin/` on the PATH of its own Bash tool, not on your shell's PATH. So in a terminal, run it through node with its absolute path, `node "<plugin dir>/bin/rig-init" <verb>`. You do not need to find that path yourself: `/rig:setup`, the 1.x migration notice and every `rig-init` refusal print the exact command for your install. The `rig-init` examples in this guide are short for that command.
+
+## What the plugin does without any setup
+
+- Registers the hooks (session context, subagent context, prompt reminders, the Bash safety guard, and the verify-on-stop guard), the skills and the agents.
+- Loads the core rules into every session at start (`SessionStart`).
+- Exposes the `bin/` commands (`rig-worktree`, `rig-remote`, `rig-python`, and others) to Bash tool calls.
+
+It does **not** set `statusLine` and does **not** add `permissions.ask` rules. Those need the setup verbs above.
 
 ## Update
 
+1. Update the plugin, in a terminal or in Claude Code:
+
+   ```bash
+   claude plugin update rig@rig-marketplace
+   ```
+
+2. Restart Claude Code. The runtime copy in `~/.claude/rig/runtime` refreshes at the next session start.
+
+3. If you used `--deps`, rerun it in a terminal:
+
+   ```bash
+   rig-init --deps
+   ```
+
+   Skill npm packages install inside the plugin directory. A plugin update replaces that directory, so `--deps` must run again after every update.
+
+Each release pins a marketplace reference, so you get the version you installed until you run the update.
+
+## Uninstall
+
 ```bash
-cd rig
-git pull
-node scripts/install-kit-from-local-repo.cjs --global   # or the same --dir command you used
+claude plugin uninstall rig@rig-marketplace
 ```
 
-Re-install deletes the retired kit files listed in `scripts/install-kit/retired-kit-hooks-and-files-cleanup.cjs` (`RETIRED_KIT_HOOKS`, `RETIRED_KIT_FILES`). In 1.1 that covers:
+Uninstalling removes the plugin only. Files `rig-init` wrote stay until you delete them:
 
-- Rule files `development-rules.md`, `documentation-management.md`, `orchestration-protocol.md`, `primary-workflow.md` and `team-coordination-rules.md` in `.claude/rules/`. Their content moved to `core-rules.md` and skill references ([rules layout](../explanation/rules-layout.md)).
-- Output style files of the retired level set. The level setting is ignored; use the built-in output-style command.
-- The retired thinking skill and the Stop notification hook files. Use extended thinking and the built-in `PushNotification` tool instead.
+| Left behind | Where | Remove it |
+|---|---|---|
+| Statusline setting | `statusLine` in `~/.claude/settings.json` | Delete the entry first. Otherwise Claude Code runs a script that no longer exists. |
+| Runtime copy and Python venv | `~/.claude/rig/` (`runtime/`, `venv/`) | Delete the directory after the statusline entry |
+| Permission rules | `permissions` in `~/.claude/settings.json` | Remove the Rig `Read(...)`/`Edit(...)` rules by hand if you do not want them |
+| Migration backups | `~/.claude/rig-backups/` | Keep until you no longer need a restore, then delete |
 
-The 1.1.0 removals are summarized in the "Removed" section of `CHANGELOG.md`; the installer list is authoritative.
+## Test an unreleased checkout
 
-Rule and output style files are first copied to `<name>.md.bak` in the same folder, so your edits are not lost. A retired hook file stays while a settings file still runs it in a form the installer does not strip. Other files removed from the kit are not deleted from the target; delete them by hand if needed.
+Load the plugin from a clone for one session, without installing it:
 
-## Custom blocked directories
+```bash
+claude --plugin-dir ./plugins/rig
+```
 
-To block your own directories, add `Read(...)` rules to `permissions.deny` in `.claude/settings.json`, for example `"Read(**/tmp-cache/**)"`.
+Do not run this alongside the marketplace install of the same plugin.
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `/rig:setup` is missing | Plugin not installed, or session started before install | Check `/plugin`, restart Claude Code |
+| `rig-init` refuses with a message about Claude Code | Apply verbs run only in a terminal | Open a plain terminal and run the command |
+| `rig-init` warns the Claude Code version is too old | Floor is 2.1.292 | Update Claude Code, then run again |
+| Hooks run twice | A 1.x global copy is still registered | Run `rig-init --plan`, then migrate. See [Migrate from Rig 1.x](./migrate-from-rig-1x.md) |
+| Remote worker refuses with a version message | Worker and orchestrator differ in major version | Install the same major version on both. See [Run a plan across machines](./run-plan-across-machines.md) |
+
+## Related
+
+- [Migrate from Rig 1.x](./migrate-from-rig-1x.md)
+- [Configure the verification and safety guards](./configure-verification-and-safety-guards.md)
+- [Architecture](../explanation/architecture.md), section "Plugin layout"

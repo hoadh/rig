@@ -8,24 +8,18 @@ CLI scripts for browser automation using Puppeteer.
 
 ## Skill Location
 
-Skills can exist in **project-scope** or **user-scope**. Priority: project-scope > user-scope.
+Resolve the scripts dir once (works for the plugin and for file installs; scripts use `__dirname` for their own paths):
 
 ```bash
-# Detect skill location
-SKILL_DIR=""
-if [ -d ".agent/skills/browser/scripts" ]; then
-  SKILL_DIR=".agent/skills/browser/scripts"
-elif [ -d ".agent/skills/browser/scripts" ]; then
-  SKILL_DIR=".agent/skills/browser/scripts"
-fi
-cd "$SKILL_DIR"
+SKILL_DIR=".agent/skills/browser/scripts"
+# Run scripts with the full path: node "$SKILL_DIR/script.js" --args   (or: node .agent/skills/browser/scripts/<script>.js --args)
 ```
+
 
 ### Quick Install
 
 ```bash
-pwd  # Should show current working directory
-cd $SKILL_DIR/.claude/skills/browser/scripts
+cd ".agent/skills/browser/scripts"
 ./install.sh  # Auto-checks dependencies and installs
 ```
 

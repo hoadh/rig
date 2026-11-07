@@ -1,5 +1,58 @@
 # Changelog
 
+## 2.0.0-beta.1 (unreleased)
+
+Rig ships as a Claude Code plugin. Install it from the marketplace instead of copying files. Existing 1.x installs must be migrated. Read the Breaking list and the migration table before you update.
+
+### Breaking
+
+* **Plugin, not a file copy.** Rig is installed with `/plugin marketplace add hoadh/rig` and `/plugin install rig@rig-marketplace`. The file installer is retired: `scripts/install-kit-from-local-repo.cjs` only prints these steps, `scripts/install-kit/` and `npm run kit:install` are gone, and no `.claude/metadata.json` is written. 1.x stays on `release/1.x` (tag `v1.1.0`).
+* **Claude Code 2.1.292 or newer** is required. `rig-init` warns below it.
+* **1.x copies make hooks run twice.** A plugin copy yields to a 1.x global or project hook registration, and `session-init` asks you to migrate. Run `rig-init --plan`, then `rig-init --migrate` (see the how-to).
+* **Settings that a plugin cannot ship** are applied by the user's terminal: `statusLine` through `rig-init --runtime`, and the secret-file `ask` and dependency `deny` rules through `rig-init --permissions`.
+* **Hook state and logs** move to `CLAUDE_PLUGIN_DATA` (`logs/hook-log.jsonl`, `state/`). Shared session files stay in the OS temp dir.
+* **Remote worker protocol 2.** The worker runs from `~/.claude/rig/runtime/remote/worker.cjs`. Orchestrator and worker must share a major version; a mismatch or an unknown version is refused. Re-run `rig-init --runtime` on each worker.
+* **Python venv** for the `rig-python` entrypoint lives at `~/.claude/rig/venv` (plugin) and is built from the skills' `requirements.txt` on first use. A 1.x `skills/.venv` is left in place.
+* **Skill names** have no `rig:` prefix in `SKILL.md`; Claude Code adds the namespace. `rig-plan` and `rig-debug` are now `plan` and `debug`.
+* **Antigravity output** changes. `.agent/rules/` holds `core-rules.md` and the concept mapping only; `.agent/scripts/` gains `validate-docs`, `docs-diataxis-layout` and `migrate-docs`; `rig-set-active-plan` and `rig-resolve-env` have no `.agent/` form; `GEMINI.md` is generated from the plugin core rules and `CLAUDE.md`. Claude Code-only frontmatter keys are stripped. The sync fails when a Claude Code-only reference survives.
+* **Release packaging** (`scripts/prepare-release-assets.cjs`, `scripts/generate-release-manifest.cjs`, the release zip) is removed. `scripts/release-plugin.cjs` tags a release and pins the marketplace entry to the tag and commit.
+* **Plan 1427 items are not in 2.0:** installer dedupe and the optional skill packs. Every skill ships in the plugin.
+
+### Migration
+
+| 1.x | 2.x |
+|---|---|
+| `node scripts/install-kit-from-local-repo.cjs --global` or `--dir <project>` | `/plugin marketplace add hoadh/rig`, `/plugin install rig@rig-marketplace`, then `rig-init --migrate` if 1.x files exist |
+| `npm run kit:install` | Removed. Use the plugin install above |
+| `~/.claude/skills/*`, `.claude/skills/*` | Plugin skills, `/rig:<name>`. Not copied |
+| `.claude/hooks/*.cjs` and their `settings.json` entries | `hooks/hooks.json` in the plugin. `rig-init --migrate` removes the 1.x entries (kept in the backup) |
+| `.claude/statusline.cjs` and `statusLine` | `~/.claude/rig/runtime/statusline.cjs` through `rig-init --runtime` |
+| `.claude/rules/*.md` | `plugins/rig/rules/core-rules.md`, injected at session start |
+| `.claude/metadata.json` | `plugins/rig/.claude-plugin/plugin.json` |
+| `skills/rig-plan`, `skills/rig-debug` | Skills `plan` and `debug` (`/rig:plan`, `/rig:debug`) |
+| `node .claude/skills/remote/scripts/remote.cjs` | `rig-remote` |
+| `.claude/skills/*/scripts/*.py` with `python` | `rig-python <script>` |
+| `~/.claude/hooks/.logs/hook-log.jsonl` | `$CLAUDE_PLUGIN_DATA/logs/hook-log.jsonl` |
+| `skills/.venv` | `~/.claude/rig/venv`; the old venv stays |
+| `.rig.json`, `.env` files, your own hooks, skills and agents | Unchanged. Kept by the migration |
+| Rig 1.x, stay on it | Branch `release/1.x`, tag `v1.1.0` |
+
+### Added
+
+* **Plugin** `plugins/rig/` with manifest, `hooks/hooks.json`, 32 skills (new `setup`), 14 agents, and marketplace `rig-marketplace` (`.claude-plugin/marketplace.json`).
+* **`bin/` entrypoints** (14): `rig-browser`, `rig-classify-doc`, `rig-init`, `rig-markdown-viewer`, `rig-mcp`, `rig-migrate-docs`, `rig-python`, `rig-remote`, `rig-resolve-env`, `rig-set-active-plan`, `rig-skill-dir`, `rig-ui-search`, `rig-validate-docs`, `rig-worktree`. They run from the Bash tool PATH.
+* **`rig-init`**: `--plan [--json]`, `--migrate [--global|--project <dir>]`, `--resume`, `--restore <dir>`, `--permissions`, `--runtime`, `--deps`. Apply verbs run only in a terminal, outside Claude Code, after a `y/N`. Migration is journaled: backups in `~/.claude/rig-backups/` with a standalone `restore.cjs`, interrupted runs resume, and restore never overwrites a file.
+* **`/rig:setup`**: previews `rig-init --plan` and prints the terminal commands. It never applies anything.
+* **Runtime copy** `~/.claude/rig/runtime/` (statusline, remote worker), refreshed at session start.
+* **Guard**: the Bash guard asks before a command runs `rig-init` apply verbs or a backup's `restore.cjs`.
+* **CI**: `plugin-validate.yml` runs `claude plugin validate --strict` on the 2.1.292 floor and on latest, and a PR check requires a greater plugin version for changes under `plugins/rig/`.
+
+### Changed
+
+* **Hooks**: `session-init` returns its context as JSON `additionalContext`. In plugin mode it appends `rules/core-rules.md`, capped with the rest of the context at 10,000 characters.
+* **Secret-file guard**: the built-in fallback list covers the full `Read(...)` ask list, because a plugin cannot ship `permissions.ask`.
+* **Remote**: hints point at `rig-init --runtime`; the worker reports `runtime-incomplete` when its runtime copy has no `VERSION`.
+
 ## 1.1.0 (2026-11-06)
 
 ### Features

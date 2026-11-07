@@ -1,0 +1,6 @@
+#!/usr/bin/env node
+'use strict';
+// ui-design search (styles, palettes, typography, design systems) through the Rig venv python.
+const path = require('path');
+const { kitRootOf } = require('../scripts/rig-bin-launcher.cjs');
+require('../scripts/rig-python-venv-resolver.cjs').main(__filename, [path.join(kitRootOf(__filename), 'skills', 'ui-design', 'scripts', 'search.py'), ...process.argv.slice(2)], { stdlibOnly: true });

@@ -1,0 +1,20 @@
+#!/usr/bin/env node
+'use strict';
+// Advisory Diataxis classifier for one doc (runs classify-doc.sh with bash).
+// On Windows only Git's bash is used: a bare `bash` on PATH is usually the WSL launcher, which cannot open Windows paths.
+const fs = require('fs');
+const path = require('path');
+const { kitRootOf, runAndExit } = require('../scripts/rig-bin-launcher.cjs');
+
+function findBash() {
+  if (process.platform !== 'win32') return 'bash';
+  const roots = [process.env.ProgramFiles, process.env['ProgramFiles(x86)'], process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, 'Programs')].filter(Boolean);
+  return roots.map((r) => path.join(r, 'Git', 'bin', 'bash.exe')).find((p) => fs.existsSync(p)) || null;
+}
+
+const bash = findBash();
+if (!bash) {
+  process.stderr.write('rig-classify-doc: Git for Windows bash not found (expected under %ProgramFiles%\\Git\\bin); install Git for Windows\n');
+  process.exit(127);
+}
+runAndExit(bash, [path.join(kitRootOf(__filename), 'skills', 'diataxis-writer', 'scripts', 'classify-doc.sh'), ...process.argv.slice(2)]);

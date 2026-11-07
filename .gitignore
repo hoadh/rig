@@ -20,6 +20,7 @@ coverage-ui.json
 /out/
 dist/
 bin/
+!/plugins/rig/bin/
 
 # production
 /build
@@ -73,7 +74,7 @@ prompt.md
 .claude/agent-memory/
 
 # Hook diagnostics logs
-.claude/hooks/.logs/
+plugins/rig/hooks/.logs/
 
 # Session state written by hooks (per-machine runtime, never installed)
 .claude/session-state/

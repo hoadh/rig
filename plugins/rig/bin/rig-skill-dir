@@ -1,0 +1,13 @@
+#!/usr/bin/env node
+'use strict';
+// rig-skill-dir <skill>  print the absolute dir of a Rig skill (for npm install, reading references, ...).
+const fs = require('fs');
+const path = require('path');
+const { kitRootOf } = require('../scripts/rig-bin-launcher.cjs');
+const name = process.argv[2];
+const dir = name && /^[a-z][a-z0-9-]*$/.test(name) ? path.join(kitRootOf(__filename), 'skills', name) : null;
+if (!dir || !fs.existsSync(path.join(dir, 'SKILL.md'))) {
+  process.stderr.write('usage: rig-skill-dir <skill>   (e.g. rig-skill-dir mcp)\n');
+  process.exit(2);
+}
+process.stdout.write(`${dir}\n`);

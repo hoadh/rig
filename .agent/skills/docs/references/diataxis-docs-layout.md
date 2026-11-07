@@ -1,7 +1,7 @@
 # Diataxis Docs Layout
 
 Standard `docs/` layout for Rig projects. Each page has ONE primary Diataxis type and lives in that type's directory.
-Code source of truth for the legacy map: `.agent/scripts/docs-diataxis-layout.cjs`.
+Code source of truth for the legacy map: `scripts/docs-diataxis-layout.cjs` in the Rig kit.
 
 ## Layout
 

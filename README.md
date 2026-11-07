@@ -4,7 +4,7 @@
 
 Rig turns Claude Code into a software development crew. Specialized agents plan, research, implement, test, review and document; you steer the direction and approve the gates. Rig ships the agents, skills, hooks, rules and workflows that make that loop repeatable across projects, and across machines.
 
-[Claude Code](https://claude.com/product/claude-code) is Anthropic's CLI for agentic coding ([docs](https://docs.claude.com/en/docs/claude-code/overview)). Rig installs into a project's `.claude/` directory or globally into `~/.claude/`.
+[Claude Code](https://claude.com/product/claude-code) is Anthropic's CLI for agentic coding ([docs](https://docs.claude.com/en/docs/claude-code/overview)). Rig 2.x is a Claude Code plugin: one install from the marketplace works in every project, with no copies in `.claude/`.
 
 ## Agentic-Driven Development
 
@@ -18,14 +18,22 @@ Agentic-Driven Development (ADD) is the workflow Rig is built around:
 
 ## Quick Start
 
-```bash
-git clone git@github.com:hoadh/rig.git && cd rig
-node scripts/install-kit-from-local-repo.cjs --dir ../my-app   # or --global for every project
+Requires Claude Code 2.1.292 or newer. Inside Claude Code:
+
+```text
+/plugin marketplace add hoadh/rig
+/plugin install rig@rig-marketplace
+/rig:setup                                  # previews the terminal setup commands
+```
+
+Then, in a terminal (outside Claude Code): `rig-init --runtime` and `rig-init --permissions`. Coming from Rig 1.x? Run `rig-init --plan` first, then follow [Migrate from Rig 1.x](./docs/how-to/migrate-from-rig-1x.md). Staying on 1.x: branch `release/1.x`, tag `v1.1.0`.
+
+```text
 cd ../my-app && claude
 /rig:plan "implement user authentication"   # then /rig:implement <plan path>
 ```
 
-New to Rig? Follow [Getting started](./docs/tutorials/getting-started.md). Install options and updates: [Install and update Rig](./docs/how-to/install-and-update-rig.md).
+New to Rig? Follow [Getting started](./docs/tutorials/getting-started.md). Install, setup and updates: [Install and update Rig](./docs/how-to/install-and-update-rig.md).
 
 ## Documentation
 
@@ -34,7 +42,8 @@ Full index: [docs/README.md](./docs/README.md), organized by [Diataxis](https://
 | Page | What it covers |
 |---|---|
 | [Getting started](./docs/tutorials/getting-started.md) | Install Rig and build a first feature |
-| [Install and update Rig](./docs/how-to/install-and-update-rig.md) | Project vs global install, updates |
+| [Install and update Rig](./docs/how-to/install-and-update-rig.md) | Plugin install, setup verbs, updates, uninstall |
+| [Migrate from Rig 1.x](./docs/how-to/migrate-from-rig-1x.md) | Move 1.x files out of `~/.claude` and projects, restore, staying on 1.x |
 | [Configure the verification and safety guards](./docs/how-to/configure-verification-and-safety-guards.md) | Verify-on-stop and bash safety hooks, config keys, `/loop` for live evidence |
 | [Set the response language](./docs/how-to/set-response-language.md) | Chat in your language, repo stays English |
 | [Run a plan across machines](./docs/how-to/run-plan-across-machines.md) | `rig:remote`: plan phases and tests on macOS, Windows and Linux workers over ssh, with a threat model |
@@ -43,34 +52,38 @@ Full index: [docs/README.md](./docs/README.md), organized by [Diataxis](https://
 | [Decisions (ADRs)](./docs/explanation/decisions/) | Why agent state lives in files; multi-machine orchestration; workflow size tiers |
 | [Codebase summary](./docs/reference/codebase-summary.md) | Project structure and components |
 | [Code standards](./docs/reference/code-standards.md) | Naming, file size, conventions |
-| [Skills catalog](./guide/SKILLS.md) | All 31 skills, grouped by task |
+| [Skills catalog](./guide/SKILLS.md) | All skills, grouped by task |
 | [Project overview and PDR](./docs/project/overview-pdr.md), [Roadmap](./docs/project/roadmap.md) | Goals, requirements, what is next |
 | [CHANGELOG](./CHANGELOG.md) | Release notes |
 
 ## What Ships
 
 ```
-├── .claude/
+├── plugins/rig/            # The Claude Code plugin (what users install)
+│   ├── .claude-plugin/     # plugin.json manifest
 │   ├── agents/             # 14 subagent definitions
-│   ├── skills/             # 31 skills (27 slash commands, 4 internal helpers)
-│   ├── hooks/              # Session, subagent, team-context, dev-rules reminder, verify-on-stop and bash safety hooks
-│   ├── rules/              # Workflow, development and orchestration rules
-│   ├── schemas/            # .rig.json config schema
-│   └── statusline.cjs      # Status line
+│   ├── skills/             # 32 skills (28 slash commands, 4 internal helpers)
+│   ├── hooks/              # hooks.json and the hook scripts (session, subagent, prompt reminder, guards)
+│   ├── bin/                # rig-* command entrypoints (on the Bash tool PATH)
+│   ├── rules/              # core-rules.md, injected at session start
+│   ├── scripts/            # rig-init, runtime copy, venv resolver, shared helpers
+│   └── statusline.cjs      # Status line (copied to ~/.claude/rig/runtime by rig-init)
+├── .claude-plugin/         # marketplace.json (rig-marketplace)
+├── .claude/                # Dev-only: this repo's own settings and templates. Not shipped.
 ├── docs/                   # Project documentation (Diataxis layout)
 ├── guide/                  # Skills catalog
-├── scripts/                # Kit install, release and Antigravity sync scripts
+├── scripts/                # Release, Antigravity sync, eval, benchmark and test scripts
 ├── CLAUDE.md               # Instructions loaded by Claude Code
 ├── AGENTS.md               # Agent coordination guidelines
 ├── .agent/                 # Antigravity copy (rules, skills, workflows)
 └── GEMINI.md               # Instructions loaded by Antigravity
 ```
 
-`.agent/` and `GEMINI.md` are generated from `.claude/` and `CLAUDE.md` by `node scripts/sync-antigravity-agent-dir.cjs`. Edit `.claude/`, then run the sync. Antigravity workflows drop the `rig:` prefix (`/plan`, `/fix`), and `rig:remote` and `rig:team` are Claude Code only. Details: [Antigravity vs Claude Code](./docs/explanation/antigravity-vs-claude-code.md).
+`.agent/` and `GEMINI.md` are generated from `plugins/rig/` and `CLAUDE.md` by `node scripts/sync-antigravity-agent-dir.cjs`. Edit `plugins/rig/`, then run the sync. Antigravity workflows drop the `rig:` prefix (`/plan`, `/fix`), and `rig:remote` and `rig:team` are Claude Code only. Details: [Antigravity vs Claude Code](./docs/explanation/antigravity-vs-claude-code.md).
 
 ## Agents
 
-Subagents live in `.claude/agents/`. They hand work to each other through files in `plans/` and `plans/reports/`, so each one starts with a fresh context.
+Subagents live in `plugins/rig/agents/`. They hand work to each other through files in `plans/` and `plans/reports/`, so each one starts with a fresh context.
 
 | Area | Agents |
 |---|---|
@@ -118,8 +131,7 @@ The commands you will use most. The [skills catalog](./guide/SKILLS.md) lists al
 `/rig:remote` runs a plan phase or a test command on another OS. Git origin is the only data channel. The orchestrator reviews every worker branch before `collect` merges it. Inside Claude Code, `/rig:remote` drives these steps; the underlying CLI is:
 
 ```bash
-R="node ~/.claude/skills/remote/scripts/remote.cjs"
-$R doctor                                       # check workers in ~/.claude/rig-machines.json
+rig-remote doctor                                       # check workers in ~/.claude/rig-machines.json
 $R dispatch plans/<dir> plans/<dir>/phase-02-x.md   # detached agent run on the phase's machine
 $R status plans/<dir> --wait                    # wait for runs; reports land in plans/<dir>/reports/
 $R review plans/<dir> plans/<dir>/phase-02-x.md --sha <sha>   # after you review the diff
@@ -131,8 +143,8 @@ Worker set-up, the dedicated OS user and known limits: [Run a plan across machin
 ## Configuration
 
 - **`CLAUDE.md`** — project instructions: architecture, standards, workflows.
-- **`.claude/rules/core-rules.md`** — the always-loaded rules: YAGNI, KISS, DRY, small files, conventional commits without AI attribution. Task-specific rules live in skill references ([rules layout](./docs/explanation/rules-layout.md)).
-- **`~/.claude/.rig.json`** — per-user Rig config (schema: `.claude/schemas/rig-config.schema.json`).
+- **`plugins/rig/rules/core-rules.md`** — the rules injected at every session start: YAGNI, KISS, DRY, small files, conventional commits without AI attribution. Task-specific rules live in skill references ([rules layout](./docs/explanation/rules-layout.md)).
+- **`~/.claude/.rig.json`** — per-user Rig config (schema: `plugins/rig/schemas/rig-config.schema.json`).
 
 ### API keys for `/rig:media`
 
@@ -142,11 +154,11 @@ Worker set-up, the dedicated OS user and known limits: [Run a plan across machin
 2. In the project: `.claude/skills/media/.env`, then `.claude/skills/.env`, then `.claude/.env`
 3. The same three files under `~/.claude/`
 
-Start from `.claude/.env.example` or `.claude/skills/.env.example`, and never commit `.env` files. Check the setup with `python .claude/skills/media/scripts/check_setup.py`.
+Start from the `.env.example` template in the Rig repository, and never commit `.env` files. Check the setup with `rig-python "$(rig-skill-dir media)/scripts/check_setup.py"`.
 
 ### MCP servers
 
-Copy `.claude/.mcp.json.example` to `.claude/.mcp.json` and add servers. `/rig:mcp` and the `mcp-runner` agent discover and run their tools, so their schemas stay out of the main session's context. Claude Code itself does not read `.claude/.mcp.json`: to load a server directly into Claude Code, put it in `.mcp.json` at the project root or add it with `claude mcp add`. Example:
+Copy the `.mcp.json.example` template from the Rig repository to `.mcp.json` at the project root and add servers. `/rig:mcp` and the `mcp-runner` agent discover and run their tools, so their schemas stay out of the main session's context. Claude Code itself does not read `.claude/.mcp.json`: to load a server directly into Claude Code, put it in `.mcp.json` at the project root or add it with `claude mcp add`. Example:
 
 ```json
 {
@@ -161,7 +173,7 @@ Copy `.claude/.mcp.json.example` to `.claude/.mcp.json` and add servers. `/rig:m
 
 Two Rig paths call [Gemini CLI](https://github.com/google-gemini/gemini-cli) (`gemini`) first when it is on `PATH`:
 
-- `/rig:mcp` and the `mcp-runner` agent run MCP tools through `echo "<task>" | gemini -y -m <model>`. Gemini CLI reads servers from `.gemini/settings.json`, so link it to the Rig config: `mkdir -p .gemini && ln -sf ../.claude/.mcp.json .gemini/settings.json`. Without `gemini`, they fall back to `npx tsx scripts/cli.ts` in `.claude/skills/mcp/scripts/` (run `npm install` there first).
+- `/rig:mcp` and the `mcp-runner` agent run MCP tools through `echo "<task>" | gemini -y -m <model>`. Gemini CLI reads servers from `.gemini/settings.json`, so link it to the Rig config: `mkdir -p .gemini && ln -sf ../.mcp.json .gemini/settings.json`. Without `gemini`, they fall back to `rig-mcp`, which runs the skill's CLI.
 - `/rig:research` and the `researcher` agent search with Gemini. Set `skills.research.useGemini: false` in `.rig.json` to use WebSearch instead.
 
 Install with `npm install -g @google/gemini-cli` and sign in once by running `gemini`. The model comes from `gemini.model` in `.rig.json` (default `gemini-3-flash-preview`). `-y` lets Gemini run every tool call without asking, so only link MCP servers you trust.

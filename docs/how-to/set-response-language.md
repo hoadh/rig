@@ -20,7 +20,7 @@ Claude can answer in your language while everything that lands in the repository
 
 ## What stays English
 
-Only chat replies change. Code, comments, docs, plans, commit messages, branch names and paths stay English. This is a rule in `.claude/rules/core-rules.md`, so it also applies to subagents.
+Only chat replies change. Code, comments, docs, plans, commit messages, branch names and paths stay English. This is a rule in `plugins/rig/rules/core-rules.md`, so it also applies to subagents.
 
 ## Deprecated
 

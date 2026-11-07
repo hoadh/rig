@@ -1,0 +1,90 @@
+name: Plugin validate
+
+# Validates the Claude Code plugin (plugins/rig) and the marketplace manifest (.claude-plugin/marketplace.json)
+# with the real `claude plugin validate`, on the Claude Code floor Rig supports and on the latest release.
+# The version-bump job fails a PR or main push that changes plugins/rig/** without a greater plugin.json version.
+# The marketplace-ref job (push to main) checks the release pin against the latest v* tag.
+# The node tests (hooks.json targets, bump logic) run in ci.yml on ubuntu, macOS and Windows.
+
+on:
+  push:
+    branches: [main]
+  # No path filter, so the jobs always report and can be required status checks.
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: plugin-validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: validate (claude ${{ matrix.claude }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # The `latest` leg is informational: an upstream release must not block merges.
+    continue-on-error: ${{ matrix.claude == 'latest' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Floor: first release with `plugin install --marketplace` (see the 2.0 plan). Raise it deliberately.
+        claude: ['2.1.292', 'latest']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+      - name: Install Claude Code ${{ matrix.claude }}
+        run: |
+          npm install -g "@anthropic-ai/claude-code@${{ matrix.claude }}"
+          # Newer npm may not run the package's postinstall (it fetches the native binary); run it when needed.
+          claude --version || node "$(npm root -g)/@anthropic-ai/claude-code/install.cjs"
+          claude --version
+      - name: Validate plugin (strict)
+        run: claude plugin validate ./plugins/rig --strict
+      - name: Validate marketplace
+        run: claude plugin validate .
+
+  version-bump:
+    name: plugin version bump
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+      # PR: compare with the target branch. Push to main: compare with the commit main pointed at before the
+      # push, so two PRs that bumped to the same version cannot both ship it (an all-zero `before` = new branch).
+      - name: Require a greater plugin.json version when plugins/rig/** changed
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          if [ -n "$BASE_REF" ]; then base="origin/$BASE_REF"
+          elif [ -n "$BEFORE_SHA" ] && [ "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]; then base="$BEFORE_SHA"
+          else base="HEAD^1"; fi
+          node scripts/check-plugin-version-bump.cjs --base "$base"
+
+  # After a release the marketplace entry is pinned to a tag + sha. On main that pin must be the latest v* tag
+  # reachable from the commit, and the sha must be that tag's commit. No ref yet = pre-release state, skipped.
+  marketplace-ref:
+    name: marketplace ref matches latest tag
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+      - name: Check the marketplace ref and sha
+        run: node scripts/release-plugin.cjs --check-ref

@@ -71,7 +71,7 @@ cp .agent/.mcp.json .gemini/settings.json
 # ln -sf ../.agent/.mcp.json .gemini/settings.json
 
 # Create symlink (Windows - requires admin or developer mode)
-mklink .gemini\settings.json ..\.claude\.mcp.json
+mklink .gemini\settings.json ..\.agent\.mcp.json
 ```
 
 ### Security

@@ -2,11 +2,6 @@
 name: media
 description: "Analyze images, audio and video with Gemini; generate images, video, speech and music. Use for vision analysis, transcription, OCR, media generation."
 license: MIT
-allowed-tools:
-  - Bash
-  - Read
-  - Write
-  - Edit
 argument-hint: "[file-path] [prompt]"
 ---
 

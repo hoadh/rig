@@ -1,280 +1,162 @@
 # Codebase Summary
 
 **Last Updated**: 2026-11-06
-**Version**: 1.1.0 (released 2026-11-06)
+**Version**: 2.0.0-beta.1 (unreleased). Last release 1.1.0 (2026-11-06), kept on `release/1.x`
 **Repository**: [hoadh/rig](https://github.com/hoadh/rig)
+**Source**: built from a `repomix` compaction of this tree (`repomix-output.xml`, gitignored, 1,216 files). Regenerate with `npx repomix@1.18.1 --style xml`.
 
 ## Overview
 
-Rig is an Agentic-Driven Development (ADD) toolkit for building software with Claude Code (Antigravity through the generated `.agent/` copy). It provides a complete development environment with AI-powered agent orchestration, automated workflows, and intelligent project management.
+Rig is an Agentic-Driven Development toolkit for Claude Code. Rig 2.x ships as a Claude Code plugin from the `rig-marketplace` marketplace. The plugin holds 32 skills, 14 agents, hooks, rules, `bin/` command entrypoints and the `rig-init` setup CLI. The repo also generates an Antigravity copy (`.agent/`, `GEMINI.md`).
 
 ## Project Structure
 
 ```
 rig/
-├── .claude/               # Claude Code configuration
-│   ├── agents/           # Specialized agent definitions (14 agents)
-│   ├── hooks/            # Context hooks, hook tests
-│   ├── rules/            # core-rules.md only; task rules live in skill references
-│   ├── schemas/          # .rig.json schema
-│   ├── scripts/          # Helper scripts
-│   ├── skills/           # Specialized skills library (31 skills)
-│   ├── metadata.json     # Kit version and build date
-│   ├── settings.json     # Hooks, permissions, statusline
-│   └── statusline.cjs    # Statusline script
-├── .agent/              # Antigravity copy (generated, see GEMINI.md)
-├── .github/             # GitHub Actions workflows
-│   └── workflows/       # ci.yml (lint, tests, eval tier 1, pytest); antigravity-sync-check.yml
-├── docs/                # Project documentation (Diataxis layout, index: docs/README.md)
-│   ├── tutorials/ how-to/ reference/ explanation/   # One Diataxis type per dir
-│   ├── project/         # PDR, roadmap, changelog
-│   └── research/ devlog/ assets/   # Not reader docs, left untouched
-├── guide/               # User guides and references
-├── scripts/             # Installer, release, Antigravity sync, eval (scripts/eval/), benchmark (scripts/benchmark/)
-├── plans/               # Implementation plans and reports
-│   └── reports/         # Agent-to-agent communication
-├── CLAUDE.md           # Project-specific Claude instructions
-├── README.md           # Project overview
-└── package.json        # Node.js dependencies
+├── .claude-plugin/
+│   └── marketplace.json      # marketplace rig-marketplace; plugin entry source = plugins/rig (git-subdir)
+├── plugins/rig/              # THE PLUGIN (installed by Claude Code)
+│   ├── .claude-plugin/plugin.json
+│   ├── agents/               # 14 subagent definitions
+│   ├── skills/               # 32 skills (28 /rig:* commands, 4 helpers), plus _shared/ and common/
+│   ├── hooks/                # hooks.json, 6 hook scripts, lib/ (29 modules), __tests__/
+│   ├── bin/                  # 14 rig-* entrypoints (node shebang; rig-classify-doc is bash)
+│   ├── rules/core-rules.md   # always-loaded rules, injected at SessionStart
+│   ├── scripts/              # rig-init/, rig-python venv resolver, rig-bin-launcher, shared scripts
+│   ├── schemas/              # rig-config.schema.json (.rig.json)
+│   └── statusline.cjs        # statusline; copied to ~/.claude/rig/runtime
+├── .claude/                  # DEV ONLY (not shipped): settings.json (permissions, attribution), .rig.json,
+│                             #   .env.example, .mcp.json.example, rules/ (empty)
+├── .agent/                   # Antigravity copy (generated; see GEMINI.md)
+├── .github/
+│   ├── workflows/            # ci.yml, plugin-validate.yml, antigravity-sync-check.yml
+│   └── CODEOWNERS
+├── docs/                     # Diataxis: tutorials, how-to, reference, explanation, project (+ devlog, research, assets)
+├── guide/                    # SKILLS.md catalog, ENVIRONMENT_RESOLVER.md, checks/
+├── scripts/                  # Repo tooling: Antigravity sync, eval, benchmark, plugin version check, install printer
+├── plans/                    # Plans and reports (gitignored in this repo)
+├── CLAUDE.md                 # Project instructions for Claude Code (rules live in plugins/rig/rules/)
+├── AGENTS.md                 # Project instructions for coding agents
+├── GEMINI.md                 # Generated: Antigravity instructions
+└── package.json              # Node scripts: test, lint, eval, bench
 ```
 
 ## Core Technologies
 
 ### Runtime & Dependencies
-- **Node.js**: >=18.0.0
+- **Node.js**: >=18.0.0 (plugin runtime). Contributors running `npm run lint` need Node 20.19+, 22.13+ or 24+ (ESLint 10)
+- **Claude Code**: 2.1.292 floor (`plugin install --marketplace`)
+- **Python**: `rig-python` builds a venv from the skills' `requirements.txt` on first use
 - **Package Manager**: npm
 - **License**: MIT (see `LICENSE`)
 
 ### Development Tools
 - **ESLint 10**: `npm run lint`, flat config in `eslint.config.mjs`
-- **Repomix**: Codebase compaction for AI consumption
+- **Repomix**: codebase compaction for AI consumption
+- **Claude Code CLI**: `claude plugin validate --strict` checks the manifest and marketplace
 
 ### CI/CD
-- **GitHub Actions**: `ci.yml` (lint, Node tests on three OSes, eval tier 1, pytest) and `antigravity-sync-check.yml`; releases are manual
-- **Semantic Versioning**: bumped by hand in `package.json` and `.claude/metadata.json`
-- **Conventional Commits**: Structured commit messages
+- **`ci.yml`**: lint, `npm test` on Ubuntu, Windows and macOS, eval tier 1, pytest for four skill suites
+- **`plugin-validate.yml`**: `claude plugin validate` on the 2.1.292 floor and on latest; PR-only plugin version bump check
+- **`antigravity-sync-check.yml`**: fails when `.agent/` or `GEMINI.md` drift from a fresh sync, or when a Claude Code-only reference leaks into them
+- **Versioning**: `plugins/rig/.claude-plugin/plugin.json` `version` must rise with every plugin change
+- **Release**: `scripts/release-plugin.cjs` pins the marketplace entry (ref, sha) and creates the `v<version>` tag; dry run by default, `--apply` in a terminal. `--check-ref` runs in CI
 
 ## Key Components
 
-### 1. Agent Orchestration System (14 Agents)
+### 1. Agents (14)
+`planner`, `researcher`, `brainstormer`, `implementer`, `code-simplifier`, `ui-ux-designer`, `tester`, `code-reviewer`, `debugger`, `progress-tracker`, `docs-maintainer`, `devlog-writer`, `git-operator`, `mcp-runner`. Agents hand work to each other through files in `plans/` and `plans/reports/`.
 
-**Claude Code Agents** (`.claude/agents/`):
-- `planner.md` - Technical planning and architecture (Opus model)
-- `researcher.md` - Research and analysis
-- `implementer.md` - Implements plan phases (backend, frontend, infra)
-- `code-reviewer.md` - Code quality assessment
-- `tester.md` - Testing and validation
-- `debugger.md` - Issue analysis and debugging
-- `docs-maintainer.md` - Documentation management
-- `git-operator.md` - Version control operations
-- `devlog-writer.md` - Devlog entries: shipped work, decisions, lessons
-- `brainstormer.md` - Solution ideation
-- `progress-tracker.md` - Progress tracking against plans
-- `ui-ux-designer.md` - UI/UX design
-- `mcp-runner.md` - Runs MCP tools outside the main context (Gemini CLI first)
-- `code-simplifier.md` - Code optimization and simplification
+### 2. Skills (32)
+- **Slash commands** (`/rig:<name>`, 28): `brainstorm`, `browser`, `code-review`, `create-skill`, `debug`, `devlog`, `diataxis-writer`, `docs`, `explore`, `fix`, `git`, `implement`, `library-docs`, `markdown-viewer`, `mcp`, `media`, `plan`, `pr`, `progress`, `remote`, `research`, `setup`, `team`, `test`, `ui-design`, `ui-styling`, `visualize`, `worktree`
+- **Helpers** (`user-invocable: false`, 4): `context-engineering`, `mermaidjs-v11`, `problem-solving`, `project-organization`
+- **Names**: `name:` in each `SKILL.md` has no prefix; Claude Code adds `rig:`. Skills call scripts through `bin/` names, not paths.
+- `setup` (new in 2.0) is `disable-model-invocation: true`. It previews `rig-init --plan --json` and prints the terminal commands. It never applies.
 
-### 2. Slash Commands System (Skill-Backed)
+### 3. Hooks (6 registrations)
+Registered in `plugins/rig/hooks/hooks.json` in exec form (`node` plus `args` with `${CLAUDE_PLUGIN_ROOT}`).
 
-**Core Development Commands**:
-- `/rig:plan` - Research and planning
-- `/rig:implement` - Feature implementation
-- `/rig:test` - Test execution
-- `/rig:brainstorm` - Solution ideation
-- `/rig:debug` - Issue debugging
-- `/rig:fix` - Bug fixes
+| Event | Script | Role |
+|---|---|---|
+| SessionStart | `session-init.cjs` | Session context (`additionalContext`), core rules, runtime copy refresh, 1.x coexistence notice |
+| SubagentStart | `subagent-init.cjs`, `team-context-inject.cjs` | Dynamic subagent context and team context |
+| UserPromptSubmit | `dev-rules-reminder.cjs` | Rules reminder, once per plan or branch change |
+| PreToolUse (Bash) | `bash-safety-guard.cjs` | Asks or denies risky Bash: in-place edits of symlinks, process kills, secret-file reads, `rig-init` apply verbs |
+| Stop | `verify-completion-guard.cjs` | Nudges or blocks completion without a passing verification command |
 
-**Skill Directories** (`.claude/skills/`):
-- `docs/` - Documentation workflows
-- `rig-plan/` - Planning workflow
-- `code-review/` - Code review workflows
-- `test/` - Testing workflows
+Shared modules: `hooks/lib/` (29 files), such as `plugin-data-dir.cjs` (state and log locations), `global-hook-yields-to-project-copy.cjs` (1.x coexistence), `runtime-copy-to-user-dir.cjs`, `rig-1x-copy-notice.cjs`, `bash-rig-init-destructive-verbs-rule.cjs`. Tests: `hooks/__tests__/` and `hooks/lib/__tests__/`.
 
-### 3. Skills Library (31 Skills)
+### 4. Bin entrypoints (14)
+`rig-browser`, `rig-classify-doc`, `rig-init`, `rig-markdown-viewer`, `rig-mcp`, `rig-migrate-docs`, `rig-python`, `rig-remote`, `rig-resolve-env`, `rig-set-active-plan`, `rig-skill-dir`, `rig-ui-search`, `rig-validate-docs`, `rig-worktree`. They sit on the Bash tool PATH. Each one resolves the plugin root from its own real path through `scripts/rig-bin-launcher.cjs`.
 
-**Organized Groups** (Progressive Disclosure):
-- **UI Styling** (`ui-styling/`) - shadcn/ui, Tailwind CSS v4
-  - 7 references, 2 Python utilities
+### 5. rig-init (setup and migration CLI)
+`plugins/rig/scripts/rig-init/` (entry `cli.cjs`, bin `rig-init`).
 
-**Current Skills** (31 Total, plus the `common/` shared library):
-- media, brainstorm, browser, code-review, context-engineering
-- implement, diataxis-writer, docs, library-docs, fix, git, devlog
-- markdown-viewer, mcp, mermaidjs-v11, problem-solving, visualize
-- progress, project-organization, research, rig-debug, rig-plan
-- explore, pr, create-skill, team, test
-- ui-styling, ui-design, worktree
-- remote (multi-machine plans over ssh; `scripts/remote.cjs` orchestrator, `scripts/worker.cjs` worker; see [how-to](../how-to/run-plan-across-machines.md))
+| Module | Role |
+|---|---|
+| `cli.cjs` | Verb parser, consent gate (terminal only, outside Claude Code), exit codes |
+| `migration-planner.cjs` | Read-only plan per target: settings removals, moves, kept files, committed files, blockers |
+| `migration-journal-applier.cjs` | Journaled apply: backup, settings rewrite, moves, resume |
+| `backup-restore-standalone.cjs` | Shared primitives; copied into each backup as `restore.cjs` (runs without the plugin) |
+| `rig-1x-owned-paths.{json,cjs}` | The 747 1.x files and the command forms that name them; generated by `scripts/generate-rig-1x-owned-paths.cjs` |
+| `settings-rig-entries-stripper.cjs` | Removes Rig hook handlers and `statusLine` from settings, returns what it removed |
+| `user-settings-permissions-and-runtime.cjs`, `permissions-template.json` | `--permissions` and `--runtime` |
+| `skills-dependency-installer-runner.cjs` | `--deps`: runs the skills installer interactively |
+| `cc-version-check.cjs` | Warns below the Claude Code floor |
 
-### 4. Hook System (6 Core Hooks)
+### 6. Remote (`rig:remote`)
+`plugins/rig/skills/remote/`: `scripts/remote.cjs` (orchestrator), `worker.cjs` and `worker-commands/`. Worker protocol version 2. The worker runs from `~/.claude/rig/runtime/remote/worker.cjs`. Version gate: `lib/rig-version-compat.cjs`. See [ADR 0002](../explanation/decisions/0002-multi-machine-remote-orchestration.md).
 
-**Location**: `.claude/hooks/`
+### 7. Antigravity sync
+`scripts/sync-antigravity-agent-dir.cjs` builds `.agent/` and `GEMINI.md` from `plugins/rig/` and `CLAUDE.md`. Helpers: `scripts/antigravity/` (frontmatter filter, text rewrite table, leftover check). `--check-leftovers` scans the committed output.
 
-Rig uses six hooks. Permission checks, naming rules and usage display use native features (see [system components](./system-components.md)).
-
-| Hook | Event | Purpose |
-|------|-------|---------|
-| `session-init.cjs` | SessionStart | Exports Rig session vars and paths (`RIG_SESSION_ID`, `RIG_ACTIVE_PLAN`, `RIG_REPORTS_PATH`, `RIG_PROJECT_ROOT`, `RIG_GIT_BRANCH`, ...) |
-| `subagent-init.cjs` | SubagentStart | Injects dynamic Rig context (paths, plan context, naming) into subagents |
-| `team-context-inject.cjs` | SubagentStart | Injects agent team context (peers, tasks) |
-| `dev-rules-reminder.cjs` | UserPromptSubmit | Injects a short `## Rig Session` block: date, paths, plan context, naming |
-| `verify-completion-guard.cjs` | Stop | Nudges or blocks a stop when code was edited and no passing verify command ran (`verifyGuard.mode`) |
-| `bash-safety-guard.cjs` | PreToolUse (Bash) | Denies or asks on `sed -i` of a symlink and risky `pkill`; toggles in global config only |
-
-Supporting modules in `.claude/hooks/lib/`: `bash-command-segment-tokenizer.cjs`, `bash-safety-rule-engine.cjs`, `bash-in-place-edit-symlink-rule.cjs`, `bash-process-kill-rule.cjs`, `bash-safety-guard-config.cjs`, `verify-guard-config.cjs`, `verify-command-detector.cjs`, `turn-edit-and-verify-scanner.cjs`, `verify-guard-turn-counter.cjs`, `unsafe-regex-shape-checker.cjs` (ReDoS pre-filter), `regex-test-with-timeout.cjs` (vm-bounded regex runs). Guide: [how-to](../how-to/configure-verification-and-safety-guards.md).
-
-**Hook Features:**
-- Fail-Safe: hooks exit 0 (non-blocking) - graceful degradation
-- Small output: only dynamic facts are injected; static rules stay in `.claude/rules/`
-- Cross-Platform: Node.js `.cjs` scripts run on Windows and Unix
-- Tests: `npm test` runs every hook test file via `scripts/run-hook-tests.cjs`
-
-**Native replacements:**
-- Sensitive files and heavy directories: `permissions.ask` / `permissions.deny` in `.claude/settings.json`
-- File naming: `.claude/rules/core-rules.md`
-- Context usage: statusline reads `rate_limits` from stdin
-
-### 5. Workflows
-
-**Rules and workflow detail** (layout and where each moved section lives: [rules layout](../explanation/rules-layout.md)):
-1. **`.claude/rules/core-rules.md`** (<=1.5 KB, loaded natively and injected into subagents): principles, naming, secrets, verification, language, size tiers (one line)
-2. **`.claude/skills/implement/references/orchestration-protocol.md`**: full size tiers, workflow detail, subagent status protocol
-3. **`.claude/skills/rig-plan/references/plan-organization.md`**: plan layout, phase file sections, Pending Live Verification
-4. **`.claude/skills/docs/references/docs-upkeep-rules.md`**: roadmap and changelog upkeep
-5. **`.claude/skills/team/references/team-coordination.md`**: Agent Teams behavior
-6. **`.claude/skills/remote/SKILL.md`**: SSH host resolution and production read-only rules
+### 8. Tests and evals
+- `npm test` runs `scripts/run-hook-tests.cjs`, which discovers every `*.test.cjs` and `*.test.js` under `plugins/rig/` and `scripts/`, and reports passed, failed and skipped counts.
+- Guard tests: `scripts/legacy-skill-path-refs-guard.test.cjs` (no 1.x `.claude/` paths in the plugin; allowlist with exact counts) and `plugins/rig/hooks/__tests__/removed-features-reference-scan.test.cjs` (removed features are not named outside history files).
+- `scripts/eval/` (tiers 1 to 3, run with bun) and `scripts/benchmark/` (Claude Code with and without Rig).
 
 ## Entry Points
 
 ### For Users
-- **README.md**: Project overview and quick start
-- **guide/SKILLS.md**: Comprehensive skills reference
-- **CLAUDE.md**: Development instructions and workflows
+- Install: `/plugin marketplace add hoadh/rig`, then `/plugin install rig@rig-marketplace` (see [Install and update Rig](../how-to/install-and-update-rig.md))
+- Setup: `/rig:setup` in Claude Code, then `rig-init` in a terminal
+- Work: `/rig:plan`, `/rig:implement`
 
 ### For Developers
-- **package.json**: Dependencies and scripts
-- **.gitignore**: Version control exclusions
+- Plugin: `claude --plugin-dir ./plugins/rig`
+- Tests: `npm test`; lint: `npm run lint`
+- Antigravity: `node scripts/sync-antigravity-agent-dir.cjs`, then `--check-leftovers`
 
 ### For Agents
-- **CLAUDE.md**: Primary agent instructions
-- **.claude/rules/core-rules.md**: Core rules (task-specific rules live in skill references)
+- Core rules: `plugins/rig/rules/core-rules.md`
+- Plans: `plugins/rig/skills/plan/references/plan-organization.md`
+- Docs upkeep: `plugins/rig/skills/docs/references/docs-upkeep-rules.md`
+- Size tiers: `plugins/rig/skills/implement/references/orchestration-protocol.md`
 
 ## Development Principles
 
-### YAGNI (You Aren't Gonna Need It)
-Avoid over-engineering and unnecessary features
-
-### KISS (Keep It Simple, Stupid)
-Prefer simple, straightforward solutions
-
-### DRY (Don't Repeat Yourself)
-Eliminate code duplication
-
-### File Size Management
-- Keep files under 500 lines
-- Split large files into focused components
-- Extract utilities into separate modules
-
-### Security First
-- Try-catch error handling
-- Security standards coverage
-- No secrets in commits
-- Confidential info protection
-
-## Agent Communication Protocol
-
-**Report Format**: Markdown files in `./plans/<plan-name>/reports/`
-**Naming Convention**: `{date}-from-[agent]-to-[agent]-[task]-report.md`
-
-**Communication Patterns**:
-- Sequential: Task dependencies require ordered execution
-- Parallel: Independent tasks run simultaneously
-- Query Fan-Out: Multiple researchers explore different approaches
-
-## Git Workflow
-
-**Commit Message Format**: Conventional Commits
-```
-type(scope): description
-
-Types:
-- feat, fix, docs, refactor, test, ci
-- `BREAKING CHANGE:` footer for breaking changes (version bumps are manual)
-```
-
-**Release** (manual):
-- `scripts/prepare-release-assets.cjs` builds `rig.zip`; `scripts/generate-release-manifest.cjs` writes the manifest
-- Publish a GitHub Release from the tag; `CHANGELOG.md` is written by hand
+- **YAGNI, KISS, DRY**: the simplest thing that works
+- **File size**: split a file that mixes concerns or passes about 500 lines (data, generated and test files exempt)
+- **Security**: validate external input; never commit secrets; the guards catch accidents, they are not a sandbox
+- **Real behavior**: tests run real code paths, not mocks that stand in for them
 
 ## Testing Strategy
 
-- Comprehensive unit tests required
-- High code coverage mandatory
-- Error scenario testing
-- Performance validation
-- Tests must pass before push
-- No ignoring failed tests
+- `npm test` must pass on Linux, Windows and macOS in CI before a merge
+- Failing tests are fixed, never skipped or weakened
+- Plugin changes: `claude plugin validate ./plugins/rig --strict` and the version bump check
+- Checks that need a real Claude Code session, Windows or macOS are `LIVE:` items in each plan phase
 
 ## Documentation Standards
 
-**Required Docs** (`./docs/`, Diataxis layout, see `.claude/skills/docs/references/diataxis-docs-layout.md`):
-- `README.md` - Docs index grouped by type
-- `project/overview-pdr.md` - Project overview and PDR
-- `reference/code-standards.md` - Coding standards and structure
-- `reference/codebase-summary.md` - This file
-- `explanation/architecture.md` - Architecture documentation
-- `project/roadmap.md` - Development roadmap
-- `project/changelog.md` - Detailed changelog
-
-**Documentation Triggers**:
-- Feature implementation completion
-- Major milestone achievements
-- Bug fixes
-- Security updates
-- Weekly reviews
-
-## Dependencies Overview
-
-### Production Dependencies
-None (template project)
-
-### Development Dependencies
-- `eslint`, `@eslint/js`, `globals`, `typescript-eslint` (lint only)
-- Tests run with plain Node (`npm test`)
-
-## Integration Capabilities
-
-### GitHub Actions
-Workflow: `.github/workflows/antigravity-sync-check.yml`
-Features: Fails when `.agent/` or `GEMINI.md` drift from `.claude/`
-
-### Agent Skills
-- **problem-solving**: Structured reasoning
-- **library-docs**: Library documentation lookup
-- **media**: Image, video and document analysis and generation
-
-## Critical Files
-
-### Configuration
-- `package.json` - Node.js config
-- `.gitignore` - Git exclusions
-- `.repomixignore` - Repomix exclusions
-
-### Documentation
-- `README.md` - Main project docs
-- `CLAUDE.md` - Agent instructions
-- `CHANGELOG.md` - Version history
-- `guide/SKILLS.md` - Skills reference
-
-### Workflows
-- `.claude/rules/core-rules.md`
-- `.claude/skills/implement/references/orchestration-protocol.md`
+- Docs live in `docs/` in the Diataxis layout; index: [docs/README.md](../README.md)
+- One primary type per page; `docs/devlog/`, `docs/research/` and `docs/assets/` are not reader docs
+- Page size limit: 800 lines
 
 ## Version History
 
-**Current**: 1.1.0 released 2026-11-06; 1.0.0 released 2026-10-17. See `CHANGELOG.md`
-**License**: MIT (see `LICENSE`)
-**Author**: Alex Dang
-**Repository**: https://github.com/hoadh/rig
+- **2.0.0-beta.1** (unreleased): Claude Code plugin, `rig-init`, bin entrypoints, Antigravity sync for the plugin layout. See `CHANGELOG.md`.
+- **1.1.0** (2026-11-06), **1.0.0** (2026-10-17): file installer layout (`.claude/` copies). Kept on `release/1.x` and tag `v1.1.0`.
 
 ## Open Items
 

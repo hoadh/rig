@@ -1,6 +1,6 @@
 {
   "name": "rig",
-  "version": "1.1.0",
+  "version": "2.0.0-beta.1",
   "description": "Rig — an Agentic-Driven Development toolkit for Claude Code: agents, skills, hooks and workflows that plan, build, test and review software.",
   "scripts": {
     "test": "node scripts/run-hook-tests.cjs",
@@ -11,8 +11,7 @@
     "test:eval:all": "bun scripts/eval/run.ts all",
     "bench": "node scripts/benchmark/run-benchmark.ts",
     "bench:verify": "node scripts/benchmark/verify-hidden-tests.ts",
-    "bench:report": "node scripts/benchmark/benchmark-report.ts",
-    "kit:install": "node scripts/install-kit-from-local-repo.cjs"
+    "bench:report": "node scripts/benchmark/benchmark-report.ts"
   },
   "repository": {
     "type": "git",

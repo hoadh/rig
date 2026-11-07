@@ -1,0 +1,4 @@
+#!/usr/bin/env node
+'use strict';
+// Plan, migrate, restore and set up Rig 2.x: rig-init --help
+require('../scripts/rig-bin-launcher.cjs').runNodeScript(__filename, 'scripts/rig-init/cli.cjs');

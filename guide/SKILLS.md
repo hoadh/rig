@@ -1,6 +1,6 @@
 # Skills Catalog
 
-Every skill shipped in `.claude/skills/`. Invoke a skill with its command, for example `/rig:implement`. Claude also loads skills automatically when a task matches their description. Each skill's full instructions are in `.claude/skills/<dir>/SKILL.md`.
+Every skill shipped in the Rig plugin (`plugins/rig/skills/`). Invoke a skill with its command, for example `/rig:implement`. Claude also loads skills automatically when a task matches their description. Each skill's full instructions are in `.claude/skills/<dir>/SKILL.md`.
 
 **Last Updated**: 2026-10-16
 **Total Skills**: 32 (27 in the `/` menu, 5 internal helpers)
@@ -13,10 +13,10 @@ Legend: 📦 has executable scripts · 📚 has reference docs
 |---|---|---|---|
 | `/rig:brainstorm` | `brainstorm` | | Weigh solutions and trade-offs before any code: ideation, architecture decisions, feasibility. |
 | `/rig:research` | `research` | | Research technical options, best practices and requirements. |
-| `/rig:plan` | `rig-plan` | 📚 | Write a phased implementation plan in `plans/`, with optional red-team review and validation. |
+| `/rig:plan` | `plan` | 📚 | Write a phased implementation plan in `plans/`, with optional red-team review and validation. |
 | `/rig:implement` | `implement` | 📚 | Implement a feature or plan end to end: plan, code, test, review. |
 | `/rig:fix` | `fix` | 📚 | Fix a bug end to end: explore, diagnose, fix, verify, review. |
-| `/rig:debug` | `rig-debug` | 📦 📚 | Find the root cause only (logs, call stacks, CI failures), without applying a fix. |
+| `/rig:debug` | `debug` | 📦 📚 | Find the root cause only (logs, call stacks, CI failures), without applying a fix. |
 | `/rig:test` | `test` | 📚 | Run unit, integration, e2e and UI tests; coverage and QA reports. |
 | `/rig:code-review` | `code-review` | 📚 | Adversarial review of pending changes, a PR, a commit or the whole codebase. |
 
