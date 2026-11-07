@@ -319,7 +319,12 @@ function groupMoves(moves) {
 /** Human summary of one target plan (the terminal prompt and `--plan` without --json). */
 function describeTarget(plan) {
   const lines = [`${plan.kind === 'global' ? 'Global' : `Project ${plan.root}`} install: ${plan.claudeDir}`];
-  if (!plan.identified && plan.unmarkedMatches > 0) {
+  // Shown first and regardless of detection: after a partial migration the install marker is already in the
+  // backup, so the leftovers (e.g. a statusline held open on Windows) no longer look like a 1.x install.
+  if (plan.pendingBackup) lines.push(`  an interrupted migration exists: ${plan.pendingBackup} (use --migrate --resume)`);
+  if (!plan.identified && plan.pendingBackup) {
+    lines.push('  the files still here belong to that migration; --resume moves them');
+  } else if (!plan.identified && plan.unmarkedMatches > 0) {
     lines.push(`  found ${plan.unmarkedMatches} file(s) or settings entries with Rig 1.x names, but no Rig 1.x install marker (metadata.json named "rig", hooks/lib/rig-config-utils.cjs).`);
     lines.push('  They look like another kit\'s files (or your own), so rig-init leaves them alone.');
   } else if (!plan.detected) {
@@ -327,12 +332,11 @@ function describeTarget(plan) {
   } else {
     const hooks = plan.settings.flatMap((s) => s.removeHooks.map((h) => `${s.file}: ${h.event}`));
     lines.push(`  settings: remove ${hooks.length} Rig hook registration(s)${plan.settings.some((s) => s.removeStatusLine) ? ' and the Rig statusLine' : ''} (your other settings stay)`);
-    lines.push(`  move ${plan.moves.length} Rig path(s), ${formatBytes(plan.bytes)}, into ${plan.backupGroup}/<timestamp>/ (nothing is deleted, edits you made to Rig files are kept in the backup; restore.cjs there puts it all back)`);
+    lines.push(`  move ${plan.moves.length} Rig path(s), ${formatBytes(plan.bytes)}, into ${path.join(plan.backupGroup, '<timestamp>')}${path.sep} (nothing is deleted, edits you made to Rig files are kept in the backup; restore.cjs there puts it all back)`);
     lines.push('  paths by directory:');
     for (const [dir, count] of groupMoves(plan.moves)) lines.push(`    ${dir}  ${count}`);
     lines.push('  the full list is written to <backup>/moved-paths.txt, and its path is printed.');
     if (plan.hint) lines.push(`  note: ${plan.hint}`);
-    if (plan.pendingBackup) lines.push(`  an interrupted migration exists: ${plan.pendingBackup} (use --migrate --resume)`);
   }
   if (plan.kept.length) lines.push(`  not Rig's, left in place (${plan.kept.length}): ${plan.kept.slice(0, 8).join(', ')}${plan.kept.length > 8 ? ', ...' : ''}`);
   for (const item of plan.leftInPlace || []) lines.push(`  left in place: ${item}`);

@@ -4,7 +4,7 @@ const { describe, it, after } = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
-const { planTarget, findIncompleteBackup } = require('../migration-planner.cjs');
+const { planTarget, findIncompleteBackup, describeTarget } = require('../migration-planner.cjs');
 const { applyMigration, resumeMigration } = require('../migration-journal-applier.cjs');
 const { withRetry, readJsonFile } = require('../backup-restore-standalone.cjs');
 const { acquireLock } = require('../../../hooks/lib/dir-lock-with-owner-token.cjs');
@@ -139,6 +139,11 @@ describe('files in use (Windows EBUSY on an open statusline)', () => {
     assert.deepStrictEqual(result.blocked.map((b) => [b.rel, b.code]), [['statusline.cjs', 'EBUSY']]);
     assert.ok(fs.existsSync(path.join(claude(m), 'statusline.cjs')));
     assert.deepStrictEqual(danglingCommands(claude(m), m.home), [], 'settings no longer reference the busy file');
+    // --plan while the busy file blocks: the install marker is already in the backup, so the plan must name the
+    // interrupted migration and must not call the leftover a foreign kit's files (seen live on Windows).
+    const pending = describeTarget(planGlobal(m));
+    assert.match(pending, /an interrupted migration exists: .+ \(use --migrate --resume\)/);
+    assert.doesNotMatch(pending, /another kit/);
     const resumed = resumeMigration({ backupDir: result.backupDir, home: m.home });
     assert.strictEqual(resumed.status, 'done');
     assert.ok(!fs.existsSync(path.join(claude(m), 'statusline.cjs')));
