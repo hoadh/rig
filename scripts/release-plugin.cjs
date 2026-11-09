@@ -207,8 +207,20 @@ async function release(opts, io) {
   }
   log(`Created commit "release: pin marketplace to v${version}" and tag v${version} -> ${sha.slice(0, 12)}. Nothing was pushed. Next:`);
   log(`  git push origin ${branch} v${version}`);
+  log(`  install: ${installHint(pinned.source.url, branch)}`);
   log(`  claude plugin tag plugins/rig --dry-run   # optional: makes the plugin-scoped rig--v${version} tag, then rerun without --dry-run (add --push to publish it)`);
   return 0;
+}
+
+/**
+ * The marketplace add command testers use. The pin lives in the commit AFTER the tag, so the marketplace must be
+ * read from the branch that carries it (main by default); adding it at the tag gets the unpinned entry, which
+ * resolves the plugin from the default branch (live: "Subdirectory 'plugins/rig' not found" before 2.0 reached main).
+ */
+function installHint(url, branch) {
+  const m = /github\.com[/:]([^/]+\/[^/]+?)(?:\.git)?$/.exec(String(url || ''));
+  const source = m ? m[1] : url;
+  return `/plugin marketplace add ${source}${branch === 'main' ? '' : `#${branch}`}, then /plugin install rig@rig-marketplace (not #v<tag>: the pin is after the tag)`;
 }
 
 /**

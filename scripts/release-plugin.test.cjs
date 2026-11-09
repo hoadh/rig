@@ -124,8 +124,16 @@ describe('refusals', () => {
   it('allows a branch with --allow-branch', async () => {
     const dir = fixture();
     git(dir, 'checkout', '-q', '-b', 'feat/x');
-    const { io } = makeIo(dir);
+    const { io, out } = makeIo(dir);
     assert.strictEqual(await release(flags({ skipTests: true, allowBranch: true }), io), 0);
+    assert.doesNotMatch(out.join('\n'), /install:/, 'dry run prints no next steps');
+  });
+  it('a branch release tells testers to add the marketplace from the branch that carries the pin', async () => {
+    const dir = fixture();
+    git(dir, 'checkout', '-q', '-b', 'feat/x');
+    const { io, out, errs } = makeIo(dir);
+    assert.strictEqual(await release(flags({ apply: true, allowBranch: true }), io), 0, errs.join('\n'));
+    assert.match(out.join('\n'), /install: \/plugin marketplace add example\/rig#feat\/x, then \/plugin install rig@rig-marketplace/);
   });
   it('version already tagged', async () => {
     const dir = fixture();
@@ -188,6 +196,7 @@ describe('apply', () => {
     assert.strictEqual(git(dir, 'status', '--porcelain'), '');
     const text = out.join('\n');
     assert.match(text, /git push origin main v2\.0\.0-beta\.1/);
+    assert.match(text, /install: \/plugin marketplace add example\/rig, then/);
     assert.match(text, /claude plugin tag/);
     assert.match(text, /Nothing was pushed/);
   });

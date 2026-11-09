@@ -28,6 +28,17 @@ First time? Follow [Getting started](../tutorials/getting-started.md) instead.
 
 The plugin is per user and works in every project. There is no per-project copy to keep in sync.
 
+### Install a beta
+
+A beta is tagged on a pre-release branch before it reaches `main`. The release pins the marketplace in the commit after the tag, so add the marketplace from that branch (the release script prints the exact command):
+
+```text
+/plugin marketplace add hoadh/rig#<release branch>
+/plugin install rig@rig-marketplace
+```
+
+Do not add it at the tag (`hoadh/rig#v2.0.0-beta.1`): the tagged commit has the unpinned entry, and the install fails with `Subdirectory 'plugins/rig' not found`.
+
 ## Setup verbs
 
 `rig-init` is the only command that changes your Claude Code configuration (`~/.claude`). It runs **only in a terminal, outside Claude Code**. Inside a session it refuses and prints the command to run instead. Every verb except `--plan` shows what it will change and asks `y/N`. There is no flag that skips the question.
