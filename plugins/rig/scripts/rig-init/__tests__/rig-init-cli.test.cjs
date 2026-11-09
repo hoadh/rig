@@ -263,4 +263,15 @@ describe('--deps and the version check', () => {
     assert.strictEqual(checkClaudeCodeVersion({ run: () => ({ error: new Error('ENOENT') }) }).status, 'unknown');
     assert.strictEqual(describeVersionCheck({ status: 'ok' }), null);
   });
+
+  it('on Windows runs `claude --version` as one shell string with no args array (Node DEP0190 seen live on waso-vm)', () => {
+    const calls = [];
+    const run = (cmd, args, opts) => { calls.push({ cmd, args, shell: opts.shell }); return { status: 0, stdout: '2.1.318 (Claude Code)' }; };
+    assert.strictEqual(checkClaudeCodeVersion({ run, platform: 'win32' }).status, 'ok');
+    assert.strictEqual(checkClaudeCodeVersion({ run, platform: 'linux' }).status, 'ok');
+    assert.deepStrictEqual(calls, [
+      { cmd: 'claude --version', args: [], shell: true },
+      { cmd: 'claude', args: ['--version'], shell: false },
+    ]);
+  });
 });
