@@ -4,6 +4,7 @@
 
 ### Fixes
 
+* **Restore works when HOME is reached through a symlink.** The migration recorded the real path of `~/.claude`, and restore compared it with the unresolved `$HOME`, so it refused its own backup (seen on macOS, where `/tmp` is `/private/tmp`). Restore now compares real paths, as `--resume` already did. Nothing was moved by the refused restore; backups made by beta.1 and beta.2 restore with `rig-init --restore <backup dir>` from beta.3.
 * **macOS test flake.** The `rig:remote` hung-git test timed out before its fake `git` started, because macOS takes longer than the 300 ms timeout to run a new executable the first time. The fake now runs once before the timed calls.
 
 ### Docs

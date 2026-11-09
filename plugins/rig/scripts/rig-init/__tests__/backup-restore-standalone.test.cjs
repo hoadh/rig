@@ -26,6 +26,23 @@ function migrated(opts = {}) {
 const stripBackups = (snap) => Object.fromEntries(Object.entries(snap).filter(([k]) => !k.startsWith('rig-backups')));
 
 describe('restore round trip', () => {
+  it('restores when HOME is reached through a symlink (macOS /tmp -> /private/tmp): the backup records the real path', (t) => {
+    const m = makeMachine({ project: false });
+    machines.push(m);
+    const linkHome = path.join(m.root, 'home-link');
+    try { fs.symlinkSync(m.home, linkHome, 'dir'); } catch (err) { t.skip(`cannot create a symlink here (${err.code})`); return; }
+    const claude = path.join(linkHome, '.claude');
+    const before = snapshot(claude);
+    const result = applyMigration({ plan: planTarget({ kind: 'global', root: linkHome, home: linkHome }), home: linkHome, rigVersion: '2.0.0' });
+    assert.notDeepStrictEqual(stripBackups(snapshot(claude)), stripBackups(before), 'the migration moved files');
+    const report = restoreBackup({ backupDir: result.backupDir, home: linkHome });
+    assert.ok(report.moved > 0);
+    assert.strictEqual(report.hooksRestored, 6);
+    assert.ok(report.statusLineRestored);
+    const after = stripBackups(snapshot(claude));
+    for (const [key, value] of Object.entries(stripBackups(before))) if (key !== 'settings.json') assert.strictEqual(after[key], value, key);
+  });
+
   it('puts every file and the Rig hooks back and keeps the user\'s settings changes made after the migration', () => {
     const { m, before, backup, claude, settingsFile } = migrated();
     // user changes after migration: new key, changed key, a new own hook, removed their old hook

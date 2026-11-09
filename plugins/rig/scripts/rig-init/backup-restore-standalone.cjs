@@ -307,7 +307,9 @@ function loadBackup(backupDir, home) {
   if (!journal || journal.id !== marker.id || journal.schema !== 1) throw new Error(`refusing ${backupDir}: the journal does not belong to this backup`);
   const claudeDir = path.resolve(marker.claudeDir);
   const expected = marker.kind === 'global' ? path.join(path.resolve(home), '.claude') : path.join(path.resolve(String(marker.root)), '.claude');
-  if ((marker.kind !== 'global' && marker.kind !== 'project') || norm(claudeDir) !== norm(expected)) {
+  // The migration records the real path; HOME may reach it through a symlink (macOS: /tmp -> /private/tmp)
+  const sameTarget = norm(claudeDir) === norm(expected) || norm(realpathOfDeepestExisting(claudeDir)) === norm(realpathOfDeepestExisting(expected));
+  if ((marker.kind !== 'global' && marker.kind !== 'project') || !sameTarget) {
     throw new Error(`refusing ${backupDir}: recorded target ${marker.claudeDir} is not ${expected}`);
   }
   return { real, marker, journal, claudeDir };
