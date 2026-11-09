@@ -75,6 +75,7 @@ prompt.md
 
 # Hook diagnostics logs
 plugins/rig/hooks/.logs/
+.claude/hooks/.logs/
 
 # Session state written by hooks (per-machine runtime, never installed)
 .claude/session-state/
