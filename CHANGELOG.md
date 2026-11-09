@@ -13,6 +13,7 @@
 ### Docs
 
 * [Release Rig](docs/how-to/release-rig.md): the release process step by step.
+* [Update the workers](docs/how-to/run-plan-across-machines.md#9-update-the-workers): manual steps to bring rig:remote workers to the orchestrator's version, what a version difference does, how `doctor` confirms it.
 * [Update](docs/how-to/install-and-update-rig.md#update): refresh the marketplace before `claude plugin update`; what stays, what to rerun, remote workers.
 
 ## 2.0.0-beta.1 (2026-11-09)

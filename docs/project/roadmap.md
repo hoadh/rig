@@ -41,7 +41,7 @@ Status: **beta**. `v2.0.0-beta.1` is tagged and on `main`; the marketplace pins 
 | Plan 1427 installer dedupe and skill packs | Dropped | Obsolete: the plugin has no copies and ships every skill |
 | Release tagging and marketplace pin | Done | `scripts/release-plugin.cjs` writes ref and sha per tag; CI (`--check-ref`) checks the pin against the latest tag. Process: [Release Rig](../how-to/release-rig.md) |
 
-Next: release `2.0.0-beta.2` (fixes found in the beta.1 live checks), install it on macOS, fix forward as `beta.N`, then tag `2.0.0`. 2.1 follow-ups: `--workflow` for implement, `remote status --follow`, a SubagentStop guard (needs Claude Code 2.1.311), plugin `userConfig`, npm dependencies outside the plugin cache, `--migrate` offering `--runtime`, a faster Windows ancestry query.
+Next: release `2.0.0-beta.2` (fixes found in the beta.1 live checks), install it on macOS, fix forward as `beta.N`, then tag `2.0.0`. 2.1 follow-ups: `rig-remote upgrade` (below), `--workflow` for implement, `remote status --follow`, a SubagentStop guard (needs Claude Code 2.1.311), plugin `userConfig`, npm dependencies outside the plugin cache, `--migrate` offering `--runtime`, a faster Windows ancestry query.
 
 ---
 
@@ -126,6 +126,7 @@ Runs plan phases and test commands on macOS, Windows and Linux workers over ssh.
 | rig:remote: `doctor` between two workers | Not started | No worker-to-worker keys by design |
 | rig:remote: per-argument PreToolUse guard | Deferred | Low priority; see ADR 0002 threat model. The generic `bash-safety-guard` does not replace it |
 | Verification and safety guards (verify-on-stop hook, bash safety hook, push proof, evidence-based debug reports, live verification items) | Done (1.1.0) | Pending acceptance in live sessions. Follow-ups: SubagentStop verify for `implementer`, tester verdict parsing, `kill $(pgrep -f)`, Windows `taskkill`. See [how-to](../how-to/configure-verification-and-safety-guards.md) |
+| rig:remote: `upgrade` command (2.1) | Planned | `rig-remote upgrade <machine...> \| --all [--check] [--wait]`: over ssh, update the plugin on each worker (`claude plugin marketplace update`, `claude plugin update`), refresh `~/.claude/rig/runtime` without touching settings, then verify version and scripts against the orchestrator. Also prints version drift at `dispatch`/`run` and shows worker versions in `machines`. Until then: [Update the workers](../how-to/run-plan-across-machines.md#9-update-the-workers) by hand |
 | rig:remote: `collect` opens a pull request | Not started | Use `/rig:pr` afterwards for now |
 | rig:remote: enforce a dedicated worker OS user | Not started | Recommended in v1, not enforced |
 | rig:remote: guided worker setup (`register`, `setup`, doctor `fix:` hints) | Done (1.1.0) | Installing Rig, ssh keys and claude login stay manual |

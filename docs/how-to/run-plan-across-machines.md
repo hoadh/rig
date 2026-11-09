@@ -187,6 +187,44 @@ rig-remote takeover plans/<plan>/        # run on the new orchestrator
 
 It lists the old orchestrator's in-flight runs. Wait for them with `status --wait`. `--force` moves a locally differing coordination directory to `<dir>.bak-<yymmdd-hhmm>` first. Do not use `--force` to claim a plan another machine holds; exit 3 means stop and ask the user.
 
+## 9. Update the workers
+
+Update every worker after you update Rig on the orchestrator. The orchestrator talks to the worker's runtime copy (`~/.claude/rig/runtime/remote/worker.cjs`), so a worker keeps its old Rig until both its plugin and its runtime copy are updated.
+
+What a version difference does:
+
+| Orchestrator vs worker | Effect |
+|---|---|
+| Other major version (2.x and 3.x) | Every command to that worker is refused (exit 5, protocol or version mismatch) |
+| Same major, other minor or patch (2.0.0 and 2.1.0) | Commands run. `doctor` warns `version drift` |
+| Same version, different script files | Commands run. `doctor` fails `rig-version`: `scripts differ (tampered or half-updated install)` |
+| No runtime copy on the worker | Refused with `worker-missing` and the install hint |
+
+Wait until the worker has no active run (`rig-remote status <machine> <runId>`, or `status <plan-dir>`). Then, on each worker:
+
+1. Update the plugin, in a terminal on that machine (or over `ssh <worker>`):
+
+   ```bash
+   claude plugin marketplace update rig-marketplace
+   claude plugin update rig@rig-marketplace
+   ```
+
+   On Windows use the `claude` path from the registry if `claude` is not on the ssh PATH.
+
+2. Refresh the runtime copy. Choose one:
+   - start one Claude Code session on the worker and exit it (the session start refreshes `~/.claude/rig/runtime`), or
+   - run `rig-init --runtime` in a terminal on the worker. It asks `y/N` and also points `statusLine` at the runtime copy.
+
+3. Check from the orchestrator:
+
+   ```bash
+   rig-remote doctor
+   ```
+
+   Expect `OK rig-version <version>, scripts identical` for each worker. `version drift` means step 1 or 2 did not take: check `claude plugin list` on the worker and the `VERSION` file in `~/.claude/rig/runtime`.
+
+If the worker still has a Rig 1.x file install, migrate it first with `rig-init --migrate` in a terminal there ([Migrate from Rig 1.x](./migrate-from-rig-1x.md)).
+
 ## Windows notes
 
 - **Absolute node path.** `node` is required in the registry on Windows. Non-interactive ssh often has no node on PATH.

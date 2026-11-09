@@ -86,7 +86,7 @@ Each release pins the marketplace to its tag, so you keep the version you instal
 
    Skill npm packages install inside the plugin directory. A plugin update replaces that directory, so `--deps` must run again after every update.
 
-4. If you use `rig:remote`, update every worker machine too. Orchestrator and workers must run the same major version (2.x with 2.x). Workers refresh their runtime copy the same way: restart Claude Code there once, or run `rig-init --runtime` in a terminal on the worker.
+4. If you use `rig:remote`, update every worker machine too. Orchestrator and workers must run the same major version (2.x with 2.x). Steps and checks: [Update the workers](./run-plan-across-machines.md#9-update-the-workers).
 
 What stays as it is:
 
