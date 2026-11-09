@@ -205,7 +205,6 @@ Wait until the worker has no active run (`rig-remote status <machine> <runId>`, 
 1. Update the plugin, in a terminal on that machine (or over `ssh <worker>`):
 
    ```bash
-   claude plugin marketplace update rig-marketplace
    claude plugin update rig@rig-marketplace
    ```
 

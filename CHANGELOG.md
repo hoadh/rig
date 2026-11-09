@@ -1,6 +1,16 @@
 # Changelog
 
-## 2.0.0-beta.2 (unreleased)
+## 2.0.0-beta.3 (unreleased)
+
+### Fixes
+
+* **macOS test flake.** The `rig:remote` hung-git test timed out before its fake `git` started, because macOS takes longer than the 300 ms timeout to run a new executable the first time. The fake now runs once before the timed calls.
+
+### Docs
+
+* **Update is one command.** `claude plugin update rig@rig-marketplace` refreshes the marketplace itself (checked updating 2.0.0-beta.1 to beta.2); the install guide and the worker update steps drop the separate `marketplace update`.
+
+## 2.0.0-beta.2 (2026-11-09)
 
 ### Fixes
 

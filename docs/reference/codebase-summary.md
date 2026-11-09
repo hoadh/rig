@@ -1,7 +1,7 @@
 # Codebase Summary
 
 **Last Updated**: 2026-11-06
-**Version**: 2.0.0-beta.2 (unreleased). Last release 2.0.0-beta.1 (2026-11-09); 1.x on `release/1.x` (1.1.0)
+**Version**: 2.0.0-beta.3 (unreleased). Last release 2.0.0-beta.2 (2026-11-09); 1.1.0 on `release/1.x`
 **Repository**: [hoadh/rig](https://github.com/hoadh/rig)
 **Source**: built from a `repomix` compaction of this tree (`repomix-output.xml`, gitignored, 1,216 files). Regenerate with `npx repomix@1.18.1 --style xml`.
 

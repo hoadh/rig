@@ -67,14 +67,13 @@ It does **not** set `statusLine` and does **not** add `permissions.ask` rules. T
 
 Each release pins the marketplace to its tag, so you keep the version you installed until you update. To update:
 
-1. Refresh the marketplace, then update the plugin, in a terminal (or with `/plugin` in Claude Code):
+1. Update the plugin, in a terminal (or with `/plugin` in Claude Code):
 
    ```bash
-   claude plugin marketplace update rig-marketplace
    claude plugin update rig@rig-marketplace
    ```
 
-   The first command reads the latest release pin from the marketplace. The second installs the version that pin names. `claude plugin list` shows the installed version.
+   It refreshes the marketplace, reads the latest release pin and installs the version that pin names. `claude plugin list` shows the installed version. (`claude plugin marketplace update rig-marketplace` refreshes the marketplace alone; you do not need it before an update.)
 
 2. Restart Claude Code. The runtime copy in `~/.claude/rig/runtime` (statusline and remote worker) refreshes at the next session start. It never goes back to an older version.
 
