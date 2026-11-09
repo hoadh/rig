@@ -1,6 +1,18 @@
 # Changelog
 
-## 2.0.0-beta.1 (unreleased)
+## 2.0.0-beta.2 (unreleased)
+
+### Fixes
+
+* **`rig-init --plan` shows an interrupted migration.** After a migration that left a busy file in place (Windows, open statusline), the plan said the leftovers looked like another kit's files and hid the pending backup. It now names the backup and `--migrate --resume`. The backup path prints with native separators.
+* **No Node `DEP0190` warning on Windows.** The Claude Code version check ran a shell with an argument array on every `rig-init` call.
+* **Beta install command.** `scripts/release-plugin.cjs` prints the marketplace add command for the branch that carries the pin. Adding the marketplace at the tag reads the unpinned entry and the install fails. [Install a beta](docs/how-to/install-and-update-rig.md#install-a-beta) explains it.
+
+### Docs
+
+* [Release Rig](docs/how-to/release-rig.md): the release process step by step.
+
+## 2.0.0-beta.1 (2026-11-09)
 
 Rig ships as a Claude Code plugin. Install it from the marketplace instead of copying files. Existing 1.x installs must be migrated. Read the Breaking list and the migration table before you update.
 
