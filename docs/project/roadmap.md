@@ -1,14 +1,14 @@
 # Rig - Project Roadmap
 
-**Last Updated:** 2026-11-06
-**Current Version:** 2.0.0-beta.1 (beta pending, unreleased). Last release 1.1.0 (2026-11-06)
+**Last Updated:** 2026-11-09
+**Current Version:** 2.0.0-beta.2 (unreleased). Last release 2.0.0-beta.1 (2026-11-09); 1.1.0 on `release/1.x`
 **Repository:** https://github.com/hoadh/rig
 
 Version history lives in [CHANGELOG.md](../../CHANGELOG.md). This roadmap tracks status and plans only.
 
 ## Executive Summary
 
-Rig is an orchestration framework for Claude Code: agents, skills, hooks and workflows that plan, build, test and review software with file-based state. 1.1.0 is released (2026-11-06) and stays on `release/1.x`. 2.0 packages Rig as a Claude Code plugin: the file installer is retired, 1.x installs migrate with `rig-init`. 2.0.0 ships after the 2.0.0-beta.N cycle on Linux, Windows and macOS.
+Rig is an orchestration framework for Claude Code: agents, skills, hooks and workflows that plan, build, test and review software with file-based state. 1.1.0 is released (2026-11-06) and stays on `release/1.x`. 2.0 packages Rig as a Claude Code plugin: the file installer is retired, 1.x installs migrate with `rig-init`. 2.0.0-beta.1 is released on `main` (2026-11-09); 2.0.0 ships after the beta cycle on Linux, Windows and macOS. After 2.0, Rig grows into a family of plugins in one marketplace (see [Plugin family](#plugin-family)).
 
 ## Status at a Glance
 
@@ -16,32 +16,56 @@ Rig is an orchestration framework for Claude Code: agents, skills, hooks and wor
 |-------|--------|-------|
 | 1.0.0 | Released (2026-10-17) | Agents, skills, hooks, docs workflow, rig:remote v1, Antigravity copy |
 | 1.1.0 | Released 2026-11-06 | Rules moved into skills, thinner skills, Agent Teams rewrite, Tasks API optional, plugin-prefixed agent types. Section below. Follow-ups listed under 1.0.0 |
-| 2.0.0 | beta pending (2.0.0-beta.1 unreleased) | Claude Code plugin, `rig-init` setup and migration, bin entrypoints, Antigravity sync for the plugin layout. Section below |
+| 2.0.0 | Beta: 2.0.0-beta.1 released 2026-11-09 | Claude Code plugin, `rig-init` setup and migration, bin entrypoints, Antigravity sync for the plugin layout. Section below |
 
 ---
 
-## 2.0.0 (beta pending)
+## 2.0.0 (beta)
 
-Status: **beta pending**. `2.0.0-beta.1` is in the tree and CHANGELOG but not tagged. Live checks that need a real Claude Code session on another OS are still open, listed per phase below. Phases 1 to 4 are built; phase 5 is docs and the release script.
+Status: **beta**. `v2.0.0-beta.1` is tagged and on `main`; the marketplace pins it. Install, migration round trip, Windows `bin/`, EBUSY and Linux to Windows `rig:remote` were checked live on Linux and Windows. macOS and the items left in the table are still open. Release process: [Release Rig](../how-to/release-rig.md).
 
 | Phase | Area | Status | Open live check |
 |---|---|---|---|
-| 1 | Plugin skeleton: `plugins/rig/`, manifests, `hooks/hooks.json`, validate CI, version bump check | Built | Windows Git Bash for `bin/`; real double-fire with a 1.x project copy |
-| 2 | `bin/` entrypoints, runtime copy, remote protocol 2 | Built | Linux to Windows worker dispatch (release gate); statusline after a version bump |
-| 3 | `rig-init`: plan, migrate, resume, restore, permissions, runtime, deps; `/rig:setup`; consent gate | Built | Migration round trip in a disposable HOME (runbook in the plan reports) |
+| 1 | Plugin skeleton: `plugins/rig/`, manifests, `hooks/hooks.json`, validate CI, version bump check | Built | Real double-fire with a 1.x project copy. Done: Windows Git Bash for `bin/` |
+| 2 | `bin/` entrypoints, runtime copy, remote protocol 2 | Built | Agent phase dispatch to a worker; statusline after a version bump. Done: `doctor` and `run` from Linux to a Windows worker |
+| 3 | `rig-init`: plan, migrate, resume, restore, permissions, runtime, deps; `/rig:setup`; consent gate | Built | Hook counts in a live plugin session after migration. Done: round trip on Linux, EBUSY, resume and restore on Windows |
 | 4 | Antigravity sync for the plugin layout | Built | `/plan` workflow in Antigravity |
-| 5 | Docs, `release-plugin.cjs`, beta and 2.0.0 tag | In progress | Beta install from the tag on Linux (full), Windows (smoke), macOS (blocking) |
+| 5 | Docs, `release-plugin.cjs`, beta and 2.0.0 tag | Beta released | macOS install (blocking for 2.0.0). Done: install from GitHub on Linux and Windows |
 
 | Item | Status | Notes |
 |---|---|---|
-| Claude Code plugin with marketplace `rig-marketplace` | Built, beta pending | `/plugin marketplace add hoadh/rig`, `/plugin install rig@rig-marketplace`. Claude Code floor 2.1.292 |
+| Claude Code plugin with marketplace `rig-marketplace` | Beta released | `/plugin marketplace add hoadh/rig`, `/plugin install rig@rig-marketplace`. Claude Code floor 2.1.292 |
 | File installer retired | Done | `install-kit-from-local-repo.cjs` prints the steps; `scripts/install-kit/` removed. 1.x on `release/1.x` |
 | 1.x migration | Built | `rig-init --plan`, `--migrate`, `--resume`, `--restore`. Journaled, restorable, never deletes. [How-to](../how-to/migrate-from-rig-1x.md) |
 | Setup verbs in a terminal | Built | `rig-init --runtime`, `--permissions`, `--deps`. Refused inside Claude Code. `/rig:setup` only previews |
 | Plan 1427 installer dedupe and skill packs | Dropped | Obsolete: the plugin has no copies and ships every skill |
-| Release tagging and marketplace pin | Built; beta tag not yet cut | `scripts/release-plugin.cjs` writes ref and sha per tag; CI (`--check-ref`) checks the pin against the latest tag |
+| Release tagging and marketplace pin | Done | `scripts/release-plugin.cjs` writes ref and sha per tag; CI (`--check-ref`) checks the pin against the latest tag. Process: [Release Rig](../how-to/release-rig.md) |
 
-Next: tag `2.0.0-beta.1` and install it from GitHub in disposable HOMEs on Linux, Windows and macOS. Fix forward and repeat as `beta.N`. Tag `2.0.0` after the three OS checks pass. 2.1 follow-ups: `--workflow` for implement, `remote status --follow`, a SubagentStop guard (needs Claude Code 2.1.311), plugin `userConfig`, optional skill packs as separate plugins.
+Next: release `2.0.0-beta.2` (fixes found in the beta.1 live checks), install it on macOS, fix forward as `beta.N`, then tag `2.0.0`. 2.1 follow-ups: `--workflow` for implement, `remote status --follow`, a SubagentStop guard (needs Claude Code 2.1.311), plugin `userConfig`, npm dependencies outside the plugin cache, `--migrate` offering `--runtime`, a faster Windows ancestry query.
+
+---
+
+## Plugin family
+
+After 2.0, Rig grows from one plugin into several, all in the `rig-marketplace` marketplace and this repo. The core plugin keeps the workflow (plan, implement, test, review, docs, remote); domain plugins add agents, skills and checks for one field. Users add the marketplace once and install the plugins they need.
+
+| Plugin | Install | Scope | Status |
+|---|---|---|---|
+| `rig` | `rig@rig-marketplace` | Core workflow, hooks, `rig-init`, runtime, `rig:remote` | Beta |
+| `rig-mobile` | `rig-mobile@rig-marketplace` | Mobile app development: iOS and Android builds, device and simulator testing, store release | Idea |
+| `rig-security` | `rig-security@rig-marketplace` | Security review, threat models, dependency and secret audits | Idea |
+| `rig-devops` | `rig-devops@rig-marketplace` | CI/CD, infrastructure as code, containers, deployment and runbooks | Idea |
+
+Before the second plugin ships:
+
+| Item | Notes |
+|---|---|
+| Layout | One directory per plugin under `plugins/`, one entry each in `.claude-plugin/marketplace.json` |
+| Shared core | Domain plugins rely on `rig` for hooks, `rig-init`, the runtime and the core rules instead of copying them. Decide how a domain plugin states and checks that dependency |
+| Versions and tags | Each plugin has its own version. Move from `v<version>` tags to plugin-scoped tags (`rig--v2.1.0`, `rig-mobile--v0.1.0`, the form `claude plugin tag` creates) |
+| Release script and CI | `release-plugin.cjs`, the version bump check and `--check-ref` take a plugin name instead of assuming `rig` |
+| Antigravity sync | Generate `.agent/` per plugin, or only for the core |
+| Docs | Per-plugin install and skill catalog pages; the [release guide](../how-to/release-rig.md) covers more than one plugin |
 
 ---
 
@@ -126,7 +150,7 @@ No work is tracked for these. Confirm before starting.
 - **Runtime:** Node.js >= 18.0.0 (`package.json` engines), Bash, Python 3 for some skill scripts
 - **Host:** Claude Code CLI. Antigravity reads `.agent/` and `GEMINI.md`, generated from `.claude/` by `scripts/sync-antigravity-agent-dir.cjs`
 - **Dev tooling:** ESLint 10 (devDependencies) for `npm run lint`; tests run with plain Node (`npm test`); CI in `.github/workflows/ci.yml`
-- **External services:** GitHub (Actions, releases, PRs via `gh`), no npm publishing (releases are GitHub Releases with `rig.zip`), ssh (rig:remote only)
+- **External services:** GitHub (Actions, tags, PRs via `gh`; the repo is the plugin marketplace), no npm publishing, ssh (rig:remote only)
 - **Constraints:** state lives in files ([ADR 0001](../explanation/decisions/0001-agent-state-lives-in-files.md)); agent definitions are Markdown with frontmatter; conventional commits required
 
 Code size, naming and quality rules: [code standards](../reference/code-standards.md). Architecture: [system architecture](../explanation/architecture.md).
@@ -145,5 +169,5 @@ Code size, naming and quality rules: [code standards](../reference/code-standard
 ---
 
 **Maintained By:** Rig Team
-**Last Review:** 2026-10-17
+**Last Review:** 2026-11-09
 **Next Review:** at the next release

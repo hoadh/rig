@@ -1,7 +1,7 @@
 # System Architecture
 
 **Last Updated**: 2026-11-06
-**Version**: 2.0.0-beta.1 (unreleased; 1.1.0 released 2026-11-06)
+**Version**: 2.0.0-beta.2 (unreleased; 2.0.0-beta.1 released 2026-11-09, 1.1.0 on `release/1.x`)
 **Project**: Rig
 
 ## Overview
@@ -408,7 +408,7 @@ node scripts/release-plugin.cjs --apply        # terminal only: pins the marketp
 git push origin main v<version>                # the script never pushes
 ```
 
-`--allow-branch` lets a beta tag come from a branch other than `main`. The entry's `sha` is the release content commit and the tag points at that commit, so a user installing the entry gets exactly the tagged content. There is no zip and no npm publish.
+Step by step, with live checks and verification: [Release Rig](../how-to/release-rig.md). `--allow-branch` lets a beta tag come from a branch other than `main`. The entry's `sha` is the release content commit and the tag points at that commit, so a user installing the entry gets exactly the tagged content. There is no zip and no npm publish.
 
 `plugin-validate.yml` runs `claude plugin validate --strict` on `plugins/rig` and the marketplace on the Claude Code floor (2.1.292) and on the latest release, and fails a change to `plugins/rig/**` that does not raise the plugin version. `antigravity-sync-check.yml` runs on every push and PR to `main` and fails when `.agent/` or `GEMINI.md` differ from a fresh sync, or when a Claude Code-only reference survives in them.
 

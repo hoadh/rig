@@ -1,7 +1,7 @@
 # Project Overview & Product Development Requirements (PDR)
 
 **Project Name**: Rig
-**Version**: 1.1.0 (released 2026-11-06)
+**Version**: 2.0.0-beta.2 (unreleased). Last release 2.0.0-beta.1 (2026-11-09); 1.1.0 on `release/1.x`
 **Last Updated**: 2026-10-17
 **Status**: Active Development
 **Repository**: https://github.com/hoadh/rig
@@ -121,6 +121,7 @@ Full catalog: [guide/SKILLS.md](../../guide/SKILLS.md).
 - Semantic versioning (MAJOR.MINOR.PATCH), conventional commits
 - Release: `node scripts/release-plugin.cjs` (dry run), then `--apply` in a terminal. It pins the marketplace entry to the tag and commit and creates `v<version>`. No zip, no npm publishing
 - Run `npm test` (every hook test file) before a release
+- Process: [Release Rig](../how-to/release-rig.md)
 
 ### 5. Development Workflow Automation
 
