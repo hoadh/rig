@@ -92,7 +92,8 @@ For a beta on a release branch, testers can install now with the command the scr
    ```
 
    Expect the new version, enabled. `claude plugin validate <cache dir>` passes, and `node <cache dir>/bin/rig-init --plan` runs.
-3. Optional: publish release notes from the CHANGELOG section with `gh release create v<version> --notes-file <section.md>` (add `--prerelease` for a beta).
+3. On a machine that has the previous release, follow [Update](./install-and-update-rig.md#update) and check that `claude plugin list` shows the new version.
+4. Optional: publish release notes from the CHANGELOG section with `gh release create v<version> --notes-file <section.md>` (add `--prerelease` for a beta).
 
 ### 7. Open the next version
 

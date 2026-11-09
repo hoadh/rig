@@ -65,13 +65,18 @@ It does **not** set `statusLine` and does **not** add `permissions.ask` rules. T
 
 ## Update
 
-1. Update the plugin, in a terminal or in Claude Code:
+Each release pins the marketplace to its tag, so you keep the version you installed until you update. To update:
+
+1. Refresh the marketplace, then update the plugin, in a terminal (or with `/plugin` in Claude Code):
 
    ```bash
+   claude plugin marketplace update rig-marketplace
    claude plugin update rig@rig-marketplace
    ```
 
-2. Restart Claude Code. The runtime copy in `~/.claude/rig/runtime` refreshes at the next session start.
+   The first command reads the latest release pin from the marketplace. The second installs the version that pin names. `claude plugin list` shows the installed version.
+
+2. Restart Claude Code. The runtime copy in `~/.claude/rig/runtime` (statusline and remote worker) refreshes at the next session start. It never goes back to an older version.
 
 3. If you used `--deps`, rerun it in a terminal:
 
@@ -81,7 +86,14 @@ It does **not** set `statusLine` and does **not** add `permissions.ask` rules. T
 
    Skill npm packages install inside the plugin directory. A plugin update replaces that directory, so `--deps` must run again after every update.
 
-Each release pins a marketplace reference, so you get the version you installed until you run the update.
+4. If you use `rig:remote`, update every worker machine too. Orchestrator and workers must run the same major version (2.x with 2.x). Workers refresh their runtime copy the same way: restart Claude Code there once, or run `rig-init --runtime` in a terminal on the worker.
+
+What stays as it is:
+
+- Settings that `rig-init --runtime` and `rig-init --permissions` wrote. You do not run them again.
+- Hook logs and state in the plugin data directory.
+
+Before you update to a new major version (for example 3.0), read its Breaking list in the [CHANGELOG](../../CHANGELOG.md).
 
 ## Uninstall
 
