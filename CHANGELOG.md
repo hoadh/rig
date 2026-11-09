@@ -1,33 +1,6 @@
 # Changelog
 
-## 2.0.0-beta.3 (unreleased)
-
-### Fixes
-
-* **Restore works when HOME is reached through a symlink.** The migration recorded the real path of `~/.claude`, and restore compared it with the unresolved `$HOME`, so it refused its own backup (seen on macOS, where `/tmp` is `/private/tmp`). Restore now compares real paths, as `--resume` already did. Nothing was moved by the refused restore; backups made by beta.1 and beta.2 restore with `rig-init --restore <backup dir>` from beta.3.
-* **macOS test flake.** The `rig:remote` hung-git test timed out before its fake `git` started, because macOS takes longer than the 300 ms timeout to run a new executable the first time. The fake now runs once before the timed calls.
-
-### Docs
-
-* **Update is one command.** `claude plugin update rig@rig-marketplace` refreshes the marketplace itself (checked updating 2.0.0-beta.1 to beta.2); the install guide and the worker update steps drop the separate `marketplace update`.
-
-## 2.0.0-beta.2 (2026-11-09)
-
-### Fixes
-
-* **`rig-init --plan` shows an interrupted migration.** After a migration that left a busy file in place (Windows, open statusline), the plan said the leftovers looked like another kit's files and hid the pending backup. It now names the backup and `--migrate --resume`. The backup path prints with native separators.
-* **No Node `DEP0190` warning on Windows.** The Claude Code version check ran a shell with an argument array on every `rig-init` call.
-* **Beta install command.** `scripts/release-plugin.cjs` prints the marketplace add command for the branch that carries the pin. Adding the marketplace at the tag reads the unpinned entry and the install fails. [Install a beta](docs/how-to/install-and-update-rig.md#install-a-beta) explains it.
-
-* **One version source.** The marketplace entry no longer repeats the plugin version. The copy had to equal `plugin.json` (CI gate) while the pin still named the previous release, so the first change after a release could not pass CI. `release-plugin.cjs` no longer writes it.
-
-### Docs
-
-* [Release Rig](docs/how-to/release-rig.md): the release process step by step.
-* [Update the workers](docs/how-to/run-plan-across-machines.md#9-update-the-workers): manual steps to bring rig:remote workers to the orchestrator's version, what a version difference does, how `doctor` confirms it.
-* [Update](docs/how-to/install-and-update-rig.md#update): refresh the marketplace before `claude plugin update`; what stays, what to rerun, remote workers.
-
-## 2.0.0-beta.1 (2026-11-09)
+## 2.0.0 (2026-11-09)
 
 Rig ships as a Claude Code plugin. Install it from the marketplace instead of copying files. Existing 1.x installs must be migrated. Read the Breaking list and the migration table before you update.
 
@@ -79,6 +52,25 @@ Rig ships as a Claude Code plugin. Install it from the marketplace instead of co
 * **Hooks**: `session-init` returns its context as JSON `additionalContext`. In plugin mode it appends `rules/core-rules.md`, capped with the rest of the context at 10,000 characters.
 * **Secret-file guard**: the built-in fallback list covers the full `Read(...)` ask list, because a plugin cannot ship `permissions.ask`.
 * **Remote**: hints point at `rig-init --runtime`; the worker reports `runtime-incomplete` when its runtime copy has no `VERSION`.
+
+### Fixes since the first beta
+
+* **Restore works when HOME is reached through a symlink.** On macOS (`/tmp` is `/private/tmp`) restore refused its own backup because it compared the recorded real path with the unresolved `$HOME`. It now compares real paths, as `--resume` does. Backups made by a 2.0 beta restore with `rig-init --restore <backup dir>` from 2.0.0.
+* **`rig-init --plan` shows an interrupted migration.** After a migration that left a busy file in place (Windows, open statusline), the plan hid the pending backup. It now names it and `--migrate --resume`. Backup paths print with native separators.
+* **No Node `DEP0190` warning on Windows** from the Claude Code version check.
+* **One version source.** The marketplace entry no longer repeats the plugin version; `plugin.json` is the only one.
+* **Beta install command.** `release-plugin.cjs` prints the marketplace add command for the branch that carries the pin.
+* **macOS test flake** in the `rig:remote` hung-git test fixed.
+
+### Docs
+
+* [Release Rig](docs/how-to/release-rig.md): the release process step by step.
+* [Update](docs/how-to/install-and-update-rig.md#update): `claude plugin update rig@rig-marketplace` is the whole update (it refreshes the marketplace); what stays, what to rerun.
+* [Update the workers](docs/how-to/run-plan-across-machines.md#9-update-the-workers): bring `rig:remote` workers to the orchestrator's version and confirm with `doctor`.
+
+### Verified
+
+Installed from GitHub, updated beta to beta, and run through the 1.x migration and restore round trip on Linux (Ubuntu 24.04), Windows 11 (cmd, PowerShell, Git Bash; locked-file migration and resume) and macOS 26. `rig:remote` from Linux to a Windows worker (`doctor`, `run`).
 
 ## 1.1.0 (2026-11-06)
 

@@ -1,14 +1,14 @@
 # Rig - Project Roadmap
 
 **Last Updated:** 2026-11-09
-**Current Version:** 2.0.0-beta.3 (unreleased). Last release 2.0.0-beta.2 (2026-11-09); 1.1.0 on `release/1.x`
+**Current Version:** 2.0.0 (released 2026-11-09). 1.1.0 on `release/1.x`
 **Repository:** https://github.com/hoadh/rig
 
 Version history lives in [CHANGELOG.md](../../CHANGELOG.md). This roadmap tracks status and plans only.
 
 ## Executive Summary
 
-Rig is an orchestration framework for Claude Code: agents, skills, hooks and workflows that plan, build, test and review software with file-based state. 1.1.0 is released (2026-11-06) and stays on `release/1.x`. 2.0 packages Rig as a Claude Code plugin: the file installer is retired, 1.x installs migrate with `rig-init`. 2.0.0-beta.2 is released on `main` (2026-11-09); 2.0.0 ships after the beta cycle on Linux, Windows and macOS. After 2.0, Rig grows into a family of plugins in one marketplace (see [Plugin family](#plugin-family)).
+Rig is an orchestration framework for Claude Code: agents, skills, hooks and workflows that plan, build, test and review software with file-based state. 1.1.0 is released (2026-11-06) and stays on `release/1.x`. 2.0 packages Rig as a Claude Code plugin: the file installer is retired, 1.x installs migrate with `rig-init`. 2.0.0 is released (2026-11-09) after three betas checked on Linux, Windows and macOS. After 2.0, Rig grows into a family of plugins in one marketplace (see [Plugin family](#plugin-family)).
 
 ## Status at a Glance
 
@@ -16,32 +16,32 @@ Rig is an orchestration framework for Claude Code: agents, skills, hooks and wor
 |-------|--------|-------|
 | 1.0.0 | Released (2026-10-17) | Agents, skills, hooks, docs workflow, rig:remote v1, Antigravity copy |
 | 1.1.0 | Released 2026-11-06 | Rules moved into skills, thinner skills, Agent Teams rewrite, Tasks API optional, plugin-prefixed agent types. Section below. Follow-ups listed under 1.0.0 |
-| 2.0.0 | Beta: 2.0.0-beta.2 released 2026-11-09 | Claude Code plugin, `rig-init` setup and migration, bin entrypoints, Antigravity sync for the plugin layout. Section below |
+| 2.0.0 | Released 2026-11-09 | Claude Code plugin, `rig-init` setup and migration, bin entrypoints, Antigravity sync for the plugin layout. Section below |
 
 ---
 
-## 2.0.0 (beta)
+## 2.0.0 (Released 2026-11-09)
 
-Status: **beta**. `v2.0.0-beta.2` is tagged and on `main`; the marketplace pins it. Install, update from beta.1, migration round trip, Windows `bin/`, EBUSY and Linux to Windows `rig:remote` were checked live on Linux and Windows. On macOS (26.6): tests, install from GitHub and `bin/` by bare name pass; the migration round trip is still open, as are the items left in the table. Release process: [Release Rig](../how-to/release-rig.md).
+Status: **released** after `2.0.0-beta.1` to `beta.3`. Checked live on Linux (Ubuntu 24.04), Windows 11 and macOS 26: install from GitHub, update from the previous beta, the 1.x migration and restore round trip (Windows also with a locked file and `--resume`), `bin/` entrypoints in every shell, and Linux to Windows `rig:remote` (`doctor`, `run`). The live checks left in the table are follow-ups for 2.0.x, not blockers. Release process: [Release Rig](../how-to/release-rig.md).
 
-| Phase | Area | Status | Open live check |
+| Phase | Area | Status | Follow-up live check |
 |---|---|---|---|
 | 1 | Plugin skeleton: `plugins/rig/`, manifests, `hooks/hooks.json`, validate CI, version bump check | Built | Real double-fire with a 1.x project copy. Done: Windows Git Bash for `bin/` |
 | 2 | `bin/` entrypoints, runtime copy, remote protocol 2 | Built | Agent phase dispatch to a worker; statusline after a version bump. Done: `doctor` and `run` from Linux to a Windows worker |
-| 3 | `rig-init`: plan, migrate, resume, restore, permissions, runtime, deps; `/rig:setup`; consent gate | Built | Hook counts in a live plugin session after migration. Done: round trip on Linux, EBUSY, resume and restore on Windows |
+| 3 | `rig-init`: plan, migrate, resume, restore, permissions, runtime, deps; `/rig:setup`; consent gate | Built | Hook counts in a live plugin session after migration. Done: round trip on Linux and macOS, EBUSY, resume and restore on Windows |
 | 4 | Antigravity sync for the plugin layout | Built | `/plan` workflow in Antigravity |
-| 5 | Docs, `release-plugin.cjs`, beta and 2.0.0 tag | Beta released | macOS migration round trip (blocking for 2.0.0). Done: install from GitHub on Linux, Windows and macOS; update beta.1 to beta.2 |
+| 5 | Docs, `release-plugin.cjs`, beta and 2.0.0 tag | Released | None. Done: install and update on Linux, Windows and macOS; macOS round trip |
 
 | Item | Status | Notes |
 |---|---|---|
-| Claude Code plugin with marketplace `rig-marketplace` | Beta released | `/plugin marketplace add hoadh/rig`, `/plugin install rig@rig-marketplace`. Claude Code floor 2.1.292 |
+| Claude Code plugin with marketplace `rig-marketplace` | Released | `/plugin marketplace add hoadh/rig`, `/plugin install rig@rig-marketplace`. Claude Code floor 2.1.292 |
 | File installer retired | Done | `install-kit-from-local-repo.cjs` prints the steps; `scripts/install-kit/` removed. 1.x on `release/1.x` |
-| 1.x migration | Built | `rig-init --plan`, `--migrate`, `--resume`, `--restore`. Journaled, restorable, never deletes. [How-to](../how-to/migrate-from-rig-1x.md) |
-| Setup verbs in a terminal | Built | `rig-init --runtime`, `--permissions`, `--deps`. Refused inside Claude Code. `/rig:setup` only previews |
+| 1.x migration | Released | `rig-init --plan`, `--migrate`, `--resume`, `--restore`. Journaled, restorable, never deletes. [How-to](../how-to/migrate-from-rig-1x.md) |
+| Setup verbs in a terminal | Released | `rig-init --runtime`, `--permissions`, `--deps`. Refused inside Claude Code. `/rig:setup` only previews |
 | Plan 1427 installer dedupe and skill packs | Dropped | Obsolete: the plugin has no copies and ships every skill |
 | Release tagging and marketplace pin | Done | `scripts/release-plugin.cjs` writes ref and sha per tag; CI (`--check-ref`) checks the pin against the latest tag. Process: [Release Rig](../how-to/release-rig.md) |
 
-Next: migration round trip on macOS, then tag `2.0.0`. 2.1 follow-ups: `rig-remote upgrade` (below), `--workflow` for implement, `remote status --follow`, a SubagentStop guard (needs Claude Code 2.1.311), plugin `userConfig`, npm dependencies outside the plugin cache, `--migrate` offering `--runtime`, a faster Windows ancestry query.
+Next: 2.0.x fixes as they come (see [Release Rig](../how-to/release-rig.md)). 2.1 follow-ups: `rig-remote upgrade` (below), `--workflow` for implement, `remote status --follow`, a SubagentStop guard (needs Claude Code 2.1.311), plugin `userConfig`, npm dependencies outside the plugin cache, `--migrate` offering `--runtime`, a faster Windows ancestry query.
 
 ---
 

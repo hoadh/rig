@@ -1,7 +1,7 @@
 # Codebase Summary
 
 **Last Updated**: 2026-11-06
-**Version**: 2.0.0-beta.3 (unreleased). Last release 2.0.0-beta.2 (2026-11-09); 1.1.0 on `release/1.x`
+**Version**: 2.0.0 (released 2026-11-09); 1.1.0 on `release/1.x`
 **Repository**: [hoadh/rig](https://github.com/hoadh/rig)
 **Source**: built from a `repomix` compaction of this tree (`repomix-output.xml`, gitignored, 1,216 files). Regenerate with `npx repomix@1.18.1 --style xml`.
 
@@ -155,7 +155,7 @@ Shared modules: `hooks/lib/` (29 files), such as `plugin-data-dir.cjs` (state an
 
 ## Version History
 
-- **2.0.0-beta.1** (2026-11-09): Claude Code plugin, `rig-init`, bin entrypoints, Antigravity sync for the plugin layout. See `CHANGELOG.md`.
+- **2.0.0** (2026-11-09): Claude Code plugin, `rig-init`, bin entrypoints, Antigravity sync for the plugin layout. See `CHANGELOG.md`.
 - **1.1.0** (2026-11-06), **1.0.0** (2026-10-17): file installer layout (`.claude/` copies). Kept on `release/1.x` and tag `v1.1.0`.
 
 ## Open Items

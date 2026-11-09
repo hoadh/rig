@@ -120,7 +120,7 @@ Do not install the 2.x plugin in the same project or `~/.claude` while you stay 
 - The 1.x file installer's copy and deduplication logic and the optional skill packs (plan 1427). In 2.x every skill ships in the plugin.
 - The 1.x `scripts/install-kit/` installer. `scripts/install-kit-from-local-repo.cjs` on `main` now only prints the steps above.
 
-Full list: [CHANGELOG](../../CHANGELOG.md), `2.0.0-beta.1`, "Breaking".
+Full list: [CHANGELOG](../../CHANGELOG.md), `2.0.0`, "Breaking".
 
 ## Related
 
