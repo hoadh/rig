@@ -1,6 +1,8 @@
 {
   "name": "rig-marketplace",
-  "owner": { "name": "Alex Dang" },
+  "owner": {
+    "name": "Alex Dang"
+  },
   "metadata": {
     "description": "Rig: an Agentic-Driven Development toolkit for Claude Code."
   },
@@ -12,7 +14,9 @@
       "source": {
         "source": "git-subdir",
         "url": "https://github.com/hoadh/rig.git",
-        "path": "plugins/rig"
+        "path": "plugins/rig",
+        "ref": "v2.0.0-beta.1",
+        "sha": "c0637b350d6efab8a1ee49115867f65276164611"
       }
     }
   ]
