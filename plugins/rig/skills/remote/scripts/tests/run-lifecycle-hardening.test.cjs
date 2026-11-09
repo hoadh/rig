@@ -153,7 +153,12 @@ t.test('H2: hung git is killed by the timeout (safeGit and push path)', async ()
   const bin = fs.mkdtempSync(path.join(os.tmpdir(), 'rig-fakegit-'));
   const oldPath = process.env.PATH;
   try {
-    makeFakeExecutable(bin, 'git', 'setTimeout(() => {}, 60000);'); // git.exe launcher on win32 (killed with its node child)
+    // git.exe launcher on win32 (killed with its node child). `--rig-warm` exits at once: the first exec of a new
+    // file on macOS can take longer than the 300 ms timeout (seen on macOS 26 and the macos-latest runner), so one
+    // warm-up run happens before the timed calls and its marker line is removed.
+    const fake = makeFakeExecutable(bin, 'git', "if (process.argv[2] === '--rig-warm') process.exit(0); setTimeout(() => {}, 60000);");
+    cp.spawnSync(fake, ['--rig-warm'], { timeout: 30000 });
+    fs.rmSync(path.join(bin, 'git.ran'), { force: true });
     process.env.PATH = `${bin}${path.delimiter}${oldPath}`;
     const t0 = Date.now();
     let err = null;
