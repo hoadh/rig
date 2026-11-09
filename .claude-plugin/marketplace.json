@@ -10,7 +10,6 @@
     {
       "name": "rig",
       "description": "Agents, skills, hooks and workflows that plan, build, test and review software.",
-      "version": "2.0.0-beta.1",
       "source": {
         "source": "git-subdir",
         "url": "https://github.com/hoadh/rig.git",

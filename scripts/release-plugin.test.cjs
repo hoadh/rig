@@ -68,10 +68,11 @@ describe('version ordering', () => {
     assert.deepStrictEqual(tagArgs({ version: '2.0.0', sha: 'abc', signingConfigured: false }).slice(0, 2), ['tag', '-a']);
     assert.deepStrictEqual(tagArgs({ version: '2.0.0', sha: 'abc', signingConfigured: true }).slice(0, 2), ['tag', '-s']);
   });
-  it('pinnedEntry writes ref, sha and version and keeps url/path', () => {
-    const e = pinnedEntry({ name: 'rig', source: { source: 'git-subdir', url: URL, path: 'plugins/rig' } }, { version: '2.0.0', sha: 'abc' });
+  it('pinnedEntry writes ref and sha, keeps url/path, and drops a version copy (plugin.json is the only version)', () => {
+    const e = pinnedEntry({ name: 'rig', version: '1.9.0', source: { source: 'git-subdir', url: URL, path: 'plugins/rig' } }, { version: '2.0.0', sha: 'abc' });
     assert.deepStrictEqual(e.source, { source: 'git-subdir', url: URL, path: 'plugins/rig', ref: 'v2.0.0', sha: 'abc' });
-    assert.strictEqual(e.version, '2.0.0');
+    assert.strictEqual(e.version, undefined);
+    assert.strictEqual(e.name, 'rig');
   });
 });
 
@@ -188,7 +189,7 @@ describe('apply', () => {
 
     const entry = marketplace(dir).plugins[0];
     assert.deepStrictEqual(entry.source, { source: 'git-subdir', url: URL, path: 'plugins/rig', ref: 'v2.0.0-beta.1', sha: content });
-    assert.strictEqual(entry.version, '2.0.0-beta.1');
+    assert.strictEqual(entry.version, undefined, 'plugin.json is the only version; the entry carries none');
     assert.strictEqual(git(dir, 'rev-parse', 'v2.0.0-beta.1^{commit}'), content, 'tag points at the content commit');
     assert.strictEqual(git(dir, 'cat-file', '-t', 'v2.0.0-beta.1'), 'tag', 'annotated');
     assert.strictEqual(git(dir, 'rev-parse', 'HEAD~1'), content);

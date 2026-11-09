@@ -8,6 +8,8 @@
 * **No Node `DEP0190` warning on Windows.** The Claude Code version check ran a shell with an argument array on every `rig-init` call.
 * **Beta install command.** `scripts/release-plugin.cjs` prints the marketplace add command for the branch that carries the pin. Adding the marketplace at the tag reads the unpinned entry and the install fails. [Install a beta](docs/how-to/install-and-update-rig.md#install-a-beta) explains it.
 
+* **One version source.** The marketplace entry no longer repeats the plugin version. The copy had to equal `plugin.json` (CI gate) while the pin still named the previous release, so the first change after a release could not pass CI. `release-plugin.cjs` no longer writes it.
+
 ### Docs
 
 * [Release Rig](docs/how-to/release-rig.md): the release process step by step.

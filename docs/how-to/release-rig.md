@@ -7,7 +7,8 @@ A release is a git tag plus a marketplace entry pinned to that tag. There is no 
 ## Rules that apply between releases
 
 - **Every change to `plugins/rig/**` raises the plugin version.** CI (`plugin version bump`) fails a pull request that changes the plugin without a greater `version` in `plugins/rig/.claude-plugin/plugin.json`. The first plugin change after a release opens the next version (for example `2.0.0-beta.1` to `2.0.0-beta.2`, or `2.0.0` to `2.0.1`). Later changes for the same release keep it.
-- **Keep `package.json` `version` equal to `plugin.json`.** Nothing checks it; the docs and the release script read `plugin.json`.
+- **`plugin.json` is the only version.** The marketplace entry in `.claude-plugin/marketplace.json` has no `version`; Claude Code reads it from `plugin.json` at the pinned commit. Do not add one: the CI gate requires it to equal `plugin.json`, which cannot hold between releases while the pin still names the previous one.
+- **Keep `package.json` `version` equal to `plugin.json`.** Nothing checks it.
 - **Record the change in `CHANGELOG.md`** under `## <next version> (unreleased)`, Breaking items first.
 - **Merge to `main` without rewriting commits** (fast-forward or merge commit, not squash or rebase). A release tag must stay reachable from `main`, and the CI check `marketplace ref matches latest tag` fails when it is not.
 

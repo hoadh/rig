@@ -44,12 +44,17 @@ function tagArgs({ version, sha, signingConfigured }) {
   return ['tag', signingConfigured ? '-s' : '-a', `v${version}`, sha, '-m', `Rig ${version}`];
 }
 
-/** The marketplace plugin entry with the release pin applied. Keeps the existing url/path; `git-subdir` because the plugin lives in plugins/rig. */
+/**
+ * The marketplace plugin entry with the release pin applied. Keeps the existing url/path; `git-subdir` because the
+ * plugin lives in plugins/rig. The entry carries no `version`: plugin.json at the pinned commit is the only version.
+ * A second copy here would have to match plugin.json (CI version gate) while the pin still names the previous
+ * release, which is impossible between releases.
+ */
 function pinnedEntry(entry, { version, sha }) {
   const src = entry.source || {};
+  const { version: _dropped, ...rest } = entry;
   return {
-    ...entry,
-    version,
+    ...rest,
     source: { source: 'git-subdir', url: src.url, path: src.path || 'plugins/rig', ref: `v${version}`, sha },
   };
 }
@@ -177,7 +182,7 @@ async function release(opts, io) {
   const signing = Boolean(gitOptional(cwd, ['config', 'user.signingkey'], env) || gitOptional(cwd, ['config', 'gpg.format'], env));
   log(`${opts.apply ? 'Releasing' : 'Dry run:'} Rig ${version} (latest tag: ${latest || 'none'}, branch: ${branch})`);
   log(`  content commit (tag target + sha): ${sha}`);
-  log(`  marketplace entry -> ${JSON.stringify(pinned.source)} version ${version}`);
+  log(`  marketplace entry -> ${JSON.stringify(pinned.source)}`);
   log(`  tag: v${version} (${signing ? 'signed' : 'annotated'}) on ${sha.slice(0, 12)}`);
   if (!opts.apply) {
     log('Nothing written. Re-run with --apply in a terminal outside Claude Code to release.');
