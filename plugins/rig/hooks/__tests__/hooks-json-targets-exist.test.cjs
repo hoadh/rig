@@ -12,7 +12,7 @@ const path = require('path');
 
 const PLUGIN_ROOT = path.resolve(__dirname, '..', '..');
 const hooksJson = JSON.parse(fs.readFileSync(path.join(PLUGIN_ROOT, 'hooks', 'hooks.json'), 'utf8'));
-const EVENTS = ['SessionStart', 'SubagentStart', 'UserPromptSubmit', 'PreToolUse', 'Stop'];
+const EVENTS = ['SessionStart', 'SubagentStart', 'UserPromptSubmit', 'PreToolUse', 'Stop', 'TeammateIdle'];
 const ROOT_VAR = '${CLAUDE_PLUGIN_ROOT}/';
 
 /** Flattens hooks.json to { event, matcher, handler } rows. */
