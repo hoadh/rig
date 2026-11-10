@@ -697,10 +697,35 @@ describe('subagent-init.cjs', () => {
       }
     }
 
-    it('does not inject core rules by default (native rules already reach subagents)', async () => {
+    /** A 1.x-style files install of the hooks (no .claude-plugin/plugin.json next to hooks/), with rules/ beside it. */
+    function filesInstallHook(root) {
+      const claudeDir = path.join(root, '.claude');
+      fs.cpSync(path.join(__dirname, '..'), path.join(claudeDir, 'hooks'), { recursive: true, filter: (src) => !src.includes('__tests__') });
+      fs.cpSync(path.join(__dirname, '..', '..', 'rules'), path.join(claudeDir, 'rules'), { recursive: true });
+      return path.join(claudeDir, 'hooks', 'subagent-init.cjs');
+    }
+
+    it('injects core rules by default in a plugin install (plugins do not load rules/*.md into subagents)', async () => {
       const context = await runWithConfig(null);
       assert.ok(context.includes('## Subagent:'));
+      assert.ok(context.includes('## Core Rules'), 'plugin copy injects by default');
+    });
+
+    it('injectCoreRules: false turns the plugin default off', async () => {
+      const context = await runWithConfig({ subagent: { injectCoreRules: false } });
+      assert.ok(context.includes('## Subagent:'));
       assert.ok(!context.includes('## Core Rules'));
+    });
+
+    it('does not inject by default in a files install (native rules already reach subagents)', async () => {
+      const root = fs.mkdtempSync(path.join(os.tmpdir(), 'subagent-init-files-'));
+      try {
+        const context = await runWithConfig(null, filesInstallHook(root));
+        assert.ok(context.includes('## Subagent:'));
+        assert.ok(!context.includes('## Core Rules'));
+      } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+      }
     });
 
     it('injects the core-rules.md body when injectCoreRules is true', async () => {

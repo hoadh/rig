@@ -27,7 +27,7 @@ try {
   } = require('./lib/rig-config-utils.cjs');
   const { resolveSkillsVenv } = require('./lib/context-builder.cjs');
   const { createHookTimer, logHookCrash } = require('./lib/hook-logger.cjs');
-  const { yieldsToProjectCopy } = require('./lib/global-hook-yields-to-project-copy.cjs');
+  const { yieldsToProjectCopy, isPluginCopy } = require('./lib/global-hook-yields-to-project-copy.cjs');
   const { normalizeAgentType, sanitizeForFilename } = require('./lib/agent-type-normalizer.cjs');
 
   // Early exit if hook disabled in config
@@ -64,10 +64,9 @@ function buildPlanStatusSection(agentType) {
 }
 
 /**
- * Core rules for subagents, opt-in via `.rig.json` `subagent.injectCoreRules` (default false).
- * With the kit installed as files, Claude Code already loads CLAUDE.md and the project rules files into
- * subagents, so injecting them again only costs tokens. Installs without rules files (plugin)
- * turn this on. Read from the .claude dir this hook runs from (project or global install);
+ * Core rules for subagents, switched by `.rig.json` `subagent.injectCoreRules`. Default: on in a plugin install
+ * (Claude Code does not load a plugin's rules/*.md, and subagents do not inherit the SessionStart injection), off in a
+ * 1.x files install (Claude Code already loads the install's rules files into subagents, so injecting again only costs tokens). Read from the .claude dir this hook runs from (project or global install);
  * fail open when missing or unreadable.
  * @param {string} [rulesDir] - Directory holding core-rules.md (default: ../rules next to hooks/)
  * @returns {string[]} Lines to append (empty when unavailable)
@@ -197,8 +196,9 @@ async function main() {
     // Trust verification (if enabled)
     lines.push(...buildTrustVerification(config));
 
-    // Core rules only when enabled: native rule loading already reaches subagents in a files install
-    if (config.subagent?.injectCoreRules === true) lines.push(...buildCoreRulesSection());
+    // Core rules: explicit setting wins; unset means on in a plugin install, off in a files install
+    const injectCoreRules = typeof config.subagent?.injectCoreRules === 'boolean' ? config.subagent.injectCoreRules : isPluginCopy(__filename);
+    if (injectCoreRules) lines.push(...buildCoreRulesSection());
 
     // Agent-specific context (if configured)
     const agentContext = getAgentContext(agentType, config);
