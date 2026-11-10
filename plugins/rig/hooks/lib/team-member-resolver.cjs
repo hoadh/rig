@@ -30,7 +30,8 @@ function candidateTeamNames(payload) {
   const at = agentId.indexOf('@');
   if (at > 0) names.push(agentId.slice(at + 1));
   if (typeof payload.team_name === 'string') names.push(payload.team_name);
-  if (typeof payload.session_id === 'string' && payload.session_id.length >= 8) names.push(`session-${payload.session_id.slice(0, 8)}`);
+  const own = sessionTeamName(payload.session_id);
+  if (own) names.push(own);
   return [...new Set(names)].filter((n) => SAFE_TEAM_NAME.test(n) && !n.includes('..'));
 }
 
@@ -60,4 +61,26 @@ function resolveTeamMember(payload, { teamsDir = path.join(os.homedir(), '.claud
   return null;
 }
 
-module.exports = { resolveTeamMember, candidateTeamNames };
+/** The team name Claude Code derives for a session (`session-<first 8 chars>`), or null for a short/unsafe id. */
+function sessionTeamName(sessionId) {
+  if (typeof sessionId !== 'string' || sessionId.length < 8) return null;
+  const name = `session-${sessionId.slice(0, 8)}`;
+  return SAFE_TEAM_NAME.test(name) ? name : null;
+}
+
+/**
+ * This session's team, when it has teammates: other sessions' dirs and a stale dir with the same 8-char prefix
+ * (different `leadSessionId`) are ignored, and a lead-only config counts as no team.
+ * @returns {null | {teamName: string, config: object, teammates: object[]}}
+ */
+function sessionTeam(sessionId, { teamsDir = path.join(os.homedir(), '.claude', 'teams') } = {}) {
+  const teamName = sessionTeamName(sessionId);
+  if (!teamName) return null;
+  const config = readJson(path.join(teamsDir, teamName, 'config.json'));
+  if (!config || !Array.isArray(config.members)) return null;
+  if (typeof config.leadSessionId === 'string' && config.leadSessionId !== sessionId) return null;
+  const teammates = config.members.filter((m) => m && typeof m === 'object' && m.agentType !== 'team-lead');
+  return teammates.length ? { teamName, config, teammates } : null;
+}
+
+module.exports = { resolveTeamMember, candidateTeamNames, sessionTeamName, sessionTeam };

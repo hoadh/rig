@@ -58,3 +58,33 @@ describe('resolveTeamMember', () => {
     assert.deepStrictEqual(candidateTeamNames({ agent_id: 'bob@t1', team_name: 't1', session_id: SESSION }), ['t1', TEAM]);
   });
 });
+
+describe('sessionTeam', () => {
+  const { sessionTeam, sessionTeamName } = require('../team-member-resolver.cjs');
+  const SID = '74270464-4fad-4ef6-bbc3-993a98a312ba';
+  const mk = (config, name = 'session-74270464') => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'session-team-'));
+    fs.mkdirSync(path.join(dir, name));
+    fs.writeFileSync(path.join(dir, name, 'config.json'), JSON.stringify(config));
+    return dir;
+  };
+  const lead = { agentId: 'team-lead@session-74270464', name: 'team-lead', agentType: 'team-lead' };
+  const mate = { agentId: 'probe@session-74270464', name: 'probe', agentType: 'rig:researcher' };
+  it('names the team from the session id', () => {
+    assert.strictEqual(sessionTeamName(SID), 'session-74270464');
+    assert.strictEqual(sessionTeamName('short'), null);
+    assert.strictEqual(sessionTeamName(undefined), null);
+  });
+  it('returns this session team with its teammates', () => {
+    const r = sessionTeam(SID, { teamsDir: mk({ leadSessionId: SID, members: [lead, mate] }) });
+    assert.strictEqual(r.teamName, 'session-74270464');
+    assert.deepStrictEqual(r.teammates.map((m) => m.name), ['probe']);
+  });
+  it('a lead-only config is no team', () => {
+    assert.strictEqual(sessionTeam(SID, { teamsDir: mk({ leadSessionId: SID, members: [lead] }) }), null);
+  });
+  it('ignores a stale dir with the same prefix and other sessions dirs', () => {
+    assert.strictEqual(sessionTeam(SID, { teamsDir: mk({ leadSessionId: '74270464-other', members: [lead, mate] }) }), null);
+    assert.strictEqual(sessionTeam(SID, { teamsDir: mk({ members: [lead, mate] }, 'session-26e5b7a3') }), null);
+  });
+});

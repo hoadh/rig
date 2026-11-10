@@ -420,6 +420,29 @@ describe('session-init.cjs', () => {
 
   describe('Static paths and reminder reset', () => {
 
+    it('names only this session team, and only when it has teammates', async () => {
+      const sid = 'abcdef12-0000-4000-8000-000000000001';
+      const teams = path.join(TEST_HOME, '.claude', 'teams');
+      const write = (name, config) => {
+        fs.mkdirSync(path.join(teams, name), { recursive: true });
+        fs.writeFileSync(path.join(teams, name, 'config.json'), JSON.stringify(config));
+      };
+      const lead = { name: 'team-lead', agentType: 'team-lead' };
+      try {
+        write('session-00000000', { members: [lead, { name: 'x', agentType: 'rig:tester' }] }); // another session
+        write('session-abcdef12', { leadSessionId: sid, members: [lead] });
+        let r = await runHook({ source: 'startup', session_id: sid });
+        assert.ok(!r.stdout.includes('Agent Team'), 'lead-only and other sessions are not reported');
+        write('session-abcdef12', { leadSessionId: sid, members: [lead, { name: 'r1', agentType: 'rig:researcher' }] });
+        r = await runHook({ source: 'resume', session_id: sid });
+        assert.ok(r.stdout.includes('Agent Team: \\"session-abcdef12\\" (1 teammate)'), r.stdout);
+        assert.ok(!r.stdout.includes('session-00000000'));
+      } finally {
+        fs.rmSync(teams, { recursive: true, force: true });
+        fs.rmSync(path.join(os.tmpdir(), `rig-session-${sid}.json`), { force: true });
+      }
+    });
+
     it('prints the static Paths section once at session start', async () => {
       const result = await runHook({ source: 'startup' });
       assert.ok(result.stdout.includes('## Paths'), result.stdout);

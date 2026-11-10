@@ -15,7 +15,6 @@
 try {
   const fs = require('fs');
   const path = require('path');
-  const os = require('os');
   const {
     loadConfig,
     writeEnv,
@@ -30,6 +29,7 @@ try {
   const { pruneStaleState } = require('./lib/plugin-data-dir.cjs');
   const { buildReminderContext, clearReminderState } = require('./lib/context-builder.cjs');
   const { yieldTarget, isPluginCopy } = require('./lib/global-hook-yields-to-project-copy.cjs');
+  const { sessionTeam } = require('./lib/team-member-resolver.cjs');
 
   // Early exit if hook disabled in config
   if (!isHookEnabled('session-init')) {
@@ -46,36 +46,6 @@ try {
     samePath,
     buildContextOutput
   } = require('./lib/project-detector.cjs');
-
-/**
- * Detect if this session is running inside an Agent Team.
- * Scans ~/.claude/teams/ for active team configs and checks membership.
- * Note: Returns first team found — Claude Code supports one team per session.
- * Note: Team lifecycle (creation/cleanup) is managed by Claude Code, not this hook.
- * @returns {{ teamName: string, memberCount: number } | null}
- */
-function detectAgentTeam() {
-  try {
-    const teamsDir = path.join(os.homedir(), '.claude', 'teams');
-    if (!fs.existsSync(teamsDir)) return null;
-
-    const teams = fs.readdirSync(teamsDir, { withFileTypes: true });
-    for (const entry of teams) {
-      if (!entry.isDirectory()) continue;
-      const configPath = path.join(teamsDir, entry.name, 'config.json');
-      if (!fs.existsSync(configPath)) continue;
-      try {
-        const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-        if (config.members && config.members.length > 0) {
-          return { teamName: entry.name, memberCount: config.members.length };
-        }
-      } catch { /* skip malformed configs */ }
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
 
 const RIG_INIT = require('./lib/rig-init-terminal-command.cjs').rigInitTerminalCommand(path.dirname(__dirname));
 const GLOBAL_COPY_NOTICE = 'Rig plugin is installed but the 1.x Rig hooks in ~/.claude are still registered, so the 1.x hooks run and the plugin hooks yield. ' +
@@ -214,7 +184,7 @@ async function main() {
     const out = [];
 
     // Agent Teams detection
-    const teamInfo = detectAgentTeam();
+    const teamInfo = sessionTeam(sessionId);
 
     out.push(`Session ${source}. ${buildContextOutput(config, detections, resolved, gitRoot)}`);
 
@@ -230,7 +200,7 @@ async function main() {
 
     // Agent Teams: Show team context if running inside a team (uses cached result)
     if (teamInfo) {
-      out.push(`[i] Agent Team detected: "${teamInfo.teamName}" (${teamInfo.memberCount} members)`);
+      out.push(`[i] Agent Team: "${teamInfo.teamName}" (${teamInfo.teammates.length} teammate${teamInfo.teammates.length === 1 ? '' : 's'})`);
       out.push(`    Team config: ~/.claude/teams/${teamInfo.teamName}/config.json`);
       out.push(`    Use /rig:team skill for orchestration templates.`);
     }
