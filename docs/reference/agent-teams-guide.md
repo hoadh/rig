@@ -80,7 +80,7 @@ It automatically integrates with the Rig workflow stack:
 | `/rig:team review` | `/rig:code-review` | Evidence gates, severity ratings |
 | `/rig:team debug` | `/rig:fix` | Root-cause-first, adversarial hypotheses |
 
-Teammates automatically receive Rig context (reports path, naming pattern, branch, commit conventions) via the SubagentStart hook (`team-context-inject.cjs`).
+Teammates automatically receive Rig context (reports path, naming pattern, branch, commit conventions), the team name and their peers via the SubagentStart hook (`team-context-inject.cjs`), plus the core rules and the context of their agent definition (for example `rig:researcher`) via `subagent-init.cjs`. Claude Code runs SubagentStart each time an in-process teammate handles a new message, so this context is added again on each message.
 
 ## Subagents vs Agent Teams
 

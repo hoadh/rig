@@ -307,8 +307,9 @@ All hooks located in `plugins/rig/hooks/` with consistent patterns - fail-safe e
 - **Note**: Static rules stay in `plugins/rig/rules/`; only dynamic facts are injected
 
 **4. Team-Context Hook** (`team-context-inject.cjs`)
-- **Trigger**: SubagentStart (agent teams only)
+- **Trigger**: SubagentStart (agent teams only). Claude Code fires it each time an in-process teammate handles a new message, not only at spawn
 - **Purpose**: Inject team peers and task context
+- **Teammate detection** (`lib/team-member-resolver.cjs`, shared with `subagent-init`): the team is `session-<first 8 chars of session_id>` (or a legacy `<name>@<team>` agent_id, or the deprecated `team_name`); the member is matched in `~/.claude/teams/<team>/config.json` by agentId, then by name. A teammate's `agent_type` is its name, so `subagent-init` takes the member's `agentType` (for example `rig:researcher`) for the per-agent context
 
 **5. Verify-Completion-Guard Hook** (`verify-completion-guard.cjs`)
 - **Trigger**: Stop
