@@ -17,6 +17,7 @@ const owned = require('./rig-1x-owned-paths.cjs');
 const { readJsonFile, backupsDirFor } = require('./backup-restore-standalone.cjs');
 const { stripRigSettings } = require('./settings-rig-entries-stripper.cjs');
 const { hasRig1xMarker } = require('../../hooks/lib/rig-1x-copy-notice.cjs');
+const { keptFileWarnings } = require('./migration-kept-file-warnings.cjs');
 
 const SETTINGS_FILES = ['settings.json', 'settings.local.json'];
 const SIZE_WALK_CAP = 200000; // entries; a node_modules tree is sized approximately beyond this
@@ -258,7 +259,8 @@ function planTarget({ kind, root, home }) {
     backupGroup: backupGroupDir(home, kind, targetRoot),
     pendingBackup: findIncompleteBackup({ home, kind, root: targetRoot }),
   };
-  if (!identified) { plan.settings = []; plan.moves = []; plan.bytes = 0; plan.blockers = []; plan.kept = []; plan.leftInPlace = []; }
+  plan.warnings = detected ? keptFileWarnings(plan) : [];
+  if (!identified) { plan.settings = []; plan.moves = []; plan.bytes = 0; plan.blockers = []; plan.kept = []; plan.leftInPlace = []; plan.warnings = []; }
   if (kind === 'project' && detected) {
     const tracked = trackedClaudeFiles(targetRoot);
     const committedMoves = moves.filter((m) => tracked.has(m.rel)).length;
@@ -340,6 +342,7 @@ function describeTarget(plan) {
   }
   if (plan.kept.length) lines.push(`  not Rig's, left in place (${plan.kept.length}): ${plan.kept.slice(0, 8).join(', ')}${plan.kept.length > 8 ? ', ...' : ''}`);
   for (const item of plan.leftInPlace || []) lines.push(`  left in place: ${item}`);
+  for (const w of plan.warnings || []) lines.push(`  warning: ${w}`);
   for (const b of plan.blockers) lines.push(`  BLOCKED: ${b}`);
   return lines.join('\n');
 }
