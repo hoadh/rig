@@ -65,6 +65,14 @@ describe('teammate-role-context', () => {
     const doc = fs.readFileSync(path.join(dir, 'references', 'team-coordination.md'), 'utf8').replace(/`/g, '');
     for (const rule of teamRuleLines().slice(1)) assert.ok(doc.includes(rule.slice(2)), `coordination doc has: ${rule}`);
   });
+  it('implement is plan-first through the spawn prompt, not through plan mode (seen live: plan mode reaches a teammate one turn late)', () => {
+    const dir = path.join(PLUGIN_ROOT, 'skills', 'team');
+    const templates = fs.readFileSync(path.join(dir, 'references', 'team-templates.md'), 'utf8');
+    const skill = fs.readFileSync(path.join(dir, 'SKILL.md'), 'utf8');
+    assert.ok(templates.includes('Edit nothing until the lead replies `approved`.'));
+    assert.ok(skill.includes('edits nothing until the lead replies `approved`'));
+    assert.ok(!/approves their plans itself|plans are auto-approved/.test(skill + templates));
+  });
   it('team rules cover tasks, ownership, messages, reports and shutdown', () => {
     const text = teamRuleLines().join('\n');
     for (const k of ['TaskList', 'TaskUpdate', 'files your task assigns', 'SendMessage', 'Reports', 'shutdown request']) assert.ok(text.includes(k), k);

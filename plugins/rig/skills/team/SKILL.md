@@ -15,10 +15,10 @@ Claude Code runs the team (mailbox, idle notices, shutdown, plan approval, task 
 
 ## Workflow
 
-1. Check the flag: `echo $CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` is `1` (or settings `env`). Off: stop and tell the user; a named Agent call without it is only a plain subagent. After the first spawn, `~/.claude/teams/session-<8>/config.json` must list the teammate.
-2. Pick the template in `references/team-templates.md`. Plan-first: the user puts the lead in plan mode (Shift+Tab) before spawning; those teammates plan first, Claude Code approves their plans itself (no lead review), then they edit in Manual mode (prompts in the lead). Leave plan mode before testing and merging.
+1. Check the flag: `echo $CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` is `1` (or settings `env`). Off: stop and tell the user; a named Agent call without it is only a plain subagent. After the first spawn, a config in `~/.claude/teams/` must list the teammate.
+2. Pick the template in `references/team-templates.md`. `implement` is plan-first: each dev sends its plan and edits nothing until the lead replies `approved` (skip when the user says no plan). Lead plan mode does not do this: it reaches teammates one turn late.
 3. Split the work into tasks with disjoint files (`Files: src/api/*`). If `TaskCreate` is available (newer models: `CLAUDE_CODE_ENABLE_TODO_TOOLS=1`), add them to the shared list, 5-6 per teammate; otherwise each spawn prompt carries its task.
-4. Spawn 3-5 teammates in one message: `Agent` with `name`, `subagent_type: rig:<agent>`, a task prompt ending with the Rig Context Block. Never pass `isolation` (makes a plain subagent) or `mode` (not supported per teammate).
+4. Spawn 3-5 teammates in one message: `Agent` with `name`, `subagent_type: rig:<agent>`, a task prompt (plan-first line for `implement`) ending with the Rig Context Block. Never pass `isolation` (makes a plain subagent) or `mode` (not supported per teammate).
 5. While they work, do not edit their files; answer messages, redirect by name.
 6. After they report: merge, run the tests, fix what is left, synthesize (unresolved questions last).
 7. Ask each teammate to shut down (native shutdown request).
