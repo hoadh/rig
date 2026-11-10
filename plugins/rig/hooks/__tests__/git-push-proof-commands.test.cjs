@@ -33,6 +33,11 @@ const PUSH_PROOF = extractBlock(DOCS.push, 'push-proof');
 const COMMIT_PROOF = extractBlock(DOCS.commit, 'commit-proof');
 assert.strictEqual(extractBlock(DOCS.commit, 'push-proof'), PUSH_PROOF, 'workflow-commit.md push-proof drifted');
 assert.strictEqual(extractBlock(DOCS.pr, 'push-proof'), PUSH_PROOF, 'pr/SKILL.md push-proof drifted');
+// The agent states the exact result lines itself (live 2.0.1: a haiku git-operator dropped the leading mark)
+const OPERATOR = fs.readFileSync(path.join(ROOT, 'plugins/rig/agents/git-operator.md'), 'utf8');
+for (const line of ['nothing to commit (working tree clean)', 'nothing committed', '✓ pushed: <short-hash> -> origin/<branch>', '✗ push NOT confirmed']) {
+  assert.ok(OPERATOR.includes(line), `git-operator.md must state the exact result line: ${line}`);
+}
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'push-proof-'));
 fs.writeFileSync(path.join(tmp, 'empty-gitconfig'), '');
