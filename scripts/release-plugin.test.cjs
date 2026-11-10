@@ -199,6 +199,7 @@ describe('apply', () => {
     assert.match(text, /git push origin main v2\.0\.0-beta\.1/);
     assert.match(text, /install: \/plugin marketplace add example\/rig, then/);
     assert.match(text, /claude plugin tag/);
+    assert.match(text, /gh release create v2\.0\.0-beta\.1 --title "Rig 2\.0\.0-beta\.1" --notes-file <CHANGELOG section> --prerelease/, "a beta is a prerelease");
     assert.match(text, /Nothing was pushed/);
   });
   it('the CI ref check passes right after apply and fails when the sha drifts', async () => {

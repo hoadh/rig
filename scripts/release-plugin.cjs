@@ -213,6 +213,7 @@ async function release(opts, io) {
   log(`Created commit "release: pin marketplace to v${version}" and tag v${version} -> ${sha.slice(0, 12)}. Nothing was pushed. Next:`);
   log(`  git push origin ${branch} v${version}`);
   log(`  install: ${installHint(pinned.source.url, branch)}`);
+  log(`  gh release create v${version} --title "Rig ${version}" --notes-file <CHANGELOG section> ${/-/.test(version) ? '--prerelease' : '--latest'}   # after CI on the branch passes; docs/how-to/release-rig.md step 7`);
   log(`  claude plugin tag plugins/rig --dry-run   # optional: makes the plugin-scoped rig--v${version} tag, then rerun without --dry-run (add --push to publish it)`);
   return 0;
 }
