@@ -1,26 +1,19 @@
-# Team Coordination Rules
+# Team coordination rules
 
-Moved from the former `team-coordination-rules.md` rules file. Applies only to teammates inside an Agent Team; no effect on normal sessions or subagents.
+The Rig hook gives every in-process teammate these rules as `## Team rules` (source: `hooks/lib/teammate-role-context.cjs`; keep both in step). Messaging, task claiming, idle notices and shutdown are Claude Code's own; this file only adds Rig's conventions.
 
-## File Ownership
-- Each teammate owns distinct files, defined by globs in the task (`File ownership: src/api/*`). Overlapping edits corrupt each other's work.
-- Tester owns test files only. On an ownership conflict, stop and report to the lead, who restructures tasks.
+## For teammates
+- Your task is in your spawn prompt. If `TaskList` is available: check it, claim your assigned or the lowest-ID unblocked task with `TaskUpdate` (owner = your name, in_progress), read it with `TaskGet`.
+- Edit only the files your task assigns to you. Need another file: message its owner or the lead first.
+- If `TaskUpdate` is available, mark the task completed before you report. Not done: say why instead.
+- Message teammates and the lead by name with `SendMessage`, one message per recipient.
+- Reports go to the Reports path (default `plans/reports/`), `{type}-{date}-{slug}.md`: concise, unresolved questions last.
+- On a shutdown request: finish the current step, update your task, then approve.
+- Commits (only when the task asks): conventional, focused, no AI references; never force-push.
 
-## Git
-- Prefer one worktree per implementer; commit to the worktree branch, not main or dev. Never force-push. Pull before push. Commit often.
-- Conventional commits, no AI references, focused changes.
-
-## Communication
-- Use `SendMessage` to a named teammate; broadcast only for critical blockers affecting everyone.
-- Mark the task completed via `TaskUpdate` before reporting. Reports carry actionable findings, in plain text, concise, unresolved questions last. Save to `{RIG_REPORTS_PATH}` (fallback `plans/reports/`) as `{type}-{date}-{slug}.md`.
-- Lead states `Docs impact: none|minor|major` after implementation tasks and updates `docs/` when needed.
-
-## Tasks and Plans
-- Claim the lowest-ID unblocked task, set it `in_progress`, check `TaskList` afterwards; if all are blocked, tell the lead.
-- When spawned with `mode: "plan"`: plan read-only, submit via `ExitPlanMode`, wait for the lead's approval, revise if rejected (rejected twice: lead takes over).
-
-## Conflicts and Shutdown
-- Same file needed by two teammates: escalate to the lead. Conflicting review findings: lead synthesizes and records the disagreement. If blocked, message the owner first, then the lead.
-- Shutdown: the lead sends a plain-text message asking a teammate to finish and stop. Finish the current task, mark it done with `TaskUpdate`, then reply in plain text (unless mid-critical-operation, then say why).
-- Idle is normal, not an error; messaging an idle teammate wakes it. Check task status, not idle notices, for completion.
-- If present, teammates are listed in `~/.claude/teams/{team-name}/config.json`; refer to them by name.
+## For the lead
+- Tasks own disjoint files; a tester owns test files only.
+- Do not edit a teammate's files while it works; merge and fix after it reports.
+- Two teammates need the same file: restructure the tasks. Conflicting review findings: synthesize and record the disagreement.
+- After implementation tasks, state `Docs impact: none|minor|major` and update `docs/` when needed.
+- A teammate whose task stays `in_progress` after it reported: check the work, then update the task or nudge the teammate (task status can lag).
