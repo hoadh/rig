@@ -650,6 +650,32 @@ describe('team-context-inject.cjs', () => {
       }
     });
 
+    it('resumed session: team found by its lead process, task summary from the original session list', async () => {
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'team-inject-resume-'));
+      try {
+        const { procStart, ownPidSpace } = require('../lib/lead-process-team.cjs');
+        const team = 'session-newid123';
+        fs.mkdirSync(path.join(tmpDir, '.claude', 'teams', team), { recursive: true });
+        // this test process spawns the hook directly, so it plays the lead `claude`
+        const leadProcess = { pid: process.pid, pidSpace: ownPidSpace(), procStart: procStart(process.pid) };
+        fs.writeFileSync(path.join(tmpDir, '.claude', 'teams', team, 'config.json'), JSON.stringify({
+          name: team, leadSessionId: 'newid123-0000', leadProcess,
+          members: [{ agentId: `team-lead@${team}`, name: 'team-lead', agentType: 'team-lead' }, { agentId: `dev-1@${team}`, name: 'dev-1', agentType: 'rig:implementer' }],
+        }));
+        const oldList = path.join(tmpDir, '.claude', 'tasks', 'session-oldid456');
+        fs.mkdirSync(oldList, { recursive: true });
+        fs.writeFileSync(path.join(oldList, '1.json'), JSON.stringify({ id: '1', status: 'pending' }));
+        const result = await runHook({ session_id: 'oldid456-1111', agent_id: 'adev-1-0a1b2c', agent_type: 'dev-1' }, { env: { HOME: tmpDir } });
+        assert.strictEqual(result.exitCode, 0);
+        const context = result.output?.hookSpecificOutput?.additionalContext || '';
+        assert.ok(context.includes(`Team: ${team}`), context);
+        assert.ok(context.includes('1 pending'), 'task summary from the original session list');
+        assert.ok(context.includes('## Your role'), 'role lines for the rig:implementer teammate');
+      } finally {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      }
+    });
+
     it('counts only .json files as tasks', async () => {
       const tmpDir = path.join(os.tmpdir(), 'team-inject-json-filter-' + Date.now());
       fs.mkdirSync(tmpDir, { recursive: true });

@@ -9,7 +9,8 @@
  *
  * Input (hooks reference, TeammateIdle): `teammate_name`, `session_id`, deprecated `team_name`.
  * Tasks: `~/.claude/tasks/<list>/<id>.json` ({ id, subject, status, owner, ... }); the list is the session's team name
- * (`session-<8>`) or CLAUDE_CODE_TASK_LIST_ID when set.
+ * (`session-<8>`) or CLAUDE_CODE_TASK_LIST_ID when set. After `/resume` the list keeps the original session id (seen
+ * live, 2.1.322) although the team gets a new name, so `session_id` still names it.
  * Off: `.rig.json` `hooks: { "teammate-idle-guard": false }`. Fails open: any error or unexpected input exits 0.
  */
 try {

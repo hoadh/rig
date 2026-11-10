@@ -14,7 +14,7 @@ try {
   const os = require('os');
   const { isHookEnabled } = require('./lib/rig-config-utils.cjs');
   const { yieldsToProjectCopy } = require('./lib/global-hook-yields-to-project-copy.cjs');
-  const { resolveTeamMember } = require('./lib/team-member-resolver.cjs');
+  const { resolveTeamMember, sessionTeamName } = require('./lib/team-member-resolver.cjs');
   const { roleLines, teamRuleLines } = require('./lib/teammate-role-context.cjs');
 
   if (!isHookEnabled('team-context-inject')) {
@@ -67,12 +67,16 @@ function buildRigContext() {
 }
 
 /**
- * Summarize tasks from team task directory
+ * Summarize tasks from the team's task list: CLAUDE_CODE_TASK_LIST_ID, then the session id's list (after `/resume` the
+ * tasks stay there while the team gets a new name), then the team name; the first that exists.
  */
-function summarizeTasks(teamName) {
-  const taskDir = path.join(TASKS_DIR, teamName);
+function summarizeTasks(teamName, sessionId) {
+  const taskDir = [process.env.CLAUDE_CODE_TASK_LIST_ID, sessionTeamName(sessionId), teamName]
+    .filter((n) => typeof n === 'string' && /^[A-Za-z0-9._-]{1,128}$/.test(n) && !n.includes('..'))
+    .map((n) => path.join(TASKS_DIR, n))
+    .find((d) => fs.existsSync(d));
   try {
-    if (!fs.existsSync(taskDir)) return null;
+    if (!taskDir) return null;
     const files = fs.readdirSync(taskDir).filter(f => f.endsWith('.json'));
     let pending = 0, inProgress = 0, completed = 0;
     for (const file of files) {
@@ -106,7 +110,7 @@ function main() {
 
     // Build context
     const peerList = buildPeerList(config, member);
-    const tasks = summarizeTasks(teamName);
+    const tasks = summarizeTasks(teamName, payload.session_id);
 
     const lines = [];
     lines.push(`## Team Context`);
