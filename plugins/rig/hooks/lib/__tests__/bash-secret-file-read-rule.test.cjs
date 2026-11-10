@@ -62,7 +62,13 @@ describe('readers of secret files', () => {
     asks(['cd api && cat .env.local', 'cd /srv/app; cat .env', 'cat ~/.ssh/id_rsa']);
   });
   it('asks for glob arguments that can hit a secret', () => {
-    asks(['cat .env*', 'cat *.pem', 'cat ~/.ssh/id_*']);
+    asks(['cat .env*', 'cat *.pem', 'cat ~/.ssh/id_*', 'cat *cred*.json', 'cat secret*.y*ml', 'cat config/*secrets*.yml',
+      'cat server.*', 'cat *.key']);
+  });
+  it('allows generic data globs (seen live: `cat ~/.claude/tasks/<list>/*.json` asked)', () => {
+    allows(['cat ~/.claude/tasks/session-1/*.json', 'cat ~/.claude/rig/runtime/*.json', 'head -5 config/*.yml',
+      'cat *.yaml', 'cat *.y*ml', 'jq . data/*.json']);
+    asks(['cat aws-credentials.json', 'cat secrets.yml'], 'literal names are unchanged');
   });
 });
 

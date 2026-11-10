@@ -40,6 +40,9 @@ const SAMPLE_NAMES = [
   'server.pem', 'server.key', 'cert.p12', 'cert.pfx', 'id_rsa', 'id_rsa.pub', 'id_ed25519', 'secrets.yml', 'secret.yaml',
   'aws-credentials.json',
 ];
+// Samples whose extension is ordinary data (json, yaml): the secret is in the stem, so a glob hits them only when it
+// spells that stem. `*.json` (task files, configs) does not ask; `*cred*.json` and `secret*.y*ml` do.
+const STEM_MARKERS = [[/\.(json|ya?ml)$/i, /cred|secret/i]];
 const TEMPLATE_SUFFIX = /\.(example|sample|template)$/i;
 const GLOB_CHARS = /[*?]/;
 
@@ -193,7 +196,9 @@ function isSecretPath(text, dynamic, cwd) {
   if (dynamic && GLOB_CHARS.test(base)) {
     if (/^[*?]+$/.test(base)) return false; // `*` alone would flag every `cat *`
     const re = globToRegex(base);
-    return SAMPLE_NAMES.some((name) => re.test(name));
+    const literal = base.replace(/[*?]/g, '');
+    return SAMPLE_NAMES.some((name) => re.test(name)
+      && STEM_MARKERS.every(([ext, stem]) => !ext.test(name) || stem.test(literal)));
   }
   const resolved = absolutize(String(cwd || '/').replace(/\\/g, '/'), expandHome(unified).replace(/\\/g, '/'));
   return matchers().some((re) => re.test(resolved));
