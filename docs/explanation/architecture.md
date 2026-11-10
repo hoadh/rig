@@ -1,7 +1,7 @@
 # System Architecture
 
 **Last Updated**: 2026-11-06
-**Version**: 2.0.5 (unreleased; 2.0.4 released 2026-11-10, 1.1.0 on `release/1.x`)
+**Version**: 2.0.6 (unreleased; 2.0.5 released 2026-11-10, 1.1.0 on `release/1.x`)
 **Project**: Rig
 
 ## Overview
@@ -72,7 +72,7 @@ GitHub repo hoadh/rig
 
 `rig-init` is the only code that changes a user's Claude Code configuration. Its verbs: `--plan [--json]` (read-only), `--migrate [--global|--project <dir>]`, `--resume`, `--restore <dir>`, `--permissions`, `--runtime`, `--deps`.
 
-Every apply verb goes through one gate. It refuses when `CLAUDECODE` is set, when any ancestor process is Claude Code, when the ancestor chain cannot be read, or when stdin or stdout is not a terminal. Otherwise it shows the plan and asks `y/N`. No flag or environment variable skips the question. The gate is a guard against accidents, not a sandbox: the Bash guard rule also asks before any command that would run `rig-init` apply verbs or a backup's `restore.cjs`.
+Every apply verb goes through one gate. It refuses, in this order, when `CLAUDECODE` is set, when stdin or stdout is not a terminal, when the ancestor chain cannot be read, or when any ancestor process is Claude Code. The terminal check comes before the ancestor chain, so a piped or CI run never starts the Windows PowerShell process query (its cold start can take seconds). Otherwise it shows the plan and asks `y/N`. No flag or environment variable skips the question. The gate is a guard against accidents, not a sandbox: the Bash guard rule also asks before any command that would run `rig-init` apply verbs or a backup's `restore.cjs`.
 
 Migration (1.x to 2.x) is journaled:
 

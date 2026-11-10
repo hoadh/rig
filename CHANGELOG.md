@@ -1,6 +1,12 @@
 # Changelog
 
-## 2.0.5 (unreleased)
+## 2.0.6 (unreleased)
+
+### Fixes
+
+* **Apply verbs on Windows CI timed out in the consent gate.** The gate read the process ancestry before it checked for a terminal, so every piped or CI run of an apply verb (`rig-init`, a backup's `restore.cjs`, `release-plugin.cjs --apply`) started a Windows PowerShell process query; on a loaded CI runner its cold start passed the 30 s limit and the gate refused with "could not check" instead of "needs an interactive terminal". The terminal check now comes first. Every case still refuses, and the only allowed case (a terminal, outside Claude Code) is unchanged; a piped run now always names the missing terminal, also when it runs inside Claude Code or the ancestry cannot be read. Measured on Windows 11 (PowerShell 5.1): the query itself takes 130-210 ms, PowerShell start 1.5-2.5 s. The query also no longer writes progress records to stderr.
+
+## 2.0.5 (2026-11-10)
 
 Three findings of the 2.0.4 live check.
 
