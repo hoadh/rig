@@ -135,6 +135,14 @@ describe('refusals', () => {
     const { io, out, errs } = makeIo(dir);
     assert.strictEqual(await release(flags({ apply: true, allowBranch: true }), io), 0, errs.join('\n'));
     assert.match(out.join('\n'), /install: \/plugin marketplace add example\/rig#feat\/x, then \/plugin install rig@rig-marketplace/);
+    assert.strictEqual(git(dir, 'rev-parse', '--abbrev-ref', 'HEAD'), 'feat/x', 'a beta branch carries the pin itself');
+    assert.match(out.join('\n'), /git push origin feat\/x v2\.0\.0-beta\.1/);
+    assert.doesNotMatch(out.join('\n'), /gh pr create/);
+  });
+  it('refuses when the release branch already exists, and changes nothing', async () => {
+    const dir = fixture();
+    git(dir, 'branch', 'release/v2.0.0-beta.1');
+    await refused(dir, { apply: true }, {}, /release\/v2\.0\.0-beta\.1 already exists/);
   });
   it('version already tagged', async () => {
     const dir = fixture();
@@ -181,7 +189,7 @@ describe('refusals', () => {
 });
 
 describe('apply', () => {
-  it('commits the pin on top of the content commit and tags the content commit', async () => {
+  it('on main: commits the pin on a new release branch on top of the content commit and tags the content commit', async () => {
     const dir = fixture();
     const content = git(dir, 'rev-parse', 'HEAD');
     const { io, out, errs } = makeIo(dir);
@@ -193,10 +201,15 @@ describe('apply', () => {
     assert.strictEqual(git(dir, 'rev-parse', 'v2.0.0-beta.1^{commit}'), content, 'tag points at the content commit');
     assert.strictEqual(git(dir, 'cat-file', '-t', 'v2.0.0-beta.1'), 'tag', 'annotated');
     assert.strictEqual(git(dir, 'rev-parse', 'HEAD~1'), content);
+    assert.strictEqual(git(dir, 'rev-parse', '--abbrev-ref', 'HEAD'), 'release/v2.0.0-beta.1', 'checkout moves to the release branch');
+    assert.strictEqual(git(dir, 'rev-parse', 'main'), content, 'main does not move: it takes the pin by pull request');
     assert.match(git(dir, 'log', '-1', '--format=%s'), /^release: pin marketplace to v2\.0\.0-beta\.1$/);
     assert.strictEqual(git(dir, 'status', '--porcelain'), '');
     const text = out.join('\n');
-    assert.match(text, /git push origin main v2\.0\.0-beta\.1/);
+    assert.match(text, /git push -u origin release\/v2\.0\.0-beta\.1/);
+    assert.match(text, /gh pr create --base main --head release\/v2\.0\.0-beta\.1/);
+    assert.match(text, /git merge --ff-only release\/v2\.0\.0-beta\.1 && git push origin main v2\.0\.0-beta\.1/, 'the tag is pushed with main, after the merge');
+    assert.doesNotMatch(text, /^\s*git push origin main/m, 'no direct push of the pin to main before the merge');
     assert.match(text, /install: \/plugin marketplace add example\/rig, then/);
     assert.match(text, /claude plugin tag/);
     assert.match(text, /gh release create v2\.0\.0-beta\.1 --title "Rig 2\.0\.0-beta\.1" --notes-file <CHANGELOG section> --prerelease/, "a beta is a prerelease");
@@ -218,6 +231,8 @@ describe('apply', () => {
   it('a second release orders after the first and moves the pin', async () => {
     const dir = fixture();
     await release(flags({ apply: true }), makeIo(dir).io);
+    git(dir, 'checkout', '-q', 'main'); // the pull request merge
+    git(dir, 'merge', '-q', '--ff-only', 'release/v2.0.0-beta.1');
     write(dir, 'plugins/rig/.claude-plugin/plugin.json', JSON.stringify({ name: 'rig', version: '2.0.0-beta.2' }));
     const m = marketplace(dir);
     m.plugins[0].version = '2.0.0-beta.2';

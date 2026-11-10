@@ -16,6 +16,11 @@
  * is itself a commit. So the content commit is the current HEAD (S): the entry is committed on top of it (S+1) with
  * `ref: v<version>, sha: S`, and the annotated tag points at S, not at S+1. A user installing from the marketplace
  * entry gets exactly S (the tag and the sha agree); S is an ancestor of the branch tip, so `v*` is reachable from main.
+ *
+ * `main` takes no direct push of an untested commit (ruleset `main-ci-required`), and S+1 is new. On `main` the pin is
+ * therefore committed on a new branch `release/v<version>` (the checkout moves there); the user pushes it, opens a pull
+ * request, fast-forwards `main` after CI and only then pushes the tag. On another branch (a beta) the pin is committed
+ * on that branch as before.
  */
 const { spawnSync } = require('child_process');
 const fs = require('fs');
@@ -161,6 +166,10 @@ async function release(opts, io) {
     return 2;
   }
   if (branch !== 'main' && !opts.allowBranch) fail(`on branch "${branch}", not main (use --allow-branch for a beta)`);
+  const releaseBranch = branch === 'main' && isSemver(version) ? `release/v${version}` : null;
+  if (releaseBranch && gitOptional(cwd, ['rev-parse', '--verify', '--quiet', `refs/heads/${releaseBranch}`], env)) {
+    fail(`branch ${releaseBranch} already exists (delete it or finish that release first)`);
+  }
 
   const latest = latestTag(tags);
   if (isSemver(version)) {
@@ -184,17 +193,26 @@ async function release(opts, io) {
   log(`  content commit (tag target + sha): ${sha}`);
   log(`  marketplace entry -> ${JSON.stringify(pinned.source)}`);
   log(`  tag: v${version} (${signing ? 'signed' : 'annotated'}) on ${sha.slice(0, 12)}`);
+  log(`  pin commit on: ${releaseBranch ? `${releaseBranch} (new branch; main is merged by pull request)` : branch}`);
   if (!opts.apply) {
     log('Nothing written. Re-run with --apply in a terminal outside Claude Code to release.');
     return 0;
   }
 
   const confirm = io.confirm || (async () => false);
-  if (!(await confirm(`Commit the marketplace pin and create tag v${version}?`))) {
+  if (!(await confirm(`Commit the marketplace pin${releaseBranch ? ` on ${releaseBranch}` : ''} and create tag v${version}?`))) {
     err('x not confirmed, nothing changed');
     return 1;
   }
 
+  if (releaseBranch) {
+    try {
+      git(cwd, ['checkout', '-b', releaseBranch], env);
+    } catch (e) {
+      err(`x cannot create branch ${releaseBranch}: ${e.message}`);
+      return 1;
+    }
+  }
   try {
     marketplace.plugins = marketplace.plugins.map((p) => (p === entry ? pinned : p));
     fs.writeFileSync(path.join(cwd, MARKETPLACE), `${JSON.stringify(marketplace, null, 2)}\n`);
@@ -210,10 +228,19 @@ async function release(opts, io) {
     err(`x tag failed: ${e.message}\n  the marketplace commit exists; fix the cause, then: git tag ${signing ? '-s' : '-a'} v${version} ${sha} -m "Rig ${version}"`);
     return 1;
   }
-  log(`Created commit "release: pin marketplace to v${version}" and tag v${version} -> ${sha.slice(0, 12)}. Nothing was pushed. Next:`);
-  log(`  git push origin ${branch} v${version}`);
-  log(`  install: ${installHint(pinned.source.url, branch)}`);
-  log(`  gh release create v${version} --title "Rig ${version}" --notes-file <CHANGELOG section> ${/-/.test(version) ? '--prerelease' : '--latest'}   # after CI on the branch passes; docs/how-to/release-rig.md step 7`);
+  const pinBranch = releaseBranch || branch;
+  log(`Created commit "release: pin marketplace to v${version}" on ${pinBranch} and tag v${version} -> ${sha.slice(0, 12)}. Nothing was pushed. Next:`);
+  if (releaseBranch) {
+    log(`  git push -u origin ${releaseBranch}`);
+    log(`  gh pr create --base main --head ${releaseBranch} --title "release: pin marketplace to v${version}" --body "Release pin for v${version}."`);
+    log(`  # after CI on the pull request passes:`);
+    log(`  git checkout main && git merge --ff-only ${releaseBranch} && git push origin main v${version}`);
+    log(`  git push origin --delete ${releaseBranch} && git branch -d ${releaseBranch}`);
+  } else {
+    log(`  git push origin ${branch} v${version}`);
+  }
+  log(`  install: ${installHint(pinned.source.url, releaseBranch ? 'main' : branch)}`);
+  log(`  gh release create v${version} --title "Rig ${version}" --notes-file <CHANGELOG section> ${/-/.test(version) ? '--prerelease' : '--latest'}   # after the tag is pushed; docs/how-to/release-rig.md step 7`);
   log(`  claude plugin tag plugins/rig --dry-run   # optional: makes the plugin-scoped rig--v${version} tag, then rerun without --dry-run (add --push to publish it)`);
   return 0;
 }
