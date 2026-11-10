@@ -1,6 +1,16 @@
 # Changelog
 
-## 2.0.4 (unreleased)
+## 2.0.5 (unreleased)
+
+Three findings of the 2.0.4 live check.
+
+### Fixes
+
+* **Teammates in a resumed session got no Rig context.** After `/resume`, Claude Code names the team from a new id (`session-<new 8>`) while hooks keep the original `session_id`, so `team-context-inject` found no team: no `## Team Context`, `## Your role` or `## Team rules`. When the `session-<8>` lookup misses, the hooks now take the team whose `leadProcess` (recorded in its config) is their parent `claude` process; on Linux its start time and pid namespace are checked too, so a reused pid does not match. A config whose lead process has exited is ignored, so when `/resume` starts a new `claude` process, `session-init` no longer names the team left over from before it. The teammate's task summary reads the task list, which keeps the original session id.
+* **Plan-first did not stop the first edit.** Claude Code put the teammate in plan mode, but the mode reached it one turn late (seen with 2.1.322), after it had edited and committed. `/rig:team implement` is now plan-first through the spawn prompt: each dev sends its plan and edits nothing until the lead replies `approved`. Lead plan mode is no longer part of the workflow.
+* **The secret-file rule asked on `cat ~/.claude/tasks/<list>/*.json`.** A glob ending in `.json` or `.yml`/`.yaml` now asks only when it spells a secret stem (`*cred*.json`, `secret*.yml`); `*.pem`, `.env*`, `id_*` and `server.*` still ask.
+
+## 2.0.4 (2026-11-10)
 
 Agent Teams rebuilt as a thin layer on Claude Code's own team features (official guide: https://code.claude.com/docs/en/agent-teams).
 

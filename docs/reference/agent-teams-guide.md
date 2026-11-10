@@ -1,6 +1,6 @@
 # Agent Teams with Rig
 
-> Rig 2.0.4 | Claude Code agent teams are experimental | Official guide: https://code.claude.com/docs/en/agent-teams
+> Rig 2.0.5 | Claude Code agent teams are experimental | Official guide: https://code.claude.com/docs/en/agent-teams
 
 Claude Code runs agent teams: one lead session and named teammates, each in its own context window, with a mailbox, idle notices, shutdown requests, plan approval and (when the session has the Task tools) a shared task list. Rig does not rebuild any of that. It adds three things:
 
@@ -32,7 +32,7 @@ Side effect of the flag: any subagent the lead names becomes a teammate. Set the
 
 Plain language works too ("spawn three reviewer teammates using rig:code-reviewer for PR #15"): the hooks give the same Rig context to any in-process teammate whose agent type is a Rig agent.
 
-Plan first: switch the lead to plan mode (Shift+Tab) before `/rig:team implement`. Teammates spawned then plan before editing; Claude Code approves their plans itself (the lead does not review them) unless you change a teammate's mode while viewing it, and they then edit in Manual mode, so their permission prompts appear in the lead. Leave plan mode before the lead tests and merges.
+Plan first: `/rig:team implement` ends each dev's spawn prompt with "send the lead your plan, edit nothing until the lead replies `approved`". The lead checks that each plan stays inside its task's files and replies. Say "no plan" to skip it. Do not use lead plan mode (Shift+Tab) for this: Claude Code puts the teammates in plan mode, but the mode reaches a teammate one turn late (seen with 2.1.322), after its first edits.
 
 Talk to a teammate: Up/Down in the agent panel, Enter to view and message it, `x` to stop it, Ctrl+T for the task list.
 
@@ -67,7 +67,7 @@ Claude Code itself applies the agent definition's `tools`, `model` and body, and
 
 ## Limits that matter
 
-- `/resume` and `/rewind` do not bring in-process teammates back; spawn new ones.
+- `/resume` and `/rewind` do not bring in-process teammates back; spawn new ones. After `/resume` the new team gets a new name (`session-<new 8>`) that hooks cannot derive; Rig finds it by its `leadProcess`, the `claude` process that runs the hooks. If `/resume` happens inside the same `claude` process, the startup line may still name the old team until Claude Code removes it.
 - One team per session, no nested teams, the lead is fixed.
 - `claude -p` never spawns teammates.
 - Teammate permission prompts appear in the lead; pre-approve common commands to avoid interruptions.
@@ -78,10 +78,11 @@ Claude Code itself applies the agent definition's `tools`, `model` and body, and
 | Symptom | Check |
 |---|---|
 | `/rig:team` ran but no team formed | `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` is `1` in this session: without it a named Agent call is a plain subagent |
-| A teammate has no `## Team Context` | Split-pane mode, or `hooks.team-context-inject` off; `~/.claude/teams/session-<8>/config.json` lists it |
+| A teammate has no `## Team Context` | Split-pane mode, or `hooks.team-context-inject` off; a team config under `~/.claude/teams/` lists it (after `/resume` its name differs from the session id, and its `leadProcess.pid` is the running `claude`) |
 | A teammate did not follow its role skill | Its agent type is a Rig agent (`rig:<name>`) with a `skills:` preload; ask it to quote the SKILL.md heading |
 | Tasks stay `in_progress` | The session has the Task tools; `hooks.teammate-idle-guard` on; the hook log shows `teammate-idle-guard` |
 | The lead implements instead of waiting | Tell it to wait for its teammates to finish |
+| A dev edited before its plan was approved | Its spawn prompt lacks the plan-first line; the lead re-sends it, or stops the dev (`x`) and respawns it |
 
 ## Related
 
