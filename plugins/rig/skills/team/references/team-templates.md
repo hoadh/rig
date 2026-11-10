@@ -4,7 +4,7 @@ Common to all: one named teammate per angle or file set, `subagent_type: rig:<ag
 
 ## research <topic> [--researchers N, default 3]
 1. Derive N distinct angles from the topic (for example architecture, prior art, risks).
-2. `TaskCreate` one task per angle; each asks for a report file.
+2. One task per angle (in the shared list if `TaskCreate` is available, else in each spawn prompt); each asks for a report file.
 3. Spawn `rig:researcher` teammates `researcher-1..N`, one angle each.
 4. When all report, synthesize one summary with unresolved questions last.
 
@@ -20,6 +20,6 @@ Common to all: one named teammate per angle or file set, `subagent_type: rig:<ag
 
 ## implement <plan-or-feature> [--devs N, default 2]
 1. Split the work into tasks with disjoint files; record the files in each task. If the work cannot be split without shared files, use one dev, or plain subagents with `isolation: "worktree"` outside the team.
-2. Spawn `rig:implementer` teammates `dev-1..N`. Plan-first: the lead is in plan mode before this step (see SKILL.md).
+2. Spawn `rig:implementer` teammates `dev-1..N`. Plan-first: the lead is in plan mode for this step only (plans are auto-approved; see SKILL.md), then leaves it.
 3. After the devs report, spawn a `rig:tester` teammate, then a `rig:code-reviewer` teammate, on the changed files.
 4. The lead merges, runs the full test suite and fixes what is left.

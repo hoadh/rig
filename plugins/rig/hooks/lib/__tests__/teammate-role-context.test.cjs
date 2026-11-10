@@ -15,6 +15,13 @@ describe('teammate-role-context', () => {
   it('parses an inline skills list and no tools', () => {
     assert.deepStrictEqual(parseAgentFrontmatter('---\nskills: [rig:plan, rig:test]\n---\n'), { tools: null, skills: ['rig:plan', 'rig:test'] });
   });
+  it('handles a BOM and inline comments on skills', () => {
+    assert.deepStrictEqual(parseAgentFrontmatter('\uFEFF---\nskills:\n  - rig:git  # main skill\n---\n').skills, ['rig:git']);
+  });
+  it('report-only is the explicit roles, not agents without edit tools', () => {
+    for (const t of ['researcher', 'code-reviewer', 'brainstormer']) assert.strictEqual(isReportOnly(agentDefinitionFor(`rig:${t}`, PLUGIN_ROOT)), true, t);
+    for (const t of ['git-operator', 'mcp-runner', 'implementer', 'tester']) assert.strictEqual(isReportOnly(agentDefinitionFor(`rig:${t}`, PLUGIN_ROOT)), false, t);
+  });
   it('returns null without frontmatter', () => {
     assert.strictEqual(parseAgentFrontmatter('no frontmatter'), null);
   });
@@ -35,7 +42,7 @@ describe('teammate-role-context', () => {
       const type = `rig:${f.slice(0, -3)}`;
       const def = agentDefinitionFor(type, PLUGIN_ROOT);
       assert.ok(def, type);
-      const named = roleLines(type, PLUGIN_ROOT).filter((l) => l.startsWith('Before starting')).length;
+      const named = roleLines(type, PLUGIN_ROOT).filter((l) => l.startsWith('Role skill: read')).length;
       assert.strictEqual(named, def.skills.length, `${type}: every preload named`);
     }
   });
@@ -56,7 +63,7 @@ describe('teammate-role-context', () => {
       .map((f) => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');
     assert.ok(!/mode: ["']plan|--plan-approval|--delegate|shutdown_re(quest|sponse)|broadcast/.test(all));
     const doc = fs.readFileSync(path.join(dir, 'references', 'team-coordination.md'), 'utf8').replace(/`/g, '');
-    for (const rule of teamRuleLines().slice(1, 5)) assert.ok(doc.includes(rule.slice(2)), `coordination doc has: ${rule}`);
+    for (const rule of teamRuleLines().slice(1)) assert.ok(doc.includes(rule.slice(2)), `coordination doc has: ${rule}`);
   });
   it('team rules cover tasks, ownership, messages, reports and shutdown', () => {
     const text = teamRuleLines().join('\n');

@@ -7,7 +7,7 @@ The Rig hook gives every in-process teammate these rules as `## Team rules` (sou
 - Edit only the files your task assigns to you. Need another file: message its owner or the lead first.
 - If `TaskUpdate` is available, mark the task completed before you report. Not done: say why instead.
 - Message teammates and the lead by name with `SendMessage`, one message per recipient.
-- Reports go to the Reports path (default `plans/reports/`), `{type}-{date}-{slug}.md`: concise, unresolved questions last.
+- Reports go to the Reports path in Rig Context (default plans/reports/): concise, unresolved questions last. Name: `{type}-{date}-{slug}.md`.
 - On a shutdown request: finish the current step, update your task, then approve.
 - Commits (only when the task asks): conventional, focused, no AI references; never force-push.
 

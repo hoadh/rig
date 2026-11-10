@@ -15,8 +15,8 @@ Claude Code runs the team (mailbox, idle notices, shutdown, plan approval, task 
 
 ## Workflow
 
-1. Flag off, or the Agent tool rejects `name`: stop and tell the user to set the flag.
-2. Pick the template in `references/team-templates.md`. Plan-first: the user puts the lead in plan mode (Shift+Tab) first; teammates then plan before editing.
+1. Check the flag: `echo $CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` is `1` (or settings `env`). Off: stop and tell the user; a named Agent call without it is only a plain subagent. After the first spawn, `~/.claude/teams/session-<8>/config.json` must list the teammate.
+2. Pick the template in `references/team-templates.md`. Plan-first: the user puts the lead in plan mode (Shift+Tab) before spawning; those teammates plan first, Claude Code approves their plans itself (no lead review), then they edit in Manual mode (prompts in the lead). Leave plan mode before testing and merging.
 3. Split the work into tasks with disjoint files (`Files: src/api/*`). If `TaskCreate` is available (newer models: `CLAUDE_CODE_ENABLE_TODO_TOOLS=1`), add them to the shared list, 5-6 per teammate; otherwise each spawn prompt carries its task.
 4. Spawn 3-5 teammates in one message: `Agent` with `name`, `subagent_type: rig:<agent>`, a task prompt ending with the Rig Context Block. Never pass `isolation` (makes a plain subagent) or `mode` (not supported per teammate).
 5. While they work, do not edit their files; answer messages, redirect by name.

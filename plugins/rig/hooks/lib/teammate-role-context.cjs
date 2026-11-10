@@ -12,11 +12,12 @@ const fs = require('fs');
 const path = require('path');
 
 const AGENT_NAME = /^[a-z][a-z0-9-]{0,63}$/;
-const EDIT_TOOLS = ['Edit', 'Write', 'NotebookEdit'];
+// Roles whose job is a report, not changes. Explicit: git-operator and mcp-runner have no edit tools but act.
+const REPORT_ONLY_AGENTS = new Set(['researcher', 'code-reviewer', 'brainstormer']);
 
 /** Frontmatter `tools` (comma list) and `skills` (YAML list or inline) of an agent file; null when unreadable. */
 function parseAgentFrontmatter(text) {
-  const m = /^---\r?\n([\s\S]*?)\r?\n---/.exec(String(text || ''));
+  const m = /^\uFEFF?---\r?\n([\s\S]*?)\r?\n---/.exec(String(text || ''));
   if (!m) return null;
   const lines = m[1].split(/\r?\n/);
   const out = { tools: null, skills: [] };
@@ -31,7 +32,7 @@ function parseAgentFrontmatter(text) {
       else for (let j = i + 1; j < lines.length && /^\s+-\s*/.test(lines[j]); j++) out.skills.push(lines[j].replace(/^\s+-\s*/, '').trim());
     }
   }
-  out.skills = out.skills.map((s) => s.replace(/^["']|["']$/g, ''));
+  out.skills = out.skills.map((s) => s.replace(/\s+#.*$/, '').replace(/^["']|["']$/g, '')).filter(Boolean);
   return out;
 }
 
@@ -60,9 +61,9 @@ function roleSkillFiles(def, pluginRoot) {
     .filter((f) => fs.existsSync(f));
 }
 
-/** True when the definition limits tools and none of them edits files. */
+/** True for roles that only report (researcher, code-reviewer, brainstormer). */
 function isReportOnly(def) {
-  return Boolean(def && Array.isArray(def.tools) && !def.tools.some((t) => EDIT_TOOLS.includes(t)));
+  return Boolean(def && REPORT_ONLY_AGENTS.has(def.name));
 }
 
 /** `## Your role` lines for a teammate, or [] when there is nothing Rig-specific to say. */
@@ -71,7 +72,7 @@ function roleLines(agentType, pluginRoot) {
   if (!def) return [];
   const lines = ['## Your role', `Agent: ${agentType}`];
   for (const file of roleSkillFiles(def, pluginRoot)) {
-    lines.push(`Before starting, read ${file} (your role skill; teammates do not get an agent's skill preloads).`);
+    lines.push(`Role skill: read ${file} once, before your first task (teammates do not get an agent's skill preloads).`);
   }
   if (isReportOnly(def)) lines.push('Report findings only: do not change project files (your report file is fine).');
   return lines;
