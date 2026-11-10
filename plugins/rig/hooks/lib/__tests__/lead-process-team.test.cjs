@@ -56,10 +56,10 @@ describe('lead-process-team', () => {
     assert.strictEqual(lpt.isLeadAlive(resumedTeam(leadProcess(999, '1', 'box#pid:[1]')), linux), null, 'another pid namespace: unknown');
     assert.strictEqual(lpt.isLeadAlive({ members: [] }, linux), null);
     const err = (code) => () => { const e = new Error(code); e.code = code; throw e; };
-    assert.strictEqual(lpt.isLeadAlive(resumedTeam(), { platform: 'darwin', kill: () => true }), true);
-    assert.strictEqual(lpt.isLeadAlive(resumedTeam(), { platform: 'darwin', kill: err('ESRCH') }), false);
-    assert.strictEqual(lpt.isLeadAlive(resumedTeam(), { platform: 'win32', kill: err('EPERM') }), true);
-    assert.strictEqual(lpt.isLeadAlive(resumedTeam(), { platform: 'win32', kill: err('EINVAL') }), null);
+    assert.strictEqual(lpt.isLeadAlive(resumedTeam(), { platform: 'darwin', pidSpace: null, kill: () => true }), true);
+    assert.strictEqual(lpt.isLeadAlive(resumedTeam(), { platform: 'darwin', pidSpace: null, kill: err('ESRCH') }), false);
+    assert.strictEqual(lpt.isLeadAlive(resumedTeam(), { platform: 'win32', pidSpace: null, kill: err('EPERM') }), true);
+    assert.strictEqual(lpt.isLeadAlive(resumedTeam(), { platform: 'win32', pidSpace: null, kill: err('EINVAL') }), null);
   });
   it('teamByLeadProcess: only the hook parent counts; one match, else null', () => {
     const opts = { parentPid: CLAUDE_PID, startOf: () => '13576414', pidSpace: SPACE };
