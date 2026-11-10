@@ -33,10 +33,13 @@ const PUSH_PROOF = extractBlock(DOCS.push, 'push-proof');
 const COMMIT_PROOF = extractBlock(DOCS.commit, 'commit-proof');
 assert.strictEqual(extractBlock(DOCS.commit, 'push-proof'), PUSH_PROOF, 'workflow-commit.md push-proof drifted');
 assert.strictEqual(extractBlock(DOCS.pr, 'push-proof'), PUSH_PROOF, 'pr/SKILL.md push-proof drifted');
-// The agent states the exact result lines itself (live 2.0.1: a haiku git-operator dropped the leading mark)
+// The agent states the exact result lines itself (live 2.0.1: a haiku git-operator dropped the leading mark), and each
+// line must still exist in the git skill, so a reworded skill fails here instead of leaving the agent with stale lines.
 const OPERATOR = fs.readFileSync(path.join(ROOT, 'plugins/rig/agents/git-operator.md'), 'utf8');
-for (const line of ['nothing to commit (working tree clean)', 'nothing committed', '✓ pushed: <short-hash> -> origin/<branch>', '✗ push NOT confirmed']) {
+const SKILL_TEXT = ['plugins/rig/skills/git/SKILL.md', DOCS.push, DOCS.commit].map((f) => fs.readFileSync(path.join(ROOT, f), 'utf8')).join('\n');
+for (const line of ['nothing to commit (working tree clean)', 'nothing to push', 'nothing committed', '✓ pushed: <short-hash> -> origin/<branch>', '✗ push NOT confirmed: HEAD <h1> != remote <h2|none>']) {
   assert.ok(OPERATOR.includes(line), `git-operator.md must state the exact result line: ${line}`);
+  assert.ok(SKILL_TEXT.includes(line), `the git skill no longer contains the result line: ${line}`);
 }
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'push-proof-'));

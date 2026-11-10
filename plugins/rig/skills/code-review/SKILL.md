@@ -13,8 +13,8 @@ Rig adds two things on top of the built-in `/code-review`: a red-team pass and a
 
 ## Diff review (PR, commit, pending)
 
-1. Resolve the target: `#123` or PR URL = PR; 7+ hex chars = commit; `--pending` or no argument = staged and unstaged changes. Ask via `AskUserQuestion` if nothing is reviewable.
-2. Pending changes, branch or PR targets: run the built-in `/code-review <target>` and keep its findings. Fallback, used for a commit hash, for a directory outside the current repository (the built-in reviews the session's repository; live 2.0.1: no output for such a path), when `/code-review` cannot be invoked from this skill (unknown command, no output), or when it cannot run (not a git repo, no `gh`): spawn the `code-reviewer` agent on `git show` / `git diff` / `gh pr diff`.
+1. Resolve the target: `#123` or PR URL = PR; 7+ hex chars = commit; `--pending` or no argument = staged and unstaged changes; a directory path = the pending changes of that directory's repository. Ask via `AskUserQuestion` if nothing is reviewable.
+2. Pending changes, branch or PR targets: run the built-in `/code-review <target>` and keep its findings. Fallback, used for a commit hash, for a directory outside the session's repository (the built-in only reviews the session's repository), when `/code-review` cannot be invoked from this skill (unknown command, no output), or when it cannot run (not a git repo, no `gh`): spawn the `code-reviewer` agent on `git show` / `git diff` / `gh pr diff`.
 3. Red-team pass: read `references/adversarial-review.md` and run it on the same diff. It has a scope gate; skip only below that threshold and say so.
 4. Report built-in findings and a `## Red-team` section separately, each with severity and file:line. Critical findings block merge.
 
