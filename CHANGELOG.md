@@ -1,6 +1,12 @@
 # Changelog
 
-## 2.0.2 (unreleased)
+## 2.0.3 (unreleased)
+
+### Fixes
+
+* **Agent-team teammates get the team context again.** Claude Code now sends a teammate's SubagentStart with a unique `agent_id` (no `<name>@<team>`) and the teammate's name as `agent_type`. `team-context-inject` found no team and stayed silent, and `subagent-init` used the name instead of the agent definition. A shared resolver takes the team from `session_id` (`session-<8 chars>`, per the agent teams docs; the legacy `name@team` id and the deprecated `team_name` still work), matches the member in the team config, and gives both hooks the team, the peers and the real agent type (`rig:researcher`). Found in the 2.0.2 live check.
+
+## 2.0.2 (2026-11-10)
 
 ### Fixes
 
