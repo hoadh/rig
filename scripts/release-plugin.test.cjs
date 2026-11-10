@@ -170,6 +170,10 @@ describe('refusals', () => {
     const dir = fixture();
     await refused(dir, { apply: true }, { tty: false }, /not a TTY/);
   });
+  it('--apply without a TTY never reads the ancestry (no Windows PowerShell query)', async () => {
+    const dir = fixture();
+    await refused(dir, { apply: true }, { tty: false, ancestors: () => { throw new Error('must not be read'); } }, /not a TTY/);
+  });
   it('--apply under a Claude Code ancestor', async () => {
     const dir = fixture();
     await refused(dir, { apply: true }, { ancestors: [{ pid: 42, name: 'claude', args: ['claude'] }] }, /is Claude Code/);

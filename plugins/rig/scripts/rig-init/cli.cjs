@@ -84,7 +84,7 @@ function scopeTargets(o, { home, cwd }) {
 
 /**
  * Internal entry with injectable streams, env, TTY flags, answers and ancestry: for tests only. The bin and `main()` never
- * use it, and the apply path runs the same gate (CLAUDECODE, Claude Code ancestry, TTY, prompt) wherever it is called from.
+ * use it, and the apply path runs the same gate (CLAUDECODE, TTY, Claude Code ancestry, prompt) wherever it is called from.
  * @param {object} io { argv, env, home, cwd, stdout, stderr, stdinIsTTY, stdoutIsTTY, ask, ancestors, pluginRoot, checkVersion, hooks, runInstaller }
  * @returns {Promise<number>} exit code: 0 ok, 1 error, 2 refused (not a terminal / inside Claude Code) or bad usage, 3 migration incomplete
  */

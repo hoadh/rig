@@ -91,6 +91,8 @@ function rigEntry(marketplace) {
 function applyRefusal({ env, stdinIsTTY, stdoutIsTTY, ancestors }) {
   const outside = 'Run this yourself in a terminal: node scripts/release-plugin.cjs --apply';
   if (env.CLAUDECODE) return `--apply tags and commits, so it only runs in a terminal outside Claude Code (CLAUDECODE is set here). ${outside}`;
+  // Before the ancestry: a non-TTY run cannot confirm anyway, and must not start the Windows PowerShell query
+  if (!stdinIsTTY || !stdoutIsTTY) return `--apply needs an interactive terminal to ask for confirmation (stdin/stdout is not a TTY). ${outside}`;
   const { readAncestry, isClaudeCodeProcess } = require('../plugins/rig/scripts/rig-init/backup-restore-standalone.cjs');
   let chain;
   try {
@@ -100,7 +102,6 @@ function applyRefusal({ env, stdinIsTTY, stdoutIsTTY, ancestors }) {
   }
   const claude = chain.find(isClaudeCodeProcess);
   if (claude) return `--apply only runs in a terminal outside Claude Code (parent process ${claude.pid} is Claude Code). ${outside}`;
-  if (!stdinIsTTY || !stdoutIsTTY) return `--apply needs an interactive terminal to ask for confirmation (stdin/stdout is not a TTY). ${outside}`;
   return null;
 }
 

@@ -79,7 +79,7 @@ describe('C1: the y/N prompt accepts an answer', () => {
     for (const argv of [['--migrate'], ['--migrate', '--global'], ['--resume'], ['--restore', m.root], ['--permissions'], ['--runtime'], ['--deps']]) {
       const res = spawnSync(process.execPath, [BIN, ...argv], { env: cleanEnv(m), input: 'y\ny\ny\n', encoding: 'utf8', cwd: m.project });
       assert.strictEqual(res.status, 2, argv.join(' '));
-      assert.match(res.stderr, /interactive terminal|outside Claude Code/, argv.join(' '));
+      assert.match(res.stderr, /interactive terminal/, argv.join(' '));
     }
     assert.deepStrictEqual(snapshot(m.root), state);
   });
@@ -103,6 +103,16 @@ describe('H1: no apply from inside Claude Code, however the pty and env are arra
     assert.match(applyRefusal({ ...tty, ancestors: () => { throw new Error('no /proc'); } }), /could not check[\s\S]*no \/proc[\s\S]*refuses/);
   });
 
+  it('without a TTY refuses before reading the ancestry (no Windows PowerShell query for piped or CI runs)', () => {
+    let read = 0;
+    const ancestors = () => { read += 1; throw new Error('must not be read'); };
+    for (const io of [{ stdinIsTTY: false, stdoutIsTTY: true }, { stdinIsTTY: true, stdoutIsTTY: false }]) {
+      assert.match(applyRefusal({ env: {}, ...io, command: 'rig-init --migrate', ancestors }), /interactive terminal/);
+    }
+    assert.strictEqual(read, 0);
+    assert.match(applyRefusal({ env: { CLAUDECODE: '1' }, stdinIsTTY: false, stdoutIsTTY: false, command: 'x', ancestors }), /CLAUDECODE is set/);
+  });
+
   it('reads the real ancestry (Linux /proc) and walks fake chains for /proc, ps and PowerShell', (t) => {
     if (process.platform === 'linux') assert.strictEqual(readAncestry()[0].pid, process.ppid);
     else t.diagnostic('real /proc chain only on Linux');
@@ -120,22 +130,30 @@ describe('H1: no apply from inside Claude Code, however the pty and env are arra
     };
     assert.ok(readAncestry({ platform: 'darwin', startPid: 100, run: ps }).some(isClaudeCodeProcess));
     const rows = [{ ProcessId: 100, ParentProcessId: 50, Name: 'node.exe', CommandLine: 'node x' }, { ProcessId: 50, ParentProcessId: 10, Name: 'claude.exe', CommandLine: 'claude' }, { ProcessId: 10, ParentProcessId: 0, Name: 'explorer.exe', CommandLine: '' }];
-    const win = readAncestry({ platform: 'win32', startPid: 100, run: () => ({ status: 0, stdout: JSON.stringify(rows) }) });
+    let psArgs;
+    const win = readAncestry({ platform: 'win32', startPid: 100, run: (cmd, args) => { psArgs = [cmd, ...args]; return { status: 0, stdout: JSON.stringify(rows) }; } });
     assert.ok(win.some(isClaudeCodeProcess));
+    assert.deepStrictEqual(psArgs.slice(0, 4), ['powershell', '-NoProfile', '-NonInteractive', '-Command']);
+    assert.match(psArgs[4], /^\$ProgressPreference = 'SilentlyContinue'; Get-CimInstance Win32_Process /, 'no progress CLIXML on stderr');
     assert.throws(() => readAncestry({ platform: 'win32', startPid: 1, run: () => ({ status: 1, stdout: '' }) }), /process query failed/);
   });
 
-  it('end to end: `env -u CLAUDECODE` under a claude parent process is refused by the real bin (Linux)', (t) => {
+  it('end to end: `env -u CLAUDECODE` in a pty made with `script` under a claude parent process is refused by the real bin (Linux)', (t) => {
     if (process.platform !== 'linux') return t.skip('needs /proc and a symlink named claude');
+    if (spawnSync('script', ['--version'], { encoding: 'utf8' }).status !== 0) return t.skip('needs util-linux script for a pty');
     const m = machine({ project: false, limit: 12 });
     const fakeClaude = path.join(m.root, 'claude');
     fs.symlinkSync(process.execPath, fakeClaude); // comm of this process is `claude`, like the real binary
     const state = snapshot(m.root);
-    const code = `const r = require('child_process').spawnSync(process.execPath, [${JSON.stringify(BIN)}, '--runtime'], { env: process.env, encoding: 'utf8' }); process.stdout.write(JSON.stringify({ status: r.status, err: r.stderr }));`;
+    // A TTY is required now: without one the gate refuses before it reads the ancestry
+    const inner = `${JSON.stringify(process.execPath)} ${JSON.stringify(BIN)} --runtime; echo "exit=$?"`;
+    // SHELL=/bin/sh: `script -c` runs $SHELL -c, and `$?` is not fish syntax
+    const code = `const r = require('child_process').spawnSync('script', ['-qec', ${JSON.stringify(inner)}, '/dev/null'], { env: { ...process.env, SHELL: '/bin/sh' }, encoding: 'utf8', input: '', timeout: 30000 }); process.stdout.write(JSON.stringify({ out: r.stdout }));`;
     const res = spawnSync(fakeClaude, ['-e', code], { env: cleanEnv(m), encoding: 'utf8' });
-    const out = JSON.parse(res.stdout);
-    assert.strictEqual(out.status, 2);
-    assert.match(out.err, /parent process, pid \d+, is Claude Code/);
+    const { out } = JSON.parse(res.stdout);
+    assert.match(out, /exit=2/, out);
+    // the fake parent's own pid: run inside a Claude Code session, the real claude is an ancestor too
+    assert.match(out, new RegExp(`parent process, pid ${res.pid}, is Claude Code`), out);
     assert.deepStrictEqual(snapshot(m.root), state);
   });
 

@@ -210,7 +210,7 @@ function readAncestry({ platform = process.platform, startPid = process.pid, run
   }
   if (platform === 'win32') {
     const res = run('powershell', ['-NoProfile', '-NonInteractive', '-Command',
-      'Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,Name,CommandLine | ConvertTo-Json -Compress'], { encoding: 'utf8', timeout: PS_QUERY_TIMEOUT_MS, windowsHide: true });
+      "$ProgressPreference = 'SilentlyContinue'; Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,Name,CommandLine | ConvertTo-Json -Compress"], { encoding: 'utf8', timeout: PS_QUERY_TIMEOUT_MS, windowsHide: true });
     if (res.error || res.status !== 0) throw new Error(`process query failed: ${res.error ? res.error.message : `exit ${res.status}`}`);
     const rows = [].concat(JSON.parse(res.stdout));
     const byPid = new Map(rows.map((r) => [r.ProcessId, r]));
@@ -238,10 +238,12 @@ function readAncestry({ platform = process.platform, startPid = process.pid, run
 
 /**
  * Why an apply verb must not run here, or null. Applying changes user config, so it needs the user's own terminal:
- *  - CLAUDECODE set, or ANY ancestor process is Claude Code (`env -u CLAUDECODE` cannot hide the ancestry; a pty made
- *    with `script` still has Claude Code as an ancestor): refused;
- *  - the ancestry cannot be read: refused (fail closed);
- *  - no TTY: nobody can answer the prompt: refused.
+ *  - CLAUDECODE set: refused;
+ *  - no TTY: nobody can answer the prompt: refused. Checked before the ancestry, so a piped or CI run never starts the
+ *    Windows PowerShell query (its cold start passed 30 s on a loaded CI runner);
+ *  - ANY ancestor process is Claude Code (`env -u CLAUDECODE` cannot hide the ancestry; a pty made with `script` still
+ *    has Claude Code as an ancestor): refused;
+ *  - the ancestry cannot be read: refused (fail closed).
  * There is no flag that skips this. `ancestors` is a test seam: a chain, or a function returning one (the real chain is read when it is not given); consent against
  * a determined agent is defense in depth, not a guarantee.
  */
@@ -249,6 +251,9 @@ function applyRefusal({ env = process.env, stdinIsTTY = Boolean(process.stdin.is
   const outside = `Run this yourself in a terminal:\n\n  ${command}\n`;
   if (env.CLAUDECODE) {
     return `rig-init changes your Claude Code configuration, so it only runs in a terminal outside Claude Code (CLAUDECODE is set here).\n${outside}`;
+  }
+  if (!stdinIsTTY || !stdoutIsTTY) {
+    return `rig-init needs an interactive terminal to ask for your confirmation (stdin/stdout is not a TTY), and has no option to skip it.\n${outside}`;
   }
   let chain;
   {
@@ -260,9 +265,6 @@ function applyRefusal({ env = process.env, stdinIsTTY = Boolean(process.stdin.is
   }
   const claude = chain.find(isClaudeCodeProcess);
   if (claude) return `rig-init changes your Claude Code configuration, so it only runs in a terminal outside Claude Code (a parent process, pid ${claude.pid}, is Claude Code).\n${outside}`;
-  if (!stdinIsTTY || !stdoutIsTTY) {
-    return `rig-init needs an interactive terminal to ask for your confirmation (stdin/stdout is not a TTY), and has no option to skip it.\n${outside}`;
-  }
   return null;
 }
 

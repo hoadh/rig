@@ -210,7 +210,7 @@ describe('standalone restore.cjs', () => {
     delete env.CLAUDECODE;
     const noTty = spawnSync(process.execPath, [path.join(backup, 'restore.cjs')], { env, input: 'y\n', encoding: 'utf8' });
     assert.strictEqual(noTty.status, 2);
-    assert.match(noTty.stderr, /interactive terminal|outside Claude Code/); // a Claude Code ancestor (this test run inside a session) is refused first
+    assert.match(noTty.stderr, /interactive terminal/); // no TTY is refused before the ancestry is read
     const inside = spawnSync(process.execPath, [path.join(backup, 'restore.cjs')], { env: { ...env, CLAUDECODE: '1' }, input: 'y\n', encoding: 'utf8' });
     assert.strictEqual(inside.status, 2);
     assert.match(inside.stderr, /outside Claude Code/);
