@@ -66,21 +66,34 @@ node scripts/release-plugin.cjs --apply [--allow-branch]
 Answer `y`. The script:
 
 1. tags the current commit (the content commit) as `v<version>`, annotated, or signed when git signing is set up;
-2. commits `.claude-plugin/marketplace.json` on top with `ref: v<version>` and `sha: <content commit>`.
+2. on `main`, creates the branch `release/v<version>` and switches to it; on another branch (a beta), stays there;
+3. commits `.claude-plugin/marketplace.json` with `ref: v<version>` and `sha: <content commit>` on that branch.
 
 The pin is one commit after the tag, because the entry has to name the commit that contains the content. So a marketplace read at the tag has the unpinned entry. Install from the branch, never from `#v<version>`.
 
 ### 5. Push
 
-The script never pushes. Push the branch and the tag together:
+The script never pushes; it prints the commands below with the version filled in.
+
+**From `main`.** `main` has the ruleset `main-ci-required`: required checks (lint, node tests on 3 OSes, plugin version bump, validate), no force push, no deletion, and no bypass. The pin commit is new, so it reaches `main` through a pull request like any other change:
+
+```bash
+git push -u origin release/v<version>
+gh pr create --base main --head release/v<version> --title "release: pin marketplace to v<version>" --body "Release pin for v<version>."
+# after CI on the pull request passes:
+git checkout main && git merge --ff-only release/v<version> && git push origin main v<version>
+git push origin --delete release/v<version> && git branch -d release/v<version>
+```
+
+Push the tag only with the merge, so `main` never has a tag newer than its pin.
+
+**From another branch (a beta).** Push the branch and the tag together:
 
 ```bash
 git push origin <branch> v<version>
 ```
 
-`main` has the ruleset `main-ci-required`: required checks (lint, node tests on 3 OSes, plugin version bump, validate), no force push, no deletion. A pull request merge pushes commits that already passed CI, but the pin commit is new, so a direct push of it is refused unless your role is on the ruleset's bypass list (Repository admin). Without a bypass, push the pin to a branch, open a pull request and fast-forward it after CI.
-
-For a beta on a release branch, testers can install now with the command the script printed (`/plugin marketplace add hoadh/rig#<branch>`). For a stable release, or a beta that should reach everyone, merge the branch into `main` (fast-forward or merge commit).
+Testers can install now with the command the script printed (`/plugin marketplace add hoadh/rig#<branch>`). For a beta that should reach everyone, merge the branch into `main` by pull request (fast-forward).
 
 ### 6. Verify
 
