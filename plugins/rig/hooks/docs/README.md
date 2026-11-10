@@ -9,6 +9,7 @@ This directory contains hooks for Claude Code sessions.
 | **Session Init** | `session-init.cjs` | Session startup initialization (SessionStart) |
 | **Subagent Init** | `subagent-init.cjs` | Subagent context injection (SubagentStart) |
 | **Team Context** | `team-context-inject.cjs` | Agent team context injection (SubagentStart) |
+| **Teammate Idle Guard** | `teammate-idle-guard.cjs` | One nudge for a teammate going idle with its task in progress (TeammateIdle) |
 | **Dev Rules** | `dev-rules-reminder.cjs` | Dynamic session facts: date, paths, plan context, naming (UserPromptSubmit) |
 
 Access control and file naming are no longer hooks. See [Permission Rules](#permission-rules) and the Rig core rules (`rules/core-rules.md`).

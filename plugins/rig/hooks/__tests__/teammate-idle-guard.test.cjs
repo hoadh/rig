@@ -65,6 +65,35 @@ describe('teammate-idle-guard', () => {
       assert.strictEqual(run(ctx, idle()).code, 0);
     } finally { fs.rmSync(ctx.home, { recursive: true, force: true }); }
   });
+  it('a reused task id with a new subject is a new task', () => {
+    const ctx = setup([task(1, 'dev-1', 'in_progress', 'old work')]);
+    try {
+      assert.strictEqual(run(ctx, idle()).code, 2);
+      fs.writeFileSync(path.join(ctx.dir, '1.json'), JSON.stringify(task(1, 'dev-1', 'in_progress', 'new work')));
+      assert.strictEqual(run(ctx, idle()).code, 2);
+      const markers = fs.readdirSync(path.join(ctx.data, 'state')).filter((n) => n.startsWith('rig-teammate-idle-'));
+      assert.strictEqual(markers.length, 2, 'markers carry the rig- prefix, so state pruning removes them');
+    } finally { fs.rmSync(ctx.home, { recursive: true, force: true }); }
+  });
+  it('reads the list named by CLAUDE_CODE_TASK_LIST_ID', () => {
+    const ctx = setup([]);
+    const other = path.join(ctx.home, '.claude', 'tasks', 'my-plan');
+    fs.mkdirSync(other, { recursive: true });
+    fs.writeFileSync(path.join(other, '4.json'), JSON.stringify(task(4, 'dev-1', 'in_progress')));
+    try {
+      const env = { ...process.env, HOME: ctx.home, USERPROFILE: ctx.home, CLAUDE_PLUGIN_DATA: ctx.data, CLAUDE_CODE_TASK_LIST_ID: 'my-plan' };
+      const r = spawnSync(process.execPath, [HOOK], { input: JSON.stringify(idle()), env, encoding: 'utf8' });
+      assert.strictEqual(r.status, 2);
+      assert.match(r.stderr, /#4/);
+    } finally { fs.rmSync(ctx.home, { recursive: true, force: true }); }
+  });
+  it('an unwritable state dir exits 0 (no nudge, no loop)', () => {
+    const ctx = setup([task(1, 'dev-1', 'in_progress')]);
+    fs.writeFileSync(path.join(ctx.data, 'state'), 'not a dir'); // stateDir() cannot be a directory
+    try {
+      assert.strictEqual(run(ctx, idle()).code, 0);
+    } finally { fs.rmSync(ctx.home, { recursive: true, force: true }); }
+  });
   it('is off through .rig.json hooks', () => {
     const ctx = setup([task(1, 'dev-1', 'in_progress')], { config: { hooks: { 'teammate-idle-guard': false } } });
     try {
@@ -76,7 +105,11 @@ describe('teammate-idle-guard', () => {
     fs.writeFileSync(path.join(ctx.dir, 'bad.json'), '{not json');
     try {
       assert.strictEqual(run(ctx, idle()).code, 2, 'a malformed file is skipped, the valid task still counts');
-      for (const p of [{}, { teammate_name: 'dev-1' }, { teammate_name: 'dev-1', session_id: 'short' }, { teammate_name: 'x', team_name: '../..' }]) {
+      // a task outside the tasks root, reachable only through an unsafe team_name, must not count
+      const outside = path.join(ctx.home, '.claude', 'escape');
+      fs.mkdirSync(outside, { recursive: true });
+      fs.writeFileSync(path.join(outside, '9.json'), JSON.stringify(task(9, 'dev-1', 'in_progress')));
+      for (const p of [{}, { teammate_name: 'dev-1' }, { teammate_name: 'dev-1', session_id: 'short' }, { teammate_name: 'dev-1', team_name: '../escape' }]) {
         assert.strictEqual(run(ctx, p).code, 0, JSON.stringify(p));
       }
       const r = spawnSync(process.execPath, [HOOK], { input: 'not json', env: { ...process.env, HOME: ctx.home, USERPROFILE: ctx.home }, encoding: 'utf8' });

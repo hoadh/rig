@@ -14,6 +14,7 @@
  */
 try {
   const fs = require('fs');
+  const crypto = require('crypto');
   const os = require('os');
   const path = require('path');
   const { isHookEnabled } = require('./lib/rig-config-utils.cjs');
@@ -47,20 +48,22 @@ try {
     for (const f of files) {
       let task;
       try { task = JSON.parse(fs.readFileSync(path.join(tasksRoot, list, f), 'utf8')); } catch { continue; }
-      if (task && task.owner === teammate && task.status === 'in_progress') open.push({ list, id: String(task.id ?? f.slice(0, -5)), subject: String(task.subject || '') });
+      // owner: the bare teammate name; `<name>@<team>` accepted in case a build stores the agent id
+      if (task && (task.owner === teammate || task.owner === `${teammate}@${list}`) && task.status === 'in_progress') open.push({ list, id: String(task.id ?? f.slice(0, -5)), subject: String(task.subject || '') });
     }
   }
   if (!open.length) process.exit(0);
 
-  // Once per (list, teammate, task): the marker file name is a hash-free safe slug
-  const markerOf = (t) => path.join(stateDir(), `teammate-idle-${`${t.list}-${teammate}-${t.id}`.replace(/[^A-Za-z0-9._-]/g, '_')}`);
+  // Once per task instance: (list, teammate, id, subject) hashed, so a reused id with a new subject is a new task.
+  // `rig-` prefix: pruneStaleState removes markers after 7 days. `wx`: never follow or reuse an existing file.
+  const markerOf = (t) => path.join(stateDir(), `rig-teammate-idle-${crypto.createHash('sha256').update(JSON.stringify([t.list, teammate, t.id, t.subject])).digest('hex').slice(0, 24)}`);
   const fresh = open.filter((t) => !fs.existsSync(markerOf(t)));
   if (!fresh.length) process.exit(0);
-  for (const t of fresh) fs.writeFileSync(markerOf(t), new Date().toISOString());
+  for (const t of fresh) fs.writeFileSync(markerOf(t), new Date().toISOString(), { flag: 'wx' });
 
   const list = fresh.map((t) => `#${t.id}${t.subject ? ` "${t.subject.slice(0, 80)}"` : ''}`).join(', ');
   logHook(HOOK, { event: 'TeammateIdle', target: teammate, note: `nudge ${fresh.map((t) => t.id).join(',')}` });
-  process.stderr.write(`Task ${list} is still in_progress and owned by you. If it is done, mark it completed with TaskUpdate; if not, tell the lead why, then stop.\n`);
+  process.stderr.write(`Task ${list} is still in_progress and owned by you. If it is done, mark it completed with TaskUpdate; if not (or TaskUpdate is unavailable), tell the lead, then stop.\n`);
   process.exit(2);
 } catch (e) {
   try { require('./lib/hook-logger.cjs').logHookCrash('teammate-idle-guard', e, { event: 'TeammateIdle' }); } catch (_) { /* ignore */ }
