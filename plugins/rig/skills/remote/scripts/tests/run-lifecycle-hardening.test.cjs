@@ -160,16 +160,19 @@ t.test('H2: hung git is killed by the timeout (safeGit and push path)', async ()
     cp.spawnSync(fake, ['--rig-warm'], { timeout: 30000 });
     fs.rmSync(path.join(bin, 'git.ran'), { force: true });
     process.env.PATH = `${bin}${path.delimiter}${oldPath}`;
+    // win32: the git.exe launcher starts node before the fake records its run; on a loaded runner that passed 300 ms
+    // (CI 2026-11-11 and earlier), so the kill came first. 3 s still proves a 60 s hang is killed.
+    const timeoutMs = process.platform === 'win32' ? 3000 : 300;
     const t0 = Date.now();
     let err = null;
-    try { safeGit(bin, ['status'], { timeoutMs: 300 }); } catch (e) { err = e; }
+    try { safeGit(bin, ['status'], { timeoutMs }); } catch (e) { err = e; }
     t.ok(err && err.code === 'ETIMEDOUT');
     t.ok(fakeRanCount(bin, 'git') >= 1, 'fake git must have run (timeout, not a spawn failure)');
-    process.env.RIG_GIT_TIMEOUT_MS = '300';
+    process.env.RIG_GIT_TIMEOUT_MS = String(timeoutMs);
     const r = await pushWithRetry(bin, 'rig/m/s', { backoffMs: [] });
     t.eq([r.ok, r.failure], [false, 'push']);
     t.ok(fakeRanCount(bin, 'git') >= 2, 'push path must also have run the fake git');
-    t.ok(Date.now() - t0 < 10000);
+    t.ok(Date.now() - t0 < 10000 + 2 * timeoutMs);
   } finally {
     delete process.env.RIG_GIT_TIMEOUT_MS;
     process.env.PATH = oldPath;
