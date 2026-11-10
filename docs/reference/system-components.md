@@ -46,6 +46,7 @@ Catalog of Rig layers and components, plus the technology stack. For why the sys
 - `UserPromptSubmit`: `dev-rules-reminder`
 - `PreToolUse` (Bash): `bash-safety-guard`
 - `Stop`: `verify-completion-guard`
+- `TeammateIdle`: `teammate-idle-guard`
 
 **Log Contract**:
 - One JSON object per line
@@ -308,8 +309,14 @@ All hooks located in `plugins/rig/hooks/` with consistent patterns - fail-safe e
 
 **4. Team-Context Hook** (`team-context-inject.cjs`)
 - **Trigger**: SubagentStart (agent teams only). Claude Code fires it each time an in-process teammate handles a new message, not only at spawn
-- **Purpose**: Inject team peers and task context
+- **Purpose**: Inject the teammate's Rig context: `## Team Context` (team, peers, task counts), `## Your role` (the `SKILL.md` of each `skills:` preload of its Rig agent, because Claude Code does not apply an agent's `skills` to a teammate; "report findings only" when the agent has no edit tools), `## Team rules` (the only copy of the teammate rules; agents carry no Team Mode section). Module: `lib/teammate-role-context.cjs`. In-process teammates only: a split-pane teammate is a separate session
 - **Teammate detection** (`lib/team-member-resolver.cjs`, shared with `subagent-init`): the team is `session-<first 8 chars of session_id>` (or a legacy `<name>@<team>` agent_id, or the deprecated `team_name`); the member is matched in `~/.claude/teams/<team>/config.json` by agentId, then by name. A teammate's `agent_type` is its name, so `subagent-init` takes the member's `agentType` (for example `rig:researcher`) for the per-agent context
+
+**4b. Teammate-Idle-Guard Hook** (`teammate-idle-guard.cjs`)
+- **Trigger**: TeammateIdle (agent teams)
+- **Purpose**: A teammate about to go idle while it owns an `in_progress` task (`~/.claude/tasks/<CLAUDE_CODE_TASK_LIST_ID or session-<8>>/*.json`) is sent back once per task (exit 2) to mark it completed or say why not. Addresses "task status can lag". No-op when the session has no Task tools (newer models without `CLAUDE_CODE_ENABLE_TODO_TOOLS=1`)
+- **Config**: `hooks.teammate-idle-guard: false`. Marker per (list, teammate, task) in the plugin state dir, so it never loops
+- **Fail-open**: any error exits 0
 
 **5. Verify-Completion-Guard Hook** (`verify-completion-guard.cjs`)
 - **Trigger**: Stop

@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.0.4 (unreleased)
+
+Agent Teams rebuilt as a thin layer on Claude Code's own team features (official guide: https://code.claude.com/docs/en/agent-teams).
+
+### Fixes
+
+* **Teammates get their role skill.** Claude Code does not apply an agent's `skills:` preloads to a teammate, so a `rig:researcher` teammate started without the `research` skill. `team-context-inject` now names the `SKILL.md` of each preload (`## Your role`), and says "report findings only" for agents without edit tools.
+* **`/rig:team implement` spawned plain subagents.** Its template passed `isolation: "worktree"`, which turns a teammate into a subagent, and `--plan-approval` passed a per-teammate `mode`, which teams do not support. Teammates are now spawned without either; plan-first means the lead is in plan mode before spawning.
+* **`session-init` named another session's team.** It took the first directory under `~/.claude/teams`. It now reads only this session's team (`session-<8 chars>`, `leadSessionId` checked) and reports it only when it has teammates.
+* **Shutdown** uses Claude Code's shutdown request everywhere; the agents' `shutdown_response` instructions are gone.
+
+### Changes
+
+* **Teammate rules live in one place.** The "Team Mode" section is removed from the 14 agents (so plain subagents no longer load it); `team-context-inject` gives teammates a short `## Team rules` block instead, kept in step with `skills/team/references/team-coordination.md` by a test.
+* **New `teammate-idle-guard` (TeammateIdle).** A teammate going idle while it owns an `in_progress` task is sent back once per task to close it or say why ("task status can lag"). Off with `.rig.json` `hooks.teammate-idle-guard: false`; a no-op when the session has no Task tools.
+* **`/rig:team` works with or without the Task tools.** Newer models get `TaskCreate`/`TaskList` only with `CLAUDE_CODE_ENABLE_TODO_TOOLS=1`; without them each spawn prompt carries the teammate's task.
+* **`--delegate` removed.** Its useful part is now the default: while teammates work, the lead does not edit their files; after they report it merges, tests and fixes.
+* **Agent teams guide** rewritten (447 to about 100 lines): what Rig adds, usage, what a teammate receives, configuration, limits.
+
 ## 2.0.3 (2026-11-10)
 
 ### Fixes

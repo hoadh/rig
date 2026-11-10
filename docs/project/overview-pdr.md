@@ -1,7 +1,7 @@
 # Project Overview & Product Development Requirements (PDR)
 
 **Project Name**: Rig
-**Version**: 2.0.3 (2026-11-10); 1.1.0 on `release/1.x`
+**Version**: 2.0.4 (unreleased). Last release 2.0.3 (2026-11-10); 1.1.0 on `release/1.x`
 **Last Updated**: 2026-10-17
 **Status**: Active Development
 **Repository**: https://github.com/hoadh/rig
@@ -106,7 +106,8 @@ Full catalog: [guide/SKILLS.md](../../guide/SKILLS.md).
 **Hooks** (`plugins/rig/hooks/`) inject dynamic facts only:
 - `session-init`: session vars, paths, active plan
 - `subagent-init`: Rig context for subagents
-- `team-context-inject`: team peers and tasks
+- `team-context-inject`: teammate context (team, peers, role skill, team rules)
+- `teammate-idle-guard`: one nudge for a teammate's task left `in_progress`
 - `dev-rules-reminder`: `## Rig Session` block (datetime, paths, plan context, naming)
 
 **Native Claude Code features**:

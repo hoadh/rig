@@ -21,7 +21,7 @@ Rig docs follow [Diataxis](https://diataxis.fr/): each page has one job. Layout 
 - [System components](./reference/system-components.md) - catalog of layers, agents, skills, hooks, and technology stack
 - [Skills interconnection map](./reference/skills-interconnection-map.md) - how skills call each other
 - [Skill native task management](./reference/skill-native-task.md) - the optional Tasks API: which skills use it and why phase files stay the record
-- [Agent teams guide](./reference/agent-teams-guide.md) - team templates, roles, and coordination rules
+- [Agent teams guide](./reference/agent-teams-guide.md) - what Rig adds to Claude Code agent teams, usage, configuration, limits
 
 ## Explanation
 - [Architecture](./explanation/architecture.md) - plugin layout, rig-init and the consent gate, coexistence with 1.x, how agents and file-based handoffs fit together
