@@ -208,6 +208,31 @@ describe('team-context-inject.cjs', () => {
       }
     });
 
+    it('detects a teammate from the current payload: session_id + agent_type = teammate name (no @ in agent_id)', async () => {
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'team-inject-current-'));
+      try {
+        const session = '74270464-4fad-4ef6-bbc3-993a98a312ba';
+        const team = 'session-74270464';
+        fs.mkdirSync(path.join(tmpDir, '.claude', 'teams', team), { recursive: true });
+        fs.writeFileSync(path.join(tmpDir, '.claude', 'teams', team, 'config.json'), JSON.stringify({
+          name: team,
+          members: [
+            { agentId: `team-lead@${team}`, name: 'team-lead', agentType: 'team-lead' },
+            { agentId: `probe@${team}`, name: 'probe', agentType: 'rig:researcher' },
+            { agentId: `bob@${team}`, name: 'bob', agentType: 'rig:tester' },
+          ],
+        }));
+        const result = await runHook({ session_id: session, agent_id: 'aprobe-fb5e715e4bb7848f', agent_type: 'probe' }, { env: { HOME: tmpDir } });
+        assert.strictEqual(result.exitCode, 0);
+        const context = result.output?.hookSpecificOutput?.additionalContext || '';
+        assert.ok(context.includes(`Team: ${team}`), context);
+        assert.ok(context.includes('bob (rig:tester)') && context.includes('team-lead (team-lead)'), context);
+        assert.ok(!context.includes('probe (rig:researcher)'), 'the teammate itself is not listed as a peer');
+      } finally {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      }
+    });
+
     it('silently exits if agent_id is not a team member (no @ sign)', async () => {
       const result = await runHook({
         agent_id: 'standalone-agent'

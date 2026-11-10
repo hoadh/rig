@@ -29,6 +29,7 @@ try {
   const { createHookTimer, logHookCrash } = require('./lib/hook-logger.cjs');
   const { yieldsToProjectCopy, isPluginCopy } = require('./lib/global-hook-yields-to-project-copy.cjs');
   const { normalizeAgentType, sanitizeForFilename } = require('./lib/agent-type-normalizer.cjs');
+  const { resolveTeamMember } = require('./lib/team-member-resolver.cjs');
 
   // Early exit if hook disabled in config
   if (!isHookEnabled('subagent-init')) {
@@ -111,6 +112,9 @@ async function main() {
     // Global copy exits when the project install runs this same hook.
     if (yieldsToProjectCopy(__filename, payload)) process.exit(0);
     agentType = payload.agent_type || 'unknown';
+    // An agent-team teammate reports its NAME as agent_type; use its agent definition from the team config instead
+    const teammate = resolveTeamMember(payload);
+    if (teammate && typeof teammate.member.agentType === 'string' && teammate.member.agentType) agentType = teammate.member.agentType;
     const agentId = payload.agent_id || 'unknown';
 
     // Load config for trust verification, naming, and agent-specific context

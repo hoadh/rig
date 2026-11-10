@@ -169,6 +169,25 @@ describe('subagent-init.cjs', () => {
       }
     });
 
+    it('an agent-team teammate gets the context of its agent definition, not of its name', async () => {
+      const home = fs.mkdtempSync(path.join(os.tmpdir(), 'subagent-init-team-'));
+      try {
+        const session = '74270464-4fad-4ef6-bbc3-993a98a312ba';
+        const team = 'session-74270464';
+        fs.mkdirSync(path.join(home, '.claude', 'teams', team), { recursive: true });
+        fs.writeFileSync(path.join(home, '.claude', 'teams', team, 'config.json'), JSON.stringify({
+          name: team, members: [{ agentId: `team-lead@${team}`, name: 'team-lead', agentType: 'team-lead' }, { agentId: `lead-planner@${team}`, name: 'lead-planner', agentType: 'rig:planner' }],
+        }));
+        // Live payload shape: agent_type is the teammate NAME, agent_id has no @team
+        const result = await runHook({ session_id: session, agent_type: 'lead-planner', agent_id: 'alead-planner-0f1e2d3c', cwd: process.cwd() }, { env: { HOME: home, USERPROFILE: home } });
+        const context = result.output?.hookSpecificOutput?.additionalContext || '';
+        assert.ok(context.includes('## Subagent: rig:planner'), context.split('\n')[0]);
+        assert.ok(context.includes('## Plan Status Updates'), 'planner teammate is plan-aware');
+      } finally {
+        fs.rmSync(home, { recursive: true, force: true });
+      }
+    });
+
     it('treats plugin-prefixed agent types (rig:planner) like bare names and keeps filenames safe', async () => {
       const result = await runHook({ agent_type: 'rig:planner', agent_id: 'test-prefix', cwd: process.cwd() });
       const context = result.output?.hookSpecificOutput?.additionalContext || '';

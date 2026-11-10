@@ -14,6 +14,7 @@ try {
   const os = require('os');
   const { isHookEnabled } = require('./lib/rig-config-utils.cjs');
   const { yieldsToProjectCopy } = require('./lib/global-hook-yields-to-project-copy.cjs');
+  const { resolveTeamMember } = require('./lib/team-member-resolver.cjs');
 
   if (!isHookEnabled('team-context-inject')) {
     process.exit(0);
@@ -21,20 +22,6 @@ try {
 
 const TEAMS_DIR = path.join(os.homedir(), '.claude', 'teams');
 const TASKS_DIR = path.join(os.homedir(), '.claude', 'tasks');
-
-/**
- * Extract team name from agent_id (format: "name@team-name")
- * Returns null if not a team agent or if name contains path separators
- */
-function extractTeamName(agentId) {
-  if (!agentId || typeof agentId !== 'string') return null;
-  const atIdx = agentId.indexOf('@');
-  if (atIdx < 1) return null;
-  const name = agentId.substring(atIdx + 1);
-  // Reject path traversal attempts
-  if (name.includes('/') || name.includes('\\') || name.includes('..')) return null;
-  return name;
-}
 
 /**
  * Read and parse JSON file safely
@@ -50,10 +37,10 @@ function readJson(filePath) {
 /**
  * Build peer list from team config, excluding the current agent
  */
-function buildPeerList(config, currentAgentId) {
+function buildPeerList(config, currentMember) {
   if (!config?.members?.length) return '';
   const peers = config.members
-    .filter(m => m.agentId !== currentAgentId)
+    .filter(m => m && typeof m === 'object' && m !== currentMember)
     .map(m => `${m.name} (${m.agentType})`)
     .join(', ');
   return peers || 'none';
@@ -111,19 +98,13 @@ function main() {
     const payload = JSON.parse(stdin);
     // Global copy exits when the project install runs this same hook.
     if (yieldsToProjectCopy(__filename, payload)) process.exit(0);
-    const agentId = payload.agent_id || '';
-
-    // Detect team membership from agent_id pattern (name@team-name)
-    const teamName = extractTeamName(agentId);
-    if (!teamName) process.exit(0); // Not a team agent, exit silently
-
-    // Read team config
-    const configPath = path.join(TEAMS_DIR, teamName, 'config.json');
-    const config = readJson(configPath);
-    if (!config) process.exit(0); // No team config found
+    // Teammate? Team from session_id (or a legacy name@team agent_id), member from the team config
+    const team = resolveTeamMember(payload, { teamsDir: TEAMS_DIR });
+    if (!team) process.exit(0); // Not a teammate (plain subagent, lead, no team config): exit silently
+    const { teamName, config, member } = team;
 
     // Build context
-    const peerList = buildPeerList(config, agentId);
+    const peerList = buildPeerList(config, member);
     const tasks = summarizeTasks(teamName);
 
     const lines = [];
