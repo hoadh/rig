@@ -78,6 +78,8 @@ The script never pushes. Push the branch and the tag together:
 git push origin <branch> v<version>
 ```
 
+`main` has the ruleset `main-ci-required`: required checks (lint, node tests on 3 OSes, plugin version bump, validate), no force push, no deletion. A pull request merge pushes commits that already passed CI, but the pin commit is new, so a direct push of it is refused unless your role is on the ruleset's bypass list (Repository admin). Without a bypass, push the pin to a branch, open a pull request and fast-forward it after CI.
+
 For a beta on a release branch, testers can install now with the command the script printed (`/plugin marketplace add hoadh/rig#<branch>`). For a stable release, or a beta that should reach everyone, merge the branch into `main` (fast-forward or merge commit).
 
 ### 6. Verify
@@ -93,9 +95,21 @@ For a beta on a release branch, testers can install now with the command the scr
 
    Expect the new version, enabled. `claude plugin validate <cache dir>` passes, and `node <cache dir>/bin/rig-init --plan` runs.
 3. On a machine that has the previous release, follow [Update](./install-and-update-rig.md#update) and check that `claude plugin list` shows the new version.
-4. Optional: publish release notes from the CHANGELOG section with `gh release create v<version> --notes-file <section.md>` (add `--prerelease` for a beta).
 
-### 7. Open the next version
+### 7. Publish the GitHub Release
+
+Every tag gets a GitHub Release, so the Releases page and its "Latest" badge match the marketplace. The notes are the version's CHANGELOG section without its heading:
+
+```bash
+v=<version>
+awk -v v="$v" '/^## /{p=($2==v)} p && !/^## /' CHANGELOG.md | sed -e '/./,$!d' > /tmp/rig-release-notes.md
+gh release create "v$v" --title "Rig $v" --notes-file /tmp/rig-release-notes.md --latest   # stable
+gh release create "v$v" --title "Rig $v" --notes-file /tmp/rig-release-notes.md --prerelease # beta
+```
+
+Check with `gh release list`: a stable release shows as `Latest`, a beta as `Pre-release`. If a release was skipped, create it later the same way; pass `--latest=false` for any version older than the current latest.
+
+### 8. Open the next version
 
 The first plugin change after the release raises the version and adds `## <next version> (unreleased)` to `CHANGELOG.md` (see the rules above).
 
