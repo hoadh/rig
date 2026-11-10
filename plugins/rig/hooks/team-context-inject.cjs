@@ -15,6 +15,7 @@ try {
   const { isHookEnabled } = require('./lib/rig-config-utils.cjs');
   const { yieldsToProjectCopy } = require('./lib/global-hook-yields-to-project-copy.cjs');
   const { resolveTeamMember } = require('./lib/team-member-resolver.cjs');
+  const { roleLines, teamRuleLines } = require('./lib/teammate-role-context.cjs');
 
   if (!isHookEnabled('team-context-inject')) {
     process.exit(0);
@@ -124,8 +125,10 @@ function main() {
       lines.push(...rigCtx);
     }
 
-    lines.push('');
-    lines.push('Remember: Check TaskList, claim tasks, respect file ownership, use SendMessage to communicate.');
+    // Role skill (teammates get no agent skill preloads) and the team rules (only teammates get them)
+    const role = roleLines(member.agentType, path.join(__dirname, '..'));
+    if (role.length) lines.push('', ...role);
+    lines.push('', ...teamRuleLines());
 
     const output = {
       hookSpecificOutput: {

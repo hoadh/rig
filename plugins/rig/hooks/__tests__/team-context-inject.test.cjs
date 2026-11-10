@@ -228,6 +228,11 @@ describe('team-context-inject.cjs', () => {
         assert.ok(context.includes(`Team: ${team}`), context);
         assert.ok(context.includes('bob (rig:tester)') && context.includes('team-lead (team-lead)'), context);
         assert.ok(!context.includes('probe (rig:researcher)'), 'the teammate itself is not listed as a peer');
+        // Role skill for a Rig agent: teammates get no `skills:` preload, so the hook names the SKILL.md
+        assert.ok(context.includes('## Your role') && context.includes('Agent: rig:researcher'), context);
+        assert.match(context, /read \S+[\\/]skills[\\/]research[\\/]SKILL\.md/);
+        assert.ok(context.includes('Report findings only'), 'researcher has no edit tools');
+        assert.ok(context.length < 3000, `teammate context stays short (${context.length})`);
       } finally {
         fs.rmSync(tmpDir, { recursive: true, force: true });
       }
@@ -707,7 +712,7 @@ describe('team-context-inject.cjs', () => {
         assert.ok(context.includes('## Team Context'), 'Should have Team Context header');
         assert.ok(context.includes('Team:'), 'Should show team name');
         assert.ok(context.includes('Your peers:'), 'Should show peers');
-        assert.ok(context.includes('Remember:'), 'Should include reminder at end');
+        assert.ok(context.includes('## Team rules'), 'Should end with the team rules');
       } finally {
         fs.rmSync(tmpDir, { recursive: true, force: true });
       }
@@ -730,7 +735,7 @@ describe('team-context-inject.cjs', () => {
 
         // Reminder should include key team concepts
         assert.ok(
-          context.includes('TaskList') && context.includes('file ownership') && context.includes('SendMessage'),
+          context.includes('TaskList') && context.includes('files your task assigns') && context.includes('SendMessage') && context.includes('shutdown request'),
           'Should include helpful team reminders'
         );
       } finally {
