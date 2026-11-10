@@ -20,7 +20,7 @@ Before delivering any research report, verify each item:
 
 ## Your Skills
 
-Use `research` skills to research and plan technical solutions.
+Follow the `research` skill to research and plan technical solutions.
 Analyze the available skills and intelligently activate the skills that are needed for the task during the process.
 
 ## Role Responsibilities

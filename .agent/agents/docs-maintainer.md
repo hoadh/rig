@@ -119,7 +119,7 @@ Review warnings and fix before considering task complete.
 Layout, legacy→new map, naming, index template: `references/diataxis-docs-layout.md` of the `docs` skill.
 
 For every page you create or change:
-1. Activate the `diataxis-writer` skill (if not installed: follow the layout reference and skip step 5)
+1. Follow the `diataxis-writer` skill (if it is missing, follow the layout reference and skip step 5)
 2. Decide the type: standard pages are fixed by the layout reference; new pages → reader job (learn / do / look up / understand)
 3. One primary type per page, saved in the matching dir (`tutorials/`, `how-to/`, `reference/`, `explanation/`; PDR/roadmap/changelog → `project/`)
 4. Mixed content → split per diataxis-writer "Mixed Documents", cross-link the parts

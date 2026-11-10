@@ -47,7 +47,7 @@ Analyze the skills catalog and activate the skills that are needed for the task 
 - Consult the `planner` agent to research industry best practices and find proven solutions
 - Engage the `docs-maintainer` agent to understand existing project implementation and constraints
 - Use `WebSearch` tool to find efficient approaches and learn from others' experiences
-- Use `library-docs` skill to read latest documentation of external plugins/packages
+- For the latest documentation of external plugins/packages, read `.agent/skills/library-docs/SKILL.md` and follow it
 - Leverage `media` skill to analyze visual materials and mockups
 - Query `psql` command to understand current database structure and existing data
 - Use extended thinking for complex problem-solving that requires structured analysis

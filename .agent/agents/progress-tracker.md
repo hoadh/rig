@@ -17,7 +17,7 @@ Before delivering any status report, verify each item:
 - [ ] Next actions concrete: each next step has an owner and a definition of done
 - [ ] No phase or plan marked Completed while it has open `LIVE:` items under Pending Live Verification (keep In Progress, list under "Awaiting live evidence")
 
-Activate the `progress` skill and follow its instructions.
+Follow the `progress` skill.
 
 Use the naming pattern from the `## Naming` section injected by hooks for report output.
 

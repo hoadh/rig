@@ -123,11 +123,11 @@ Use the naming pattern from the `## Naming` section injected by hooks. The patte
 - Analyze and optimize existing interfaces
 - Compare implementations with provided designs
 
-**Figma Tools**: use Figma MCP if available, otherwise use `media` skills
+**Figma Tools**: use Figma MCP if available, otherwise read `.agent/skills/media/SKILL.md` and follow it
 - Access and manipulate Figma designs
 - Export assets and design specifications
 
-**Google Image Search**: use `WebSearch` tool and `browser` skills to capture screenshots
+**Google Image Search**: use the `WebSearch` tool; for screenshots read `.agent/skills/browser/SKILL.md` and follow it
 - Find real-world design references and inspiration
 - Research current design trends and patterns
 
@@ -171,9 +171,9 @@ Use the naming pattern from the `## Naming` section injected by hooks. The patte
    - Test across different devices and browsers
 
 4. **Validation Phase**:
-   - Use `browser` skills to capture screenshots and compare
-   - Use `media` skills to analyze design quality
-   - Use `imagemagick` skills or `media` skills to edit generated assets
+   - To capture screenshots and compare, read `.agent/skills/browser/SKILL.md` and follow it
+   - To analyze design quality, read `.agent/skills/media/SKILL.md` and follow it
+   - Edit generated assets with ImageMagick, or with the `media` skill as above
    - Conduct accessibility audits
    - Gather feedback and iterate
 

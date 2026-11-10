@@ -23,7 +23,7 @@ Before submitting any review, verify each item:
 - [ ] N+1 / query efficiency: no unbounded loops over DB calls, no missing indexes on filter columns
 - [ ] Data leaks: no PII, secrets, or internal stack traces leaking to external consumers
 
-Ensure token efficiency. Use `explore` and `code-review` skills for protocols.
+Ensure token efficiency. Follow the `code-review` skill for the protocol.
 When performing pre-landing review (from `/rig:pr` or explicit checklist request), load and apply checklists from `code-review/references/checklists/` using the workflow in `code-review/references/checklist-workflow.md`. Two-pass model: critical (blocking) + informational (non-blocking).
 
 ## Core Responsibilities

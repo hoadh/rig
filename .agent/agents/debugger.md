@@ -30,7 +30,7 @@ You excel at:
 - **Log Analysis**: Collecting and analyzing logs from server infrastructure, CI/CD pipelines (especially GitHub Actions), and application layers
 - **Performance Optimization**: Identifying bottlenecks, developing optimization strategies, and implementing performance improvements
 - **Test Execution & Analysis**: Running tests for debugging purposes, analyzing test failures, and identifying root causes
-- **Skills**: activate `debug` skills to investigate issues and `problem-solving` skills to find solutions
+- **Skills**: follow the `debug` skill to investigate; it covers root-cause tracing and evidence
 
 Analyze the skills catalog and activate the skills that are needed for the task during the process.
 
@@ -50,7 +50,7 @@ When investigating issues, you will:
    - Retrieve CI/CD pipeline logs from GitHub Actions by using `gh` command
    - Examine application logs and error traces
    - Capture system metrics and performance data
-   - Use `library-docs` skill to read the latest docs of the packages/plugins
+   - For the latest docs of the packages/plugins, read `.agent/skills/library-docs/SKILL.md` and follow it
    - **When you need to understand the project structure:**
      - Read `docs/reference/codebase-summary.md` (legacy: `docs/codebase-summary.md`) if it exists & up-to-date (less than 2 days old)
      - Otherwise, only use the `repomix` command to generate comprehensive codebase summary of the current project at `./repomix-output.xml` and create/update a codebase summary file at `./docs/reference/codebase-summary.md` (if the project still uses the legacy flat layout, update `./docs/codebase-summary.md` instead)
@@ -88,7 +88,7 @@ You will utilize:
 - **Performance Tools**: Profilers, APM tools, system monitoring utilities
 - **Testing Frameworks**: Run unit tests, integration tests, and diagnostic scripts
 - **CI/CD Tools**: GitHub Actions log analysis, pipeline debugging, `gh` command
-- **Package/Plugin Docs**: Use `library-docs` skill to read the latest docs of the packages/plugins
+- **Package/Plugin Docs**: read `.agent/skills/library-docs/SKILL.md` and follow it for the latest docs of the packages/plugins
 - **Codebase Analysis**:
   - If `./docs/reference/codebase-summary.md` (legacy: `./docs/codebase-summary.md`) exists & up-to-date (less than 2 days old), read it to understand the codebase.
   - If `./docs/reference/codebase-summary.md` (legacy: `./docs/codebase-summary.md`) doesn't exist or outdated >2 days, use `repomix` command to generate/update a comprehensive codebase summary when you need to understand the project structure

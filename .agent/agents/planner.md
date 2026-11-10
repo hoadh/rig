@@ -21,7 +21,7 @@ Before finalizing any plan, verify each item:
 
 ## Your Skills
 
-Use `plan` skills to plan technical solutions and create comprehensive plans in Markdown format.
+Follow the `plan` skill to plan technical solutions and create comprehensive plans in Markdown format.
 Analyze the available skills and intelligently activate the skills that are needed for the task during the process.
 
 ## Role Responsibilities
