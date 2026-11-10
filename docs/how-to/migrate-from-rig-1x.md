@@ -28,6 +28,7 @@ rig-init --plan --json   # what /rig:setup reads
 | Kept | Your files that are not Rig's (your hooks, skills, agents, `.env`, `.rig.json`), left in place |
 | Committed | How many moved files are tracked by git |
 | Blockers | Problems to fix first (see the table below). The migration refuses while any blocker is open. |
+| Warnings | Kept files that will misbehave after the move: a `CLAUDE.md` that refers to moved paths (a 1.x `CLAUDE.md` lists the 1.x rules files), and a kept skill named like a plugin skill (`rig:<name>`; Claude Code would list both). Warnings never block |
 
 If the plan finds no 1.x files, there is nothing to migrate.
 
@@ -53,6 +54,8 @@ Afterwards, in a terminal:
 rig-init --runtime       # the migration removes the 1.x statusLine; this sets the new one
 rig-init --permissions   # secret-file ask rules and dependency deny rules
 ```
+
+If `--plan` warned about your `CLAUDE.md`, edit it now: remove the lines that point at the moved 1.x rules files (the plugin injects its core rules into every session and subagent) and keep your own preferences. The old files stay readable in the backup. If it warned about a kept skill named like a plugin skill, delete that skill directory when it is an old Rig copy.
 
 ### 3. Resume an interrupted migration
 

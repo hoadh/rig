@@ -4,7 +4,7 @@ Why `plugins/rig/rules/` holds one file, and where the rest of the workflow guid
 
 ## Why
 
-Claude Code loads every `plugins/rig/rules/*.md` file into a session, subagents included. In 1.0.0 that was five files (about 11 KB), and most of it was task detail a given session never used. Rig 1.1 keeps the always-loaded part to one small file and moves the rest into the skill that uses it. Static always-loaded text (CLAUDE.md, rules, agent and skill descriptions) fell from 35.1 KB to 9.6 KB. The budget test `always-loaded-context-budget.test.cjs` keeps it there.
+A 1.x files install put the rules in `.claude/rules/`, where Claude Code loads every file into every session and subagent. The 2.x plugin injects them instead (see Layout). In 1.0.0 that was five files (about 11 KB), and most of it was task detail a given session never used. Rig 1.1 keeps the always-loaded part to one small file and moves the rest into the skill that uses it. Static always-loaded text (CLAUDE.md, rules, agent and skill descriptions) fell from 35.1 KB to 9.6 KB. The budget test `always-loaded-context-budget.test.cjs` keeps it there.
 
 ## Layout
 
@@ -35,7 +35,7 @@ Privileged steps and remote host rules are one line each in core. The full text 
 
 - Change always-loaded behavior in `core-rules.md` only, and keep it under its cap.
 - Put task detail in the reference of the skill that needs it, and link that reference from the skill.
-- In the plugin, `session-init` injects `rules/core-rules.md` at session start. `subagent.injectCoreRules: true` in `.rig.json` also appends `core-rules.md` to each subagent's SubagentStart context. The default is `false`. Turn it on only when the rules are not loaded for subagents.
+- Claude Code does not load a plugin's `rules/*.md` on its own. `session-init` injects `rules/core-rules.md` at session start, and `subagent-init` appends it to each subagent's SubagentStart context, because subagents do not inherit the session-start text. `.rig.json` `subagent.injectCoreRules: false` turns the subagent copy off; unset means on in the plugin and off in a 1.x files install (which loads its rules files natively).
 
 ## Antigravity
 
