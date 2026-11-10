@@ -6,7 +6,7 @@ Agent Teams rebuilt as a thin layer on Claude Code's own team features (official
 
 ### Fixes
 
-* **Teammates get their role skill.** Claude Code does not apply an agent's `skills:` preloads to a teammate, so a `rig:researcher` teammate started without the `research` skill. `team-context-inject` now names the `SKILL.md` of each preload (`## Your role`), and says "report findings only" for agents without edit tools.
+* **Teammates get their role skill.** Claude Code does not apply an agent's `skills:` preloads to a teammate, so a `rig:researcher` teammate started without the `research` skill. `team-context-inject` now names the `SKILL.md` of each preload (`## Your role`), and says "report findings only" for researcher, code-reviewer and brainstormer.
 * **`/rig:team implement` spawned plain subagents.** Its template passed `isolation: "worktree"`, which turns a teammate into a subagent, and `--plan-approval` passed a per-teammate `mode`, which teams do not support. Teammates are now spawned without either; plan-first means the lead is in plan mode before spawning.
 * **`session-init` named another session's team.** It took the first directory under `~/.claude/teams`. It now reads only this session's team (`session-<8 chars>`, `leadSessionId` checked) and reports it only when it has teammates.
 * **Shutdown** uses Claude Code's shutdown request everywhere; the agents' `shutdown_response` instructions are gone.

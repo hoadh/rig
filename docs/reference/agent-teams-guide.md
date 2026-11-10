@@ -32,7 +32,7 @@ Side effect of the flag: any subagent the lead names becomes a teammate. Set the
 
 Plain language works too ("spawn three reviewer teammates using rig:code-reviewer for PR #15"): the hooks give the same Rig context to any in-process teammate whose agent type is a Rig agent.
 
-Plan first: switch the lead to plan mode (Shift+Tab) before `/rig:team implement`. Teammates spawned then plan before editing; Claude Code approves their plans automatically unless you change a teammate's mode while viewing it.
+Plan first: switch the lead to plan mode (Shift+Tab) before `/rig:team implement`. Teammates spawned then plan before editing; Claude Code approves their plans itself (the lead does not review them) unless you change a teammate's mode while viewing it, and they then edit in Manual mode, so their permission prompts appear in the lead. Leave plan mode before the lead tests and merges.
 
 Talk to a teammate: Up/Down in the agent panel, Enter to view and message it, `x` to stop it, Ctrl+T for the task list.
 
@@ -45,7 +45,7 @@ At spawn and again on every message it handles (Claude Code fires SubagentStart 
 | `## Core Rules` | `subagent-init` | Rig core rules (plugin install) |
 | `## Subagent: rig:<agent>` | `subagent-init` | Paths, plan context, naming for its agent type |
 | `## Team Context` | `team-context-inject` | Team name, peers (name and agent type), task counts |
-| `## Your role` | `team-context-inject` | "Read `<plugin>/skills/<skill>/SKILL.md`" for each `skills:` preload of its agent, because Claude Code does not apply an agent's `skills` to a teammate; "report findings only" for agents without edit tools |
+| `## Your role` | `team-context-inject` | "Read `<plugin>/skills/<skill>/SKILL.md`" for each `skills:` preload of its agent, because Claude Code does not apply an agent's `skills` to a teammate; "report findings only" for researcher, code-reviewer and brainstormer |
 | `## Team rules` | `team-context-inject` | Task claiming and closing, file ownership, messaging by name, reports path, shutdown |
 
 Claude Code itself applies the agent definition's `tools`, `model` and body, and the project's CLAUDE.md, skills and MCP servers.
@@ -77,6 +77,7 @@ Claude Code itself applies the agent definition's `tools`, `model` and body, and
 
 | Symptom | Check |
 |---|---|
+| `/rig:team` ran but no team formed | `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` is `1` in this session: without it a named Agent call is a plain subagent |
 | A teammate has no `## Team Context` | Split-pane mode, or `hooks.team-context-inject` off; `~/.claude/teams/session-<8>/config.json` lists it |
 | A teammate did not follow its role skill | Its agent type is a Rig agent (`rig:<name>`) with a `skills:` preload; ask it to quote the SKILL.md heading |
 | Tasks stay `in_progress` | The session has the Task tools; `hooks.teammate-idle-guard` on; the hook log shows `teammate-idle-guard` |
