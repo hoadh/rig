@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.0.1 (unreleased)
+
+Fixes found in the first real session on 2.0.0 (hooks, guards and `bin/` passed; see the live checklist in the plan).
+
+### Fixes
+
+* **Core rules reach subagents.** A plugin's `rules/*.md` is not loaded by Claude Code, and subagents do not inherit the session-start text, so subagents ran without the core rules. `subagent-init` now appends them in a plugin install. `.rig.json` `subagent.injectCoreRules: false` turns it off; a 1.x files install keeps the old default (off).
+* **Agents load the skills they name.** Seven agents named a skill they could not load (no `Skill` tool, no preload): `git-operator` (so its commit and push proof lines never applied), `debugger`, `docs-maintainer`, `progress-tracker`, `planner`, `researcher`, `mcp-runner`. Each now preloads its main skill with `skills:`; optional skills (`library-docs`, `media`, `browser`) are read through `rig-skill-dir` when needed. A scan test keeps it that way.
+* **`rig-init --plan` warns about kept files.** A kept `CLAUDE.md` that refers to paths the migration moves (a 1.x `CLAUDE.md` lists the 1.x rules files), and a kept skill named like a plugin skill (`rig:<name>`, listed twice by Claude Code). Warnings only; they show in `--plan`, `--plan --json` (`warnings`) and the confirmation prompt.
+
+### Docs
+
+* Rules layout: how core rules reach sessions and subagents in the plugin. Migration guide: the new warnings and the `CLAUDE.md` edit. Guards: `rig-init-destructive-verbs` asks even when a command only mentions an apply verb (on purpose).
+
 ## 2.0.0 (2026-11-09)
 
 Rig ships as a Claude Code plugin. Install it from the marketplace instead of copying files. Existing 1.x installs must be migrated. Read the Breaking list and the migration table before you update.

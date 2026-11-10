@@ -1,7 +1,7 @@
 # Rig - Project Roadmap
 
 **Last Updated:** 2026-11-09
-**Current Version:** 2.0.0 (released 2026-11-09). 1.1.0 on `release/1.x`
+**Current Version:** 2.0.1 (unreleased). Last release 2.0.0 (2026-11-09); 1.1.0 on `release/1.x`
 **Repository:** https://github.com/hoadh/rig
 
 Version history lives in [CHANGELOG.md](../../CHANGELOG.md). This roadmap tracks status and plans only.
@@ -41,7 +41,7 @@ Status: **released** after `2.0.0-beta.1` to `beta.3`. Checked live on Linux (Ub
 | Plan 1427 installer dedupe and skill packs | Dropped | Obsolete: the plugin has no copies and ships every skill |
 | Release tagging and marketplace pin | Done | `scripts/release-plugin.cjs` writes ref and sha per tag; CI (`--check-ref`) checks the pin against the latest tag. Process: [Release Rig](../how-to/release-rig.md) |
 
-Next: 2.0.x fixes as they come (see [Release Rig](../how-to/release-rig.md)). 2.1 follow-ups: `rig-remote upgrade` (below), `--workflow` for implement, `remote status --follow`, a SubagentStop guard (needs Claude Code 2.1.311), plugin `userConfig`, npm dependencies outside the plugin cache, `--migrate` offering `--runtime`, a faster Windows ancestry query.
+Next: 2.0.1 (in progress): core rules for subagents in the plugin, agents that preload the skills they name, `rig-init --plan` warnings for kept files. Found in the first real 2.0 session on 2026-11-10. Then 2.0.x fixes as they come (see [Release Rig](../how-to/release-rig.md)). 2.1 follow-ups: `rig-remote upgrade` (below), `--workflow` for implement, `remote status --follow`, a SubagentStop guard (needs Claude Code 2.1.311), plugin `userConfig`, npm dependencies outside the plugin cache, `--migrate` offering `--runtime`, a faster Windows ancestry query.
 
 ---
 
