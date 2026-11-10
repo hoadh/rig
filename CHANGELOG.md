@@ -1,6 +1,13 @@
 # Changelog
 
-## 2.0.1 (unreleased)
+## 2.0.2 (unreleased)
+
+### Fixes
+
+* **`git-operator` prints the exact result lines.** It now states them itself, marks included (`✓ pushed: <short-hash> -> origin/<branch>`, `✗ push NOT confirmed`, `nothing committed`, `nothing to commit (working tree clean)`); the 2.0.1 live check showed the haiku agent dropping the `✓`. A test keeps the lines in the agent file.
+* **`/rig:code-review` on a directory outside the current repository** goes straight to the `code-reviewer` fallback. The built-in `/code-review` reviews the session's repository and returned nothing for such a path.
+
+## 2.0.1 (2026-11-10)
 
 Fixes found in the first real session on 2.0.0 (hooks, guards and `bin/` passed; see the live checklist in the plan).
 
