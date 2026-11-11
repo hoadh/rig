@@ -31,6 +31,9 @@ function killPidTree(pid, signal = 'SIGTERM') {
   } catch { return false; } // ESRCH: group already gone
 }
 
+/** A cold PowerShell start on a loaded Windows host (CI runner) can pass 10 s; same budget as the rig-init gate. */
+const PS_READ_TIMEOUT_MS = 30000;
+
 /**
  * win32 reading via PowerShell (no `wmic`: removed on recent Win11). The command embeds only the validated integer pid.
  * exit 0 + output = ok (UTC ISO start time); exit 1 + no output = no such process; anything else = error.
@@ -38,7 +41,7 @@ function killPidTree(pid, signal = 'SIGTERM') {
 function psReadingWin32(pid) {
   try {
     const cmd = `$p=Get-Process -Id ${pid} -ErrorAction SilentlyContinue; if(-not $p){exit 1}; $p.StartTime.ToUniversalTime().ToString('o')`;
-    const r = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', cmd], { encoding: 'utf8', timeout: 10000, windowsHide: true });
+    const r = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', cmd], { encoding: 'utf8', timeout: PS_READ_TIMEOUT_MS, windowsHide: true });
     if (r.error || r.signal) return { state: 'error' };
     const out = String(r.stdout).trim();
     if (r.status === 0 && out) return { state: 'ok', identity: out };
