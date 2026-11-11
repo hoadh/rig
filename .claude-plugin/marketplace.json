@@ -14,8 +14,8 @@
         "source": "git-subdir",
         "url": "https://github.com/hoadh/rig.git",
         "path": "plugins/rig",
-        "ref": "v2.0.7",
-        "sha": "3836d70e2c68a0135071c4a5a2455feaa78f3278"
+        "ref": "v2.0.8",
+        "sha": "1eee5217871265f7a1746a03238a9006ba83d50d"
       }
     }
   ]
