@@ -323,6 +323,15 @@
       "default": "full",
       "description": "Statusline display mode: full=all features, compact=2-3 lines, minimal=single text line, none=disabled"
     },
+    "statuslineItems": {
+      "type": "object",
+      "description": "Statusline items turned on (true) or off (false), by id; a missing id is on. List the ids and what each shows with `rig-statusline --list`.",
+      "propertyNames": {
+        "enum": ["model", "agent", "effort", "context", "limit-5h", "limit-7d", "cost", "duration", "tokens", "dir", "git", "git-state", "plan", "changes", "config", "vim", "output-style", "version", "tools", "agents", "todos"]
+      },
+      "additionalProperties": { "type": "boolean" },
+      "default": {}
+    },
     "watch": {
       "type": "object",
       "description": "GitHub issue auto-implementation daemon config",

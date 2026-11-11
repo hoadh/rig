@@ -28,6 +28,7 @@ const { countConfigs } = require('./hooks/lib/config-counter.cjs');
 const { loadConfig } = require('./hooks/lib/rig-config-utils.cjs');
 const { getGitInfo } = require('./hooks/lib/git-info-cache.cjs');
 const { expandHome } = require('./hooks/lib/statusline-text-formatters.cjs');
+const { itemVisibility, applyItemVisibility } = require('./hooks/lib/statusline-items.cjs');
 const seg = require('./hooks/lib/statusline-segment-renderers.cjs');
 
 // Buffer constant for fallback context calculation
@@ -143,21 +144,21 @@ function renderFull(ctx) {
   if (todosLine) lines.push(todosLine);
 
   // Output lines directly to avoid formatting surprises across terminals/renderers.
-  for (const line of lines) console.log(line);
+  // Every item hidden: one empty line, as mode "none" prints
+  for (const line of lines.length ? lines : ['']) console.log(line);
 }
 
 /**
- * Compact mode - exactly 2 lines: session info + location
+ * Compact mode - up to 2 lines: session info + location (a line whose items are all hidden is left out)
  */
 function renderCompact(ctx) {
   const sep = seg.SEP();
-  console.log([
-    seg.modelSegment(ctx),
-    seg.effortSegment(ctx, false),
-    seg.contextSegment(ctx, 8),
-    seg.limitSegment('5h', ctx.fiveHour, false)
-  ].filter(Boolean).join(sep));
-  console.log([seg.dirSegment(ctx, 50), seg.gitSegment(ctx)].filter(Boolean).join(sep));
+  const lines = [
+    [seg.modelSegment(ctx), seg.effortSegment(ctx, false), seg.contextSegment(ctx, 8), seg.limitSegment('5h', ctx.fiveHour, false)],
+    [seg.dirSegment(ctx, 50), seg.gitSegment(ctx)]
+  ].map(parts => parts.filter(Boolean).join(sep)).filter(Boolean);
+  // Every item hidden: one empty line, as mode "none" prints
+  for (const line of lines.length ? lines : ['']) console.log(line);
 }
 
 /**
@@ -255,8 +256,12 @@ async function main() {
       } catch {}
     }
 
+    // Config first: hidden items skip their work (transcript parse, git calls, config scan)
+    const config = loadConfig({ includeProject: false, includeAssertions: false, includeLocale: false });
+    const isOn = itemVisibility(config.statuslineItems);
+
     // Parse transcript for tools/agents/todos
-    const transcript = data.transcript_path
+    const transcript = data.transcript_path && ['tools', 'agents', 'todos'].some(isOn)
       ? await parseTranscript(data.transcript_path)
       : { tools: [], agents: [], todos: [], sessionStart: null };
 
@@ -267,7 +272,7 @@ async function main() {
       ? `$${parseFloat(costUSD).toFixed(parseFloat(costUSD) < 1 ? 3 : 2)}`
       : null;
 
-    const ctx = {
+    const ctx = applyItemVisibility({
       modelName: data.model?.display_name || 'Claude',
       agentName: data.agent?.name || '',
       // Live session effort (reflects /effort); absent when the model has no effort support
@@ -276,8 +281,8 @@ async function main() {
       outputStyle: data.output_style?.name || '',
       vimMode: data.vim?.mode || '',
       currentDir,
-      git: getGitInfo(rawDir),
-      activePlan: readActivePlan(sessionId),
+      git: isOn('git') ? getGitInfo(rawDir) : null,
+      activePlan: isOn('plan') ? readActivePlan(sessionId) : '',
       contextPercent,
       contextTokens: totalTokens,
       contextSize,
@@ -290,12 +295,10 @@ async function main() {
       outputTokens: data.context_window?.total_output_tokens || 0,
       linesAdded: data.cost?.total_lines_added || 0,
       linesRemoved: data.cost?.total_lines_removed || 0,
-      configs: countConfigs(rawDir),
+      configs: isOn('config') ? countConfigs(rawDir) : null,
       transcript
-    };
+    }, isOn);
 
-    // Load config and get statusline mode
-    const config = loadConfig({ includeProject: false, includeAssertions: false, includeLocale: false });
     const statuslineMode = config.statusline || 'full';
 
     // Apply statuslineColors config: explicit false disables colors regardless of FORCE_COLOR

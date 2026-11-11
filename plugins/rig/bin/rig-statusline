@@ -1,0 +1,4 @@
+#!/usr/bin/env node
+'use strict';
+// Lists, previews and turns statusline items on or off (statuslineItems in .rig.json).
+require('../scripts/rig-bin-launcher.cjs').runNodeScript(__filename, 'scripts/statusline-config-cli.cjs');

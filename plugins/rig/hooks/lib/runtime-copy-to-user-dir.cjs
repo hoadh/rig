@@ -27,7 +27,7 @@ const { acquireLock, releaseLock, sleepSync } = require('./dir-lock-with-owner-t
 const RUNTIME_ENTRIES = [
   ['statusline.cjs', 'statusline.cjs'],
   ...['colors', 'config-counter', 'git-info-cache', 'plugin-data-dir', 'rig-config-utils',
-    'statusline-segment-renderers', 'statusline-text-formatters', 'transcript-parser']
+    'statusline-items', 'statusline-segment-renderers', 'statusline-text-formatters', 'transcript-parser']
     .map((name) => [`hooks/lib/${name}.cjs`, `hooks/lib/${name}.cjs`]),
   ['skills/remote/scripts/worker.cjs', 'remote/worker.cjs'],
   ['skills/remote/scripts/worker-run-entry.cjs', 'remote/worker-run-entry.cjs'],

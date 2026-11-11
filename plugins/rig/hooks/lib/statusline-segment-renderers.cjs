@@ -54,10 +54,13 @@ function wrapSegments(segments, maxWidth) {
 // SESSION SEGMENTS
 // ============================================================================
 
+const isHidden = (ctx, id) => Boolean(ctx.hidden && ctx.hidden.has(id));
+
 function modelSegment(ctx) {
-  let seg = `${fg('✦', PALETTE.violet, true)}${badge(truncate(ctx.modelName, 30), 98)}`;
-  if (ctx.agentName) seg += ` ${muted(`@${truncate(ctx.agentName, 16)}`)}`;
-  return seg;
+  const parts = [];
+  if (!isHidden(ctx, 'model')) parts.push(`${fg('✦', PALETTE.violet, true)}${badge(truncate(ctx.modelName, 30), 98)}`);
+  if (ctx.agentName) parts.push(muted(`@${truncate(ctx.agentName, 16)}`));
+  return parts.join(' ');
 }
 
 // Effort levels in ascending order, each with its accent color
@@ -124,6 +127,7 @@ function metricsSegment(ctx) {
 // ============================================================================
 
 function dirSegment(ctx, maxLen = Infinity) {
+  if (isHidden(ctx, 'dir')) return '';
   return `${fg('◆', PALETTE.blue)} ${fg(truncateMiddle(ctx.currentDir, maxLen), PALETTE.text, true)}`;
 }
 
@@ -131,7 +135,7 @@ function gitSegment(ctx, withState = true) {
   const git = ctx.git;
   if (!git || !git.branch) return '';
   let seg = `${fg('⎇', PALETTE.purple)} ${fg(truncate(git.branch, 40), PALETTE.purple, true)}`;
-  if (!withState) return seg;
+  if (!withState || isHidden(ctx, 'git-state')) return seg;
 
   const state = [];
   if (git.staged > 0) state.push(fg(`+${git.staged}`, PALETTE.green));

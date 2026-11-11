@@ -62,6 +62,7 @@ const DEFAULT_CONFIG = {
   assertions: [],
   statusline: 'full',
   statuslineColors: true,
+  statuslineItems: {},
   hooks: {
     'session-init': true,
     'subagent-init': true,
@@ -521,6 +522,8 @@ function loadConfig(options = {}) {
     // Statusline mode
     result.statusline = merged.statusline || 'full';
     result.statuslineColors = merged.statuslineColors ?? true;
+    // Statusline items turned off or on (`rig-statusline`); missing = on
+    result.statuslineItems = merged.statuslineItems && typeof merged.statuslineItems === 'object' ? merged.statuslineItems : {};
 
     return sanitizeConfig(result, projectRoot);
   } catch (e) {
@@ -539,7 +542,8 @@ function getDefaultConfig(includeProject = true, includeAssertions = true, inclu
     skills: { ...DEFAULT_CONFIG.skills },
     hooks: { ...DEFAULT_CONFIG.hooks },
     statusline: 'full',
-    statuslineColors: true
+    statuslineColors: true,
+    statuslineItems: {}
   };
   if (includeLocale) {
     result.locale = { ...DEFAULT_CONFIG.locale };
