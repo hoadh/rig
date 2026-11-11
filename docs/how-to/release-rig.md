@@ -29,7 +29,7 @@ The version must be strict semver and greater than the latest `v*` tag. A prerel
 On the branch you release from, in one pull request:
 
 1. Set the version in `plugins/rig/.claude-plugin/plugin.json` and `package.json`.
-2. In `CHANGELOG.md`, change `## <version> (unreleased)` to `## <version> (<YYYY-MM-DD>)`.
+2. In `CHANGELOG.md`, change `## <version> (unreleased)` to `## <version> (<YYYY-MM-DD>)` and check that its entries still match what ships: the GitHub Release notes are copied from this section. `release-plugin.cjs` refuses a stable version whose section is missing or still `(unreleased)`.
 3. Update the version lines in `docs/project/roadmap.md`, `docs/reference/codebase-summary.md`, `docs/explanation/architecture.md` and `docs/project/overview-pdr.md`.
 4. Wait for CI to pass on Ubuntu, Windows and macOS, plus `plugin-validate` on the Claude Code floor and the latest version.
 

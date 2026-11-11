@@ -10,7 +10,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
-const { release, latestTag, tagArgs, pinnedEntry, checkMarketplaceRef } = require('./release-plugin.cjs');
+const { release, latestTag, tagArgs, pinnedEntry, checkMarketplaceRef, changelogProblem } = require('./release-plugin.cjs');
 const { compareSemver } = require('./check-plugin-version-bump.cjs');
 
 // Isolate from the developer's git config (signing, hooks, identity). GIT_CONFIG_GLOBAL must be a real file: git cannot open
@@ -52,6 +52,16 @@ function makeIo(cwd, { tty = true, answer = true, env = GIT_ENV, ancestors = [] 
 }
 const flags = (o = {}) => ({ apply: false, allowBranch: false, skipTests: false, ...o });
 const marketplace = (dir) => JSON.parse(fs.readFileSync(path.join(dir, '.claude-plugin/marketplace.json'), 'utf8'));
+
+describe('changelogProblem', () => {
+  it('needs a dated section for a stable version only', () => {
+    assert.strictEqual(changelogProblem('## 2.0.7 (2026-11-11)\n', '2.0.7'), null);
+    assert.match(changelogProblem('## 2.0.7 (unreleased)\n', '2.0.7'), /unreleased/);
+    assert.match(changelogProblem('## 2.0.70 (2026-11-11)\n', '2.0.7'), /has no/);
+    assert.match(changelogProblem('## 2x0x7 (2026-11-11)\n', '2.0.7'), /has no/, 'dots are literal');
+    assert.strictEqual(changelogProblem('', '2.1.0-beta.1'), null, 'betas have no section of their own');
+  });
+});
 
 describe('version ordering', () => {
   it('orders betas before the release', () => {
@@ -157,6 +167,25 @@ describe('refusals', () => {
   it('invalid manifest version', async () => {
     const dir = fixture({ version: 'v2' });
     await refused(dir, { skipTests: true }, {}, /not strict semver/);
+  });
+  it('a stable version with an undated CHANGELOG section', async () => {
+    const dir = fixture({ version: '2.0.1' });
+    write(dir, 'CHANGELOG.md', '# Changelog\n\n## 2.0.1 (unreleased)\n\n* x\n\n## 2.0.0 (2026-11-09)\n');
+    git(dir, 'add', '-A');
+    git(dir, 'commit', '-qm', 'changelog');
+    await refused(dir, { skipTests: true }, {}, /change "## 2\.0\.1 \(unreleased\)" to "## 2\.0\.1 \(<YYYY-MM-DD>\)"/);
+  });
+  it('a stable version without a CHANGELOG section', async () => {
+    const dir = fixture({ version: '2.0.1' });
+    await refused(dir, { skipTests: true }, {}, /CHANGELOG\.md has no "## 2\.0\.1 \(<YYYY-MM-DD>\)" section/);
+  });
+  it('a stable version with a dated CHANGELOG section passes the dry run', async () => {
+    const dir = fixture({ version: '2.0.1' });
+    write(dir, 'CHANGELOG.md', '# Changelog\n\n## 2.0.1 (2026-11-11)\n\n* x\n');
+    git(dir, 'add', '-A');
+    git(dir, 'commit', '-qm', 'changelog');
+    const { io, errs } = makeIo(dir);
+    assert.strictEqual(await release(flags({ skipTests: true }), io), 0, errs.join('\n'));
   });
   it('--apply with --skip-tests', async () => {
     const dir = fixture();

@@ -10,7 +10,8 @@
  * `npm test` must pass (`--skip-tests` is dry-run only). The script never pushes.
  *
  * Checks: clean tree; on `main` (or --allow-branch for betas); plugin.json version is strict semver and greater than
- * the latest v* tag (prerelease-aware); v<version> is not tagged yet; `npm test` passes.
+ * the latest v* tag (prerelease-aware); v<version> is not tagged yet; a stable version has a dated CHANGELOG section
+ * (`## <version> (YYYY-MM-DD)`, not `(unreleased)`), so the tag never ships stale release notes; `npm test` passes.
  *
  * Chicken-and-egg: the marketplace entry must name the commit that holds the release content, but writing the entry
  * is itself a commit. So the content commit is the current HEAD (S): the entry is committed on top of it (S+1) with
@@ -33,6 +34,16 @@ const isSemver = (v) => typeof v === 'string' && compareSemver(v, v) === 0;
 const MANIFEST = 'plugins/rig/.claude-plugin/plugin.json';
 const MARKETPLACE = '.claude-plugin/marketplace.json';
 const PLUGIN_NAME = 'rig';
+const CHANGELOG = 'CHANGELOG.md';
+
+/** Why the CHANGELOG is not ready for a stable `version`, or null. Prereleases have no section of their own. */
+function changelogProblem(text, version) {
+  if (/-/.test(version)) return null;
+  const esc = version.replace(/\./g, '\\.');
+  if (new RegExp(`^## ${esc} \\(\\d{4}-\\d{2}-\\d{2}\\)\\s*$`, 'm').test(text)) return null;
+  if (new RegExp(`^## ${esc} \\(unreleased\\)`, 'm').test(text)) return `${CHANGELOG}: change "## ${version} (unreleased)" to "## ${version} (<YYYY-MM-DD>)" and update its entries before the release`;
+  return `${CHANGELOG} has no "## ${version} (<YYYY-MM-DD>)" section`;
+}
 
 /** Highest strict-semver tag name (`v<semver>`) of the list, or null. Non-semver `v*` tags are ignored. */
 function latestTag(tags) {
@@ -176,6 +187,10 @@ async function release(opts, io) {
   if (isSemver(version)) {
     if (tags.includes(`v${version}`)) fail(`v${version} is already tagged`);
     else if (latest && compareSemver(version, latest.slice(1)) <= 0) fail(`version ${version} is not greater than the latest tag ${latest}`);
+    let changelog = '';
+    try { changelog = fs.readFileSync(path.join(cwd, CHANGELOG), 'utf8'); } catch { /* missing: reported below */ }
+    const problem = changelogProblem(changelog, version);
+    if (problem) fail(problem);
   }
 
   if (failures.length === 0) {
@@ -310,4 +325,4 @@ if (require.main === module) {
   main(process.argv.slice(2)).then((code) => { process.exitCode = code; }, (e) => { console.error(`x ${e.message}`); process.exitCode = 2; });
 }
 
-module.exports = { release, latestTag, tagArgs, pinnedEntry, applyRefusal, checkMarketplaceRef, parseArgs };
+module.exports = { release, latestTag, tagArgs, pinnedEntry, applyRefusal, checkMarketplaceRef, parseArgs, changelogProblem };
