@@ -1,6 +1,13 @@
 # Changelog
 
-## 2.0.6 (unreleased)
+## 2.0.7 (unreleased)
+
+### Changes
+
+* **Faster `code-reviewer`.** Logs of 53 reviewer runs (68 review rounds) showed a median of 3.8 min of work per round, but 63% of wall time idle: one reviewer was kept alive through each fix round with `SendMessage`, it re-ran test suites, linters and builds the tester had already run (one run polled a background `cargo clippy` in a `sleep` loop for about 52 min), and 1278 of its 1460 tool calls were Bash reads (`cat`, `sed`, `grep`) instead of Read and Grep. Now the review spawn prompts in `implement`, `fix`, `pr` and `team` carry the diff range and the latest test results, and every review round spawns a fresh reviewer with the previous findings and the fix diff. The reviewer uses the results it is given and runs only a targeted, foreground command when they are missing or older than the code; it never polls a background job, reads with Read, Grep and Glob in batched turns, and on a re-review checks the earlier findings and the fix diff instead of redoing the whole review. Its edge-case step greps for dependents instead of starting `/rig:explore`.
+* **`release-plugin.cjs` needs a dated CHANGELOG section.** A stable release is refused while `CHANGELOG.md` has no `## <version> (YYYY-MM-DD)` heading or still says `(unreleased)`, so the tag and its GitHub Release notes never ship stale text. 2.0.6 was tagged with an undated section.
+
+## 2.0.6 (2026-11-10)
 
 ### Fixes
 
