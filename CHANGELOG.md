@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.9 (unreleased)
+
+### Fixes
+
+* **`rig-remote` reads a Windows agent's start identity with a 30 s budget.** The PowerShell `Get-Process` read had 10 s; a cold PowerShell start on a loaded host can take longer, and a missed read makes the kill guard refuse to stop that agent. 30 s matches the `rig-init` apply gate.
+* **Statusline item test no longer depends on the clock.** The limit markers include the bar or percent, so the far-future reset countdown (`↻ 94972d 5h`) cannot match them; the test failed during one hour of each day.
+
 ## 2.0.8 (2026-11-11)
 
 ### Features
