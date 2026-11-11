@@ -345,6 +345,7 @@ See [how-to](../how-to/configure-verification-and-safety-guards.md).
 **Purpose**: Show live session state in Claude Code's status bar. Reads the statusline JSON from stdin; no external dependencies.
 
 **Modules** (`plugins/rig/hooks/lib/`):
+- `statusline-items.cjs`: the 21 items users can turn off (`statuslineItems`), their descriptions, and the filter that blanks hidden items in the render context
 - `statusline-segment-renderers.cjs`: segments, row wrapping, tools/agents/todos lines
 - `statusline-text-formatters.cjs`: width measurement, truncation, token/duration formatting
 - `colors.cjs`: 256-color palette, `badge`, heat-gradient `gradientBar` (respects `NO_COLOR`)
@@ -355,7 +356,9 @@ See [how-to](../how-to/configure-verification-and-safety-guards.md).
 2. Workspace: directory, git branch + staged/unstaged/ahead/behind, active plan, lines +/-, config counts (CLAUDE.md, rules, MCP, hooks), output style, vim mode, version
 3. Activity (only when present): running tool or recent tool summary, agent flow, todo progress bar
 
-**Modes** (`statusline` in `.rig.json`): `full` (default), `compact` (2 lines), `minimal` (1 line), `none`. `statuslineColors: false` disables colors.
+**Modes** (`statusline` in `.rig.json`): `full` (default), `compact` (up to 2 lines), `minimal` (1 line), `none`. `statuslineColors: false` disables colors.
+
+**Items** (`statuslineItems` in `.rig.json`, project over global): any item can be turned off in every mode with `/rig:statusline` or `rig-statusline` (`scripts/statusline-config-cli.cjs`). Hidden `git`, `config` and activity rows skip their git calls, config scan and transcript read. [How-to](../how-to/customize-statusline.md)
 
 **Cost**: hidden when `rate_limits` is present (Pro/Max), unless `CLAUDE_BILLING_MODE=api`.
 

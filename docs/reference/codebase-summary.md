@@ -1,13 +1,13 @@
 # Codebase Summary
 
 **Last Updated**: 2026-11-06
-**Version**: 2.0.7 (2026-11-11); 1.1.0 on `release/1.x`
+**Version**: 2.0.8 (unreleased). Last release 2.0.7 (2026-11-11); 1.1.0 on `release/1.x`
 **Repository**: [hoadh/rig](https://github.com/hoadh/rig)
 **Source**: built from a `repomix` compaction of this tree (`repomix-output.xml`, gitignored, 1,216 files). Regenerate with `npx repomix@1.18.1 --style xml`.
 
 ## Overview
 
-Rig is an Agentic-Driven Development toolkit for Claude Code. Rig 2.x ships as a Claude Code plugin from the `rig-marketplace` marketplace. The plugin holds 32 skills, 14 agents, hooks, rules, `bin/` command entrypoints and the `rig-init` setup CLI. The repo also generates an Antigravity copy (`.agent/`, `GEMINI.md`).
+Rig is an Agentic-Driven Development toolkit for Claude Code. Rig 2.x ships as a Claude Code plugin from the `rig-marketplace` marketplace. The plugin holds 33 skills, 14 agents, hooks, rules, `bin/` command entrypoints and the `rig-init` setup CLI. The repo also generates an Antigravity copy (`.agent/`, `GEMINI.md`).
 
 ## Project Structure
 
@@ -18,13 +18,13 @@ rig/
 ├── plugins/rig/              # THE PLUGIN (installed by Claude Code)
 │   ├── .claude-plugin/plugin.json
 │   ├── agents/               # 14 subagent definitions
-│   ├── skills/               # 32 skills (28 /rig:* commands, 4 helpers), plus _shared/ and common/
+│   ├── skills/               # 33 skills (29 /rig:* commands, 4 helpers), plus _shared/ and common/
 │   ├── hooks/                # hooks.json, 6 hook scripts, lib/ (29 modules), __tests__/
 │   ├── bin/                  # 14 rig-* entrypoints (node shebang; rig-classify-doc is bash)
 │   ├── rules/core-rules.md   # always-loaded rules, injected at SessionStart
 │   ├── scripts/              # rig-init/, rig-python venv resolver, rig-bin-launcher, shared scripts
 │   ├── schemas/              # rig-config.schema.json (.rig.json)
-│   └── statusline.cjs        # statusline; copied to ~/.claude/rig/runtime
+│   └── statusline.cjs        # statusline (items: hooks/lib/statusline-items.cjs, toggled by rig-statusline); copied to ~/.claude/rig/runtime
 ├── .claude/                  # DEV ONLY (not shipped): settings.json (permissions, attribution), .rig.json,
 │                             #   .env.example, .mcp.json.example, rules/ (empty)
 ├── .agent/                   # Antigravity copy (generated; see GEMINI.md)
@@ -85,10 +85,10 @@ Registered in `plugins/rig/hooks/hooks.json` in exec form (`node` plus `args` wi
 | PreToolUse (Bash) | `bash-safety-guard.cjs` | Asks or denies risky Bash: in-place edits of symlinks, process kills, secret-file reads, `rig-init` apply verbs |
 | Stop | `verify-completion-guard.cjs` | Nudges or blocks completion without a passing verification command |
 
-Shared modules: `hooks/lib/` (29 files), such as `plugin-data-dir.cjs` (state and log locations), `global-hook-yields-to-project-copy.cjs` (1.x coexistence), `runtime-copy-to-user-dir.cjs`, `rig-1x-copy-notice.cjs`, `bash-rig-init-destructive-verbs-rule.cjs`. Tests: `hooks/__tests__/` and `hooks/lib/__tests__/`.
+Shared modules: `hooks/lib/` (34 files), such as `plugin-data-dir.cjs` (state and log locations), `global-hook-yields-to-project-copy.cjs` (1.x coexistence), `runtime-copy-to-user-dir.cjs`, `rig-1x-copy-notice.cjs`, `bash-rig-init-destructive-verbs-rule.cjs`. Tests: `hooks/__tests__/` and `hooks/lib/__tests__/`.
 
-### 4. Bin entrypoints (14)
-`rig-browser`, `rig-classify-doc`, `rig-init`, `rig-markdown-viewer`, `rig-mcp`, `rig-migrate-docs`, `rig-python`, `rig-remote`, `rig-resolve-env`, `rig-set-active-plan`, `rig-skill-dir`, `rig-ui-search`, `rig-validate-docs`, `rig-worktree`. They sit on the Bash tool PATH. Each one resolves the plugin root from its own real path through `scripts/rig-bin-launcher.cjs`.
+### 4. Bin entrypoints (15)
+`rig-browser`, `rig-classify-doc`, `rig-init`, `rig-markdown-viewer`, `rig-mcp`, `rig-migrate-docs`, `rig-python`, `rig-remote`, `rig-resolve-env`, `rig-set-active-plan`, `rig-skill-dir`, `rig-statusline`, `rig-ui-search`, `rig-validate-docs`, `rig-worktree`. They sit on the Bash tool PATH. Each one resolves the plugin root from its own real path through `scripts/rig-bin-launcher.cjs`.
 
 ### 5. rig-init (setup and migration CLI)
 `plugins/rig/scripts/rig-init/` (entry `cli.cjs`, bin `rig-init`).

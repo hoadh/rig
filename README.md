@@ -62,7 +62,7 @@ Full index: [docs/README.md](./docs/README.md), organized by [Diataxis](https://
 ├── plugins/rig/            # The Claude Code plugin (what users install)
 │   ├── .claude-plugin/     # plugin.json manifest
 │   ├── agents/             # 14 subagent definitions
-│   ├── skills/             # 32 skills (28 slash commands, 4 internal helpers)
+│   ├── skills/             # 33 skills (29 slash commands, 4 internal helpers)
 │   ├── hooks/              # hooks.json and the hook scripts (session, subagent, prompt reminder, guards)
 │   ├── bin/                # rig-* command entrypoints (on the Bash tool PATH)
 │   ├── rules/              # core-rules.md, injected at session start

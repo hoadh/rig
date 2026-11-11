@@ -11,6 +11,7 @@ Rig docs follow [Diataxis](https://diataxis.fr/): each page has one job. Layout 
 - [Extend Rig with agents and skills](./how-to/extend-rig-with-agents-and-skills.md) - add a custom agent or skill, test with `--plugin-dir`, ship a release
 - [Configure the verification and safety guards](./how-to/configure-verification-and-safety-guards.md) - verify-on-stop and bash safety hooks, trust ladder, headless off-switch, `/loop` for live evidence
 - [Set the response language](./how-to/set-response-language.md) - answer in your language while the repo stays English
+- [Customize the statusline](./how-to/customize-statusline.md) - what each statusline item shows, turn items on or off globally or per project (`/rig:statusline`, `rig-statusline`)
 - [Release Rig](./how-to/release-rig.md) - version rules, live checks, dry run, tag, push, verify the install (maintainers)
 - [Run a plan across machines](./how-to/run-plan-across-machines.md) - dispatch plan phases and tests to macOS, Windows and Linux workers over ssh (`rig-remote`)
 

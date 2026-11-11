@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.8 (unreleased)
+
+### Features
+
+* **Statusline item toggles.** Every statusline item (21: model, agent, effort, context, 5h and 7d limits, cost, duration, tokens, directory, git branch and state, plan, line changes, config counts, vim mode, output style, version, tools, subagents, todos) can be turned on or off. `/rig:statusline` lists each item with a sample and what it shows, asks which to change and whether for all projects or this one, then previews the result; `rig-statusline` (`--list [--json]`, `--enable`, `--disable`, `--reset`, `--preview`, `--project [dir]`) does the same from Claude Code or a terminal. Settings go to `statuslineItems` in `~/.claude/.rig.json` or `<project>/.claude/.rig.json` (project wins); a hidden item is hidden in the full, compact and minimal layouts, and hiding git, config or the activity rows also skips their git calls, config scan or transcript read. Existing configs render as before. [How-to](docs/how-to/customize-statusline.md)
+
 ## 2.0.7 (2026-11-11)
 
 ### Changes

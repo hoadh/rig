@@ -1,7 +1,7 @@
 # Project Overview & Product Development Requirements (PDR)
 
 **Project Name**: Rig
-**Version**: 2.0.7 (2026-11-11); 1.1.0 on `release/1.x`
+**Version**: 2.0.8 (unreleased). Last release 2.0.7 (2026-11-11); 1.1.0 on `release/1.x`
 **Last Updated**: 2026-10-17
 **Status**: Active Development
 **Repository**: https://github.com/hoadh/rig
@@ -73,7 +73,7 @@ Agents hand off through files in `plans/` and `plans/reports/` ([ADR 0001](../ex
 
 ### 2. Skills and Slash Commands
 
-31 skills in `plugins/rig/skills/`: 27 appear as `/rig:*` slash commands, 4 are internal helpers loaded by other skills.
+33 skills in `plugins/rig/skills/`: 29 appear as `/rig:*` slash commands, 4 are internal helpers loaded by other skills.
 
 **Core Development Commands**:
 - `/rig:plan` - Research and write a phased implementation plan

@@ -58,6 +58,7 @@ Legend: 📦 has executable scripts · 📚 has reference docs
 | `/rig:library-docs` | `library-docs` | 📦 📚 | Look up current library and framework docs (context7, llms.txt). |
 | `/rig:mcp` | `mcp` | 📦 📚 | Discover and run tools from configured MCP servers. |
 | `/rig:create-skill` | `create-skill` | 📦 📚 | Create or improve a skill, with evals and description optimization. |
+| `/rig:statusline` | `statusline` | | Explain every statusline item, turn any item on or off (all projects or one), preview the result. Claude Code only. |
 
 ## Internal Helpers
 
