@@ -101,8 +101,9 @@ describe('statusline run with items hidden', () => {
   }
 
   // What each item prints with the input above (NO_COLOR); hiding the item must remove exactly that text.
+  // Limit markers include the bar or percent: the reset countdown ("↻ 94972d 5h") can end in "5h" too.
   const MARKERS = {
-    model: '✦ Opus 5.5', agent: '@rev', effort: '▮▮▮▯▯ high', context: '42%', 'limit-5h': '5h ', 'limit-7d': '7d ',
+    model: '✦ Opus 5.5', agent: '@rev', effort: '▮▮▮▯▯ high', context: '42%', 'limit-5h': '5h ━', 'limit-7d': '7d 61%',
     cost: '$0.420', duration: '◷', tokens: '◇', dir: '◆', git: '⎇ feat-x', 'git-state': 'feat-x +1', plan: '◎ item-plan',
     changes: '+120 -34', config: '≡', vim: '[NORMAL]', 'output-style': 'style:explanatory', version: 'v2.1.330',
     tools: 'Grep', agents: '⬡', todos: 'Writing the tests',
