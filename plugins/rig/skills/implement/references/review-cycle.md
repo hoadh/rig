@@ -2,6 +2,8 @@
 
 Interactive review-fix cycle used in code workflows.
 
+Every cycle spawns a fresh `code-reviewer`. Its prompt has the diff range, the latest test results (command, pass/fail counts, commit) and, after a fix, the previous findings and the fix diff. Do not keep a reviewer alive across fixes with `SendMessage`; it waits idle through the fix and re-reads what it already saw.
+
 ## Interactive Cycle (max 3 cycles)
 
 ```

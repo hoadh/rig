@@ -21,5 +21,5 @@ Common to all: one named teammate per angle or file set, `subagent_type: rig:<ag
 ## implement <plan-or-feature> [--devs N, default 2]
 1. Split the work into tasks with disjoint files; record the files in each task. If the work cannot be split without shared files, use one dev, or plain subagents with `isolation: "worktree"` outside the team.
 2. Spawn `rig:implementer` teammates `dev-1..N`. Plan-first (skip only when the user says no plan): each spawn prompt has, before the Rig Context Block, "Plan first: send the lead your plan (files, steps, tests) with SendMessage, then wait. Edit nothing until the lead replies `approved`." The lead checks that each plan stays inside its task's files and replies `approved` or what to change. Do not use lead plan mode for this: it reaches a teammate one turn late, after its first edits.
-3. After the devs report, spawn a `rig:tester` teammate, then a `rig:code-reviewer` teammate, on the changed files.
+3. After the devs report, spawn a `rig:tester` teammate, then a `rig:code-reviewer` teammate, on the changed files; the reviewer's prompt carries the tester's results so it does not re-run them.
 4. The lead merges, runs the full test suite and fixes what is left.

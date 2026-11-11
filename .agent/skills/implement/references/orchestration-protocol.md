@@ -35,6 +35,8 @@ Review scales with the tier: no reviewer on a one-line fix unless it carries a r
 
 ## Review
 - Review final, tested code. Standard: one pass if logic changed. Large: `code-reviewer` gate.
+- The `code-reviewer` prompt carries the evidence it needs, so it does not re-run it: the diff range or changed files, the plan or phase file, and the latest test, lint and build results (command, pass/fail counts, the commit they ran on).
+- Each review round is a fresh `code-reviewer` spawn. After fixes, spawn a new one on the fix diff with the previous findings; do not keep the old reviewer waiting through the fix with `SendMessage`.
 
 ## Commit and Push
 - Lint before commit, run tests before push. Never ignore a failing test to get a green build.

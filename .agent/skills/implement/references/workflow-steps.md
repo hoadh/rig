@@ -111,7 +111,8 @@ Before starting:
 ## Step 5: Code Review
 
 **All modes (Standard: one pass, only if logic changed; Large: required gate):**
-- Spawn `code-reviewer`: `Agent(subagent_type="code-reviewer", prompt="Review changes. Return score, critical issues, warnings.", description="Code review")`
+- Spawn `code-reviewer`: `Agent(subagent_type="code-reviewer", prompt="Review changes in [diff range]. Plan: [phase file]. Test results: [command, pass/fail counts, commit]. Lint/build: [results]. Return score, critical issues, warnings.", description="Code review")`
+- The prompt carries the Step 4 results so the reviewer does not re-run the suites; each fix cycle spawns a new reviewer (`orchestration-protocol.md` "Review")
 - Do not self-review the code you just wrote; an independent reviewer is the point of this gate
 
 **Interactive/Parallel/Code/No-test:**

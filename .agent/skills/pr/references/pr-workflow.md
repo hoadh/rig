@@ -112,7 +112,7 @@ git fetch origin <target> && git merge origin/<target> --no-edit
 **Skip if:** `--skip-review` flag.
 
 1. Run `git diff origin/<target>` to get the full diff
-2. Delegate to `code-reviewer` subagent with the diff
+2. Delegate to `code-reviewer` subagent with the diff and the Step 4 test results (command, pass/fail counts), so it does not re-run the suite
 3. Two-pass model:
    - **Pass 1 (CRITICAL):** Security, injection, race conditions, auth bypass
    - **Pass 2 (INFORMATIONAL):** Dead code, magic numbers, test gaps, style

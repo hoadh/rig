@@ -2,6 +2,8 @@
 
 Mode-aware review handling for code-reviewer results.
 
+Every cycle spawns a fresh `code-reviewer` with the diff range, the latest test results (command, pass/fail counts, commit) and, after a fix, the previous findings and the fix diff. Do not keep a reviewer alive across fixes with `SendMessage`.
+
 ## Autonomous Mode
 
 ```

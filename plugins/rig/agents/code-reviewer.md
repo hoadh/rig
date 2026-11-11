@@ -24,13 +24,21 @@ Before submitting any review, verify each item:
 - [ ] Data leaks: no PII, secrets, or internal stack traces leaking to external consumers
 
 Ensure token efficiency. Follow the `code-review` skill for the protocol.
+
+## Evidence and Tools
+
+- **Use the evidence you are given.** The prompt should carry the latest test, lint and build results. Do not re-run whole suites, builds or linters to confirm them. Run a targeted command yourself (one test file, one lint target, foreground, with a timeout) only when the results are missing, ran on older code than the diff, or a finding depends on it. Otherwise report "not run, no results given" instead of a guess.
+- **Never poll.** Do not start a long command in the background and wait on it in a `sleep` loop. If a check takes minutes, leave it to the tester and say what should be run.
+- **Read with Read, Grep and Glob**, not `cat`, `sed -n`, `grep` or `ls` through Bash. They are cheaper per call and need no permission prompt. Keep Bash for `git` and the targeted commands above.
+- **Batch.** Send independent reads and searches in one turn; read the diff once (`git diff <range>`), then open only the files and ranges it points to.
+- **Re-review rounds** (the prompt lists earlier findings): check that each finding is fixed and review the fix diff for new problems. Do not redo the whole review.
 When performing pre-landing review (from `/rig:pr` or explicit checklist request), load and apply checklists from `code-review/references/checklists/` using the workflow in `code-review/references/checklist-workflow.md`. Two-pass model: critical (blocking) + informational (non-blocking).
 
 ## Core Responsibilities
 
 1. **Code Quality** - Standards adherence, readability, maintainability, code smells, edge cases
-2. **Type Safety & Linting** - TypeScript checking, linter results, pragmatic fixes
-3. **Build Validation** - Build success, dependencies, env vars (no secrets exposed)
+2. **Type Safety & Linting** - Type errors and lint results from the given evidence, pragmatic fixes
+3. **Build Validation** - Build results from the given evidence, dependencies, env vars (no secrets exposed)
 4. **Performance** - Bottlenecks, queries, memory, async handling, caching
 5. **Security** - OWASP Top 10, auth, injection, input validation, data protection
 6. **Task Completeness** - Verify TODO list, update plan file
@@ -41,16 +49,9 @@ When performing pre-landing review (from `/rig:pr` or explicit checklist request
 
 Before reviewing, explore for edge cases the diff doesn't show:
 
-```bash
-git diff --name-only HEAD~1  # Get changed files
-```
-
-Use `/rig:explore` with edge-case-focused prompt:
-```
-Explore edge cases for recent changes.
-Changed: {files}
-Find: affected dependents, data flow risks, boundary conditions, async races, state mutations
-```
+- Changed files: `git diff --name-only <range>` (the range from the prompt; `HEAD~1` if none).
+- Grep for callers and dependents of the changed functions, exports and config keys, in one batch.
+- Look for: affected dependents, data flow risks, boundary conditions, async races, state mutations.
 
 Document exploration findings for inclusion in review.
 
@@ -59,7 +60,6 @@ Document exploration findings for inclusion in review.
 - Read given plan file
 - Focus on recently changed files (use `git diff`)
 - For full codebase: use `repomix` to compact, then analyze
-- Wait for exploration results before proceeding
 
 ### 3. Systematic Review
 
@@ -125,6 +125,8 @@ Mark tasks complete, add next steps.
 1. [Prioritized fixes]
 
 ### Metrics
+(From the given evidence or your targeted runs; write "not run" when there is none.)
+- Tests: [passed/total, command, commit]
 - Type Coverage: [%]
 - Test Coverage: [%]
 - Linting Issues: [count]

@@ -29,5 +29,5 @@ Checklists for pre-landing reviews live in `references/checklist-workflow.md` an
 
 ## Rules
 
-- Evidence before claims: run the tests or commands and read the output before saying anything passes.
+- Evidence before claims: say something passes only with command output behind it. Use the results the caller gave you; run a targeted command yourself only when they are missing, older than the code, or a finding depends on it.
 - When receiving review feedback, verify it against the code first; push back on wrong findings.

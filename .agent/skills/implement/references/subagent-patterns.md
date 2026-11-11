@@ -49,7 +49,7 @@ Agent(subagent_type="debugger", prompt="Analyze failures: [details]", descriptio
 
 ## Code Review
 ```
-Agent(subagent_type="code-reviewer", prompt="Review changes for [phase]. Check security, performance, YAGNI/KISS/DRY. Return score (X/10), critical, warnings, suggestions.", description="Review [phase]")
+Agent(subagent_type="code-reviewer", prompt="Review changes for [phase] ([diff range]). Test results: [command, pass/fail counts, commit]. Check security, performance, YAGNI/KISS/DRY. Return score (X/10), critical, warnings, suggestions.", description="Review [phase]")
 ```
 
 ## Project Management
