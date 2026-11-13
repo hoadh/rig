@@ -131,6 +131,8 @@ Runs plan phases and test commands on macOS, Windows and Linux workers over ssh.
 | rig:remote: enforce a dedicated worker OS user | Not started | Recommended in v1, not enforced |
 | rig:remote: guided worker setup (`register`, `setup`, doctor `fix:` hints) | Done (1.1.0) | Installing Rig, ssh keys and claude login stay manual |
 | rig:remote: worker machine-id check, several projects per worker, per-clone busy lock | Done (1.1.0) | Registry `repos` map keyed by origin; `RIG_MACHINE` placement stays manual. Two-project concurrent run verified at unit level only |
+| Antigravity: review follow-ups (2.1) | Not started | Low findings left from the 2.0.10 review: the Stop transcript converter pairs tool results by position (a tool without a result step shifts later ones); the guard ignores `run_command`'s `Cwd` argument; the leftover check lets links to unported skills (`remote`, `team`) through; the Antigravity version check counts test helpers as shipped files; the generator reads adapter files from disk, not `git ls-files`. Details: plan `261113-1451-antigravity-plugin-port`, code review report |
+| Antigravity: live checks left open (2.1) | Not started | Interactive `force_ask` prompt and tool names in the Antigravity app or IDE (`view_file`, `grep_search`; only the `agy` 1.5.4 CLI was tested); hook precedence when another plugin defines hooks. Listed in the [feature map](../reference/antigravity-feature-map.md#not-verified-yet) |
 
 ---
 
