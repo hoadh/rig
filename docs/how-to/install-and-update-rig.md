@@ -1,6 +1,6 @@
 # Install and Update Rig
 
-Rig 2.x is a Claude Code plugin. Install it from the marketplace inside Claude Code, then run a few setup verbs in a terminal. Coming from Rig 1.x? Read [Migrate from Rig 1.x](./migrate-from-rig-1x.md) first.
+Rig 2.x is a Claude Code plugin. Install it from the marketplace inside Claude Code, then run a few setup verbs in a terminal. Coming from Rig 1.x? Read [Migrate from Rig 1.x](./migrate-from-rig-1x.md) first. The migration runs on Rig 2.0.10, not in 2.1.
 
 First time? Follow [Getting started](../tutorials/getting-started.md) instead.
 
@@ -49,11 +49,11 @@ Do not add it at the tag (`hoadh/rig#v2.0.0-beta.1`): the tagged commit has the 
 | `rig-init --runtime` | once after install | Copies the statusline and the remote worker to `~/.claude/rig/runtime` and points `statusLine` at it. A statusline you set yourself is kept. The copy also refreshes itself at each session start. |
 | `rig-init --permissions` | once | Merges the reviewed `ask`/`deny` rules for secret files and dependency dirs into `~/.claude/settings.json`. Nothing is removed. Plugins cannot ship these rules, so this is the only way they apply. |
 | `rig-init --deps` | optional | Runs the skills dependency installer (ffmpeg, ImageMagick, npm and Python packages for media, browser, mcp and markdown-viewer). It asks per step and never uses sudo. Python skills work without it: `rig-python` builds its own venv on first use. |
-| `rig-init --migrate` | only if you had Rig 1.x | Moves 1.x files out of the way. See [Migrate from Rig 1.x](./migrate-from-rig-1x.md). |
+| `rig-init --migrate`, `--resume`, `--restore` | not in 2.1 | Exit with code `2`. The 1.x migration and restore run on Rig 2.0.10. See [Migrate from Rig 1.x](./migrate-from-rig-1x.md). |
 
 Run them in the order `--runtime`, `--permissions`, then `--deps` if you want it.
 
-> **Finding `rig-init` in a terminal.** Claude Code puts the plugin's `bin/` on the PATH of its own Bash tool, not on your shell's PATH. So in a terminal, run it through node with its absolute path, `node "<plugin dir>/bin/rig-init" <verb>`. You do not need to find that path yourself: `/rig:setup`, the 1.x migration notice and every `rig-init` refusal print the exact command for your install. The `rig-init` examples in this guide are short for that command.
+> **Finding `rig-init` in a terminal.** Claude Code puts the plugin's `bin/` on the PATH of its own Bash tool, not on your shell's PATH. So in a terminal, run it through node with its absolute path, `node "<plugin dir>/bin/rig-init" <verb>`. You do not need to find that path yourself: `/rig:setup` and every `rig-init` refusal print the exact command for your install. The `rig-init` examples in this guide are short for that command.
 
 ## What the plugin does without any setup
 
@@ -126,7 +126,7 @@ Do not run this alongside the marketplace install of the same plugin.
 | `/rig:setup` is missing | Plugin not installed, or session started before install | Check `/plugin`, restart Claude Code |
 | `rig-init` refuses with a message about Claude Code | Apply verbs run only in a terminal | Open a plain terminal and run the command |
 | `rig-init` warns the Claude Code version is too old | Floor is 2.1.292 | Update Claude Code, then run again |
-| Hooks run twice | A 1.x global copy is still registered | Run `rig-init --plan`, then migrate. See [Migrate from Rig 1.x](./migrate-from-rig-1x.md) |
+| Hooks run twice | Rig 1.x hooks are still registered in `~/.claude/settings.json` or a project. Session start shows a warning line | Remove the 1.x hook entries, or migrate with Rig 2.0.10. See [Migrate from Rig 1.x](./migrate-from-rig-1x.md) |
 | Remote worker refuses with a version message | Worker and orchestrator differ in major version | Install the same major version on both. See [Run a plan across machines](./run-plan-across-machines.md) |
 
 ## Related

@@ -179,8 +179,8 @@ A generated Antigravity plugin in `antigravity/rig/` ships from the same source 
 **FR6: Installation**
 - Install as one Claude Code plugin from the `rig-marketplace` marketplace; no copies in projects
 - Setup verbs (`rig-init --runtime`, `--permissions`, `--deps`) change `~/.claude/settings.json` only after a y/N in a terminal, never inside a session
-- Migrate 1.x copies with a journaled, restorable `rig-init --migrate`, without dropping user entries
-- Run one copy of each hook: the plugin yields to a 1.x registration
+- 1.x migration (journaled, restorable, keeps user entries) runs from Rig 2.0.10, not 2.1; the 2.1 `rig-init` exits with code `2` on `--migrate`, `--resume` and `--restore`
+- Leftover 1.x hooks are not deduplicated: the plugin warns at session start, and the user removes them or migrates with Rig 2.0.10
 
 **FR7: Multi-Machine Execution (`rig:remote`)**
 - Dispatch a plan phase to a named worker machine

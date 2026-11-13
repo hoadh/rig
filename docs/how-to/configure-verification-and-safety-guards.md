@@ -13,7 +13,7 @@ The guards catch **accidents** by a well-meaning agent. They are not a sandbox: 
 | `verify-completion-guard.cjs` | `Stop` | Code edited this turn, but no passing test, build, typecheck or lint command ran after the last edit |
 | `bash-safety-guard.cjs` | `PreToolUse` (`Bash`) | `sed -i` / `perl -i` on a symlink (replaces the link with a regular file); `pkill -f` patterns that match Claude's own shell, broad kills, kills by common names (`node`, `python`, `claude`, ...); Bash readers/copiers (`cat`, `grep`, `source`, `cp`, `curl @file`, `< file`) of secret files (the `Read(...)` entries of `permissions.ask`), ask only; templates such as `.env.example` pass |
 
-Both are registered in the plugin's `hooks/hooks.json` and run whenever the Rig plugin is enabled. A 1.x copy of the same hooks in `~/.claude` or a project makes the plugin copy yield, so nothing runs twice; [migrate](./migrate-from-rig-1x.md) removes the 1.x copy.
+Both are registered in the plugin's `hooks/hooks.json` and run whenever the Rig plugin is enabled. A 1.x copy of the same hooks in `~/.claude` or a project does not stop the plugin copy, so both run. Remove the 1.x entries, or [migrate with Rig 2.0.10](./migrate-from-rig-1x.md).
 
 ## Verify guard modes
 

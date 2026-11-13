@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.1.0 (unreleased)
+
+### Breaking
+
+* **1.x migration removed from `rig-init`.** `--migrate`, `--resume`, `--restore`, `--global` and `--project` exit `2` and point to Rig 2.0.10. To migrate a 1.x install, or to finish or undo a 2.0.x migration, run `claude plugin marketplace remove rig-marketplace` (when the marketplace is already added), `claude plugin marketplace add hoadh/rig#release/2.0.x` and then `claude plugin install rig@rig-marketplace` (`release/2.0.x` is permanent). Run the 2.0.10 `rig-init` steps in [Migrate from Rig 1.x](docs/how-to/migrate-from-rig-1x.md). To return, run `claude plugin marketplace remove rig-marketplace`, `claude plugin marketplace add hoadh/rig` and `claude plugin install rig@rig-marketplace`. Old backups still restore with their own `node <backup>/restore.cjs` (disable the plugin first). Hooks no longer yield to a global or project copy: a leftover 1.x hook runs next to the plugin, and session start shows a warning line.
+
+### Changes
+
+* **Consent gate in its own module.** The terminal consent gate moved to `scripts/rig-init/terminal-consent-gate.cjs`; `scripts/release-plugin.cjs` uses it too. No behavior change.
+* **`rig:remote` no longer uses a 1.x worker.** The local transport no longer falls back to a 1.x `~/.claude/skills/remote` worker, and version detection no longer reads 1.x `metadata.json`. A 1.x worker reads `unknown` and gets the install hint.
+* **Guard still asks for the old verbs.** `bash-safety-guard` still asks before `rig-init --migrate`, `--resume` and `--restore` (cached 2.0.x CLIs still run them), and before any backup `restore.cjs`.
+
 ## 2.0.10 (2026-11-13)
 
 ### Breaking

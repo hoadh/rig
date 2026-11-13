@@ -7,7 +7,7 @@ Rig docs follow [Diataxis](https://diataxis.fr/): each page has one job. Layout 
 
 ## How-to guides
 - [Install and update Rig](./how-to/install-and-update-rig.md) - plugin install, setup verbs in a terminal, updates, uninstall
-- [Migrate from Rig 1.x](./how-to/migrate-from-rig-1x.md) - plan, migrate, resume, restore, team projects, staying on 1.x
+- [Migrate from Rig 1.x](./how-to/migrate-from-rig-1x.md) - with Rig 2.0.10 (migration removed in 2.1.0): plan, migrate, resume, restore, team projects, staying on 1.x
 - [Extend Rig with agents and skills](./how-to/extend-rig-with-agents-and-skills.md) - add a custom agent or skill, test with `--plugin-dir`, ship a release
 - [Configure the verification and safety guards](./how-to/configure-verification-and-safety-guards.md) - verify-on-stop and bash safety hooks, trust ladder, headless off-switch, `/loop` for live evidence
 - [Set the response language](./how-to/set-response-language.md) - answer in your language while the repo stays English
@@ -26,7 +26,7 @@ Rig docs follow [Diataxis](https://diataxis.fr/): each page has one job. Layout 
 - [Agent teams guide](./reference/agent-teams-guide.md) - what Rig adds to Claude Code agent teams, usage, configuration, limits
 
 ## Explanation
-- [Architecture](./explanation/architecture.md) - plugin layout, rig-init and the consent gate, coexistence with 1.x, how agents and file-based handoffs fit together
+- [Architecture](./explanation/architecture.md) - plugin layout, rig-init and the consent gate, leftover 1.x files, how agents and file-based handoffs fit together
 - [Rules layout](./explanation/rules-layout.md) - the one always-loaded rules file, the skill references, and where each moved section went
 - [ADR 0001: Agent state lives in files](./explanation/decisions/0001-agent-state-lives-in-files.md) - why agents keep no state outside `plans/`, `docs/` and the session temp file
 - [ADR 0002: Multi-machine remote orchestration](./explanation/decisions/0002-multi-machine-remote-orchestration.md) - git as transport, single-writer coordination branch, detached worker runs; extends ADR 0001

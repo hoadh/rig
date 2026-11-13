@@ -26,7 +26,7 @@ Requires Claude Code 2.1.292 or newer. Inside Claude Code:
 /rig:setup                                  # previews the terminal setup commands
 ```
 
-Then, in a terminal (outside Claude Code): `rig-init --runtime` and `rig-init --permissions`. Coming from Rig 1.x? Run `rig-init --plan` first, then follow [Migrate from Rig 1.x](./docs/how-to/migrate-from-rig-1x.md). Staying on 1.x: branch `release/1.x`, tag `v1.1.0`.
+Then, in a terminal (outside Claude Code): `rig-init --runtime` and `rig-init --permissions`. Coming from Rig 1.x? The migration runs on Rig 2.0.10, not in 2.1: follow [Migrate from Rig 1.x](./docs/how-to/migrate-from-rig-1x.md). Staying on 1.x: branch `release/1.x`, tag `v1.1.0`.
 
 ```text
 cd ../my-app && claude
@@ -43,7 +43,7 @@ Full index: [docs/README.md](./docs/README.md), organized by [Diataxis](https://
 |---|---|
 | [Getting started](./docs/tutorials/getting-started.md) | Install Rig and build a first feature |
 | [Install and update Rig](./docs/how-to/install-and-update-rig.md) | Plugin install, setup verbs, updates, uninstall |
-| [Migrate from Rig 1.x](./docs/how-to/migrate-from-rig-1x.md) | Move 1.x files out of `~/.claude` and projects, restore, staying on 1.x |
+| [Migrate from Rig 1.x](./docs/how-to/migrate-from-rig-1x.md) | Migrate, resume and restore with Rig 2.0.10 (removed in 2.1.0), staying on 1.x |
 | [Configure the verification and safety guards](./docs/how-to/configure-verification-and-safety-guards.md) | Verify-on-stop and bash safety hooks, config keys, `/loop` for live evidence |
 | [Set the response language](./docs/how-to/set-response-language.md) | Chat in your language, repo stays English |
 | [Run a plan across machines](./docs/how-to/run-plan-across-machines.md) | `rig:remote`: plan phases and tests on macOS, Windows and Linux workers over ssh, with a threat model |

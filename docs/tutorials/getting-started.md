@@ -78,7 +78,7 @@ You installed the Rig plugin, used `/rig:plan` to turn a request into a written 
 
 ## Next steps
 
-- Update Rig, or migrate from 1.x: [Install and update Rig](../how-to/install-and-update-rig.md), [Migrate from Rig 1.x](../how-to/migrate-from-rig-1x.md).
+- Update Rig: [Install and update Rig](../how-to/install-and-update-rig.md). Migrating from 1.x uses Rig 2.0.10: [Migrate from Rig 1.x](../how-to/migrate-from-rig-1x.md).
 - Learn how the agents and skills fit together: [Architecture](../explanation/architecture.md).
 - Add your own agent or skill: [Extend Rig with Agents and Skills](../how-to/extend-rig-with-agents-and-skills.md).
 - Browse all docs: [Documentation index](../README.md).

@@ -70,20 +70,17 @@ GitHub repo hoadh/rig
 
 ### rig-init and the consent gate
 
-`rig-init` is the only code that changes a user's Claude Code configuration. Its verbs: `--plan [--json]` (read-only), `--migrate [--global|--project <dir>]`, `--resume`, `--restore <dir>`, `--permissions`, `--runtime`, `--deps`.
+`rig-init` is the only code that changes a user's Claude Code configuration. Its verbs: `--plan [--json]` (read-only), `--permissions`, `--runtime`, `--deps`. The gate lives in `scripts/rig-init/terminal-consent-gate.cjs`. The 1.x verbs `--migrate`, `--resume` and `--restore` were removed in 2.1.0; they exit with code `2` and point to Rig 2.0.10.
 
 Every apply verb goes through one gate. It refuses, in this order, when `CLAUDECODE` is set, when stdin or stdout is not a terminal, when the ancestor chain cannot be read, or when any ancestor process is Claude Code. The terminal check comes before the ancestor chain, so a piped or CI run never starts the Windows PowerShell process query (its cold start can take seconds). Otherwise it shows the plan and asks `y/N`. No flag or environment variable skips the question. The gate is a guard against accidents, not a sandbox: the Bash guard rule also asks before any command that would run `rig-init` apply verbs or a backup's `restore.cjs`.
 
-Migration (1.x to 2.x) is journaled:
+### Migrating 1.x installs
 
-1. The plan reads `settings.json` and the owned-path list (`rig-1x-owned-paths.json`, 747 `.claude/`-relative files from the 1.0.0 and 1.1.0 trees). Blockers stop it before anything moves.
-2. The backup directory (`~/.claude/rig-backups/<project-hash|global>/<timestamp>/`, owner-only) gets the journal, a copy of each settings file it changes, `moved-paths.txt`, and a standalone `restore.cjs`.
-3. Settings are rewritten, then files move. Each step is saved first, so `--resume` finishes an interrupted run and a crash at any step leaves settings that never point at a missing file.
-4. Restore needs the plugin disabled. It re-adds only the hook handlers and `statusLine` it removed, keeps later user edits, and never overwrites a file.
+The 1.x migration (journaled move of 1.x files into a backup, with `restore.cjs`) was removed from the 2.1 code. It runs from Rig 2.0.10: [Migrate from Rig 1.x](../how-to/migrate-from-rig-1x.md).
 
-### Coexistence with 1.x
+### Leftover 1.x hooks
 
-A 1.x install registers hooks in `~/.claude/settings.json` or the project's settings. The plugin copy yields to a registered 1.x global or project hook with the same event and matcher, so no hook runs twice. `session-init` prints a line pointing to `rig-init --migrate` while such copies exist. Migration removes them.
+A 1.x install registers hooks in `~/.claude/settings.json` or the project's settings. The plugin does not yield to them, so a registered 1.x hook runs next to the plugin's copy. While 1.x files are still installed, `session-init` adds one line that warns about it. Remove the 1.x hook entries, or migrate with Rig 2.0.10. Detection lives in `hooks/lib/plugin-copy-detector.cjs`.
 
 ### Remote workers
 

@@ -222,7 +222,7 @@ Wait until the worker has no active run (`rig-remote status <machine> <runId>`, 
 
    Expect `OK rig-version <version>, scripts identical` for each worker. `version drift` means step 1 or 2 did not take: check `claude plugin list` on the worker and the `VERSION` file in `~/.claude/rig/runtime`.
 
-If the worker still has a Rig 1.x file install, migrate it first with `rig-init --migrate` in a terminal there ([Migrate from Rig 1.x](./migrate-from-rig-1x.md)).
+If the worker still has a Rig 1.x file install, `rig:remote` does not use it: the worker reads as `unknown` and gets the install hint. Migrate it first with Rig 2.0.10 in a terminal there ([Migrate from Rig 1.x](./migrate-from-rig-1x.md)).
 
 ## Windows notes
 

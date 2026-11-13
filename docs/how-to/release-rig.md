@@ -6,7 +6,7 @@ A release is a git tag plus a marketplace entry pinned to that tag. There is no 
 
 ## Rules that apply between releases
 
-- **Every change to `plugins/rig/**` raises the plugin version.** CI (`plugin version bump`) fails a pull request that changes the plugin without a greater `version` in `plugins/rig/.claude-plugin/plugin.json`. The first plugin change after a release opens the next version (for example `2.0.0-beta.1` to `2.0.0-beta.2`, or `2.0.0` to `2.0.1`). Later changes for the same release keep it.
+- **Every change to `plugins/rig/**` raises the plugin version.** CI (`plugin version bump`) fails a pull request that changes the plugin without a greater `version` in `plugins/rig/.claude-plugin/plugin.json`. A release that spans several pull requests uses `X.Y.0-beta.N`. Each pull request that changes the plugin raises `N` (for example `2.1.0-beta.1` to `2.1.0-beta.2`). The release-prep pull request sets the final version (`2.1.0`). The first plugin change after a stable release opens the next version (for example `2.0.0` to `2.0.1`).
 - **`plugin.json` is the only version.** The marketplace entry in `.claude-plugin/marketplace.json` has no `version`; Claude Code reads it from `plugin.json` at the pinned commit. Do not add one: the CI gate requires it to equal `plugin.json`, which cannot hold between releases while the pin still names the previous one.
 - **Keep `package.json` `version` equal to `plugin.json`.** Nothing checks it.
 - **Record the change in `CHANGELOG.md`** under `## <next version> (unreleased)`, Breaking items first.
@@ -18,9 +18,10 @@ A release is a git tag plus a marketplace entry pinned to that tag. There is no 
 |---|---|---|---|
 | Beta of a new major or minor | `X.Y.0-beta.N` | a release branch, or `main` | Testers, from the branch (see [Install a beta](./install-and-update-rig.md#install-a-beta)) |
 | Stable | `X.Y.Z` | `main` | Everyone, through `/plugin marketplace add hoadh/rig` |
-| 1.x fix | `1.1.Z` | `release/1.x` | 1.x users. Uses the 1.x process on that branch, not this guide |
 
 The version must be strict semver and greater than the latest `v*` tag. A prerelease sorts below its stable version (`2.1.0-beta.3` < `2.1.0`).
+
+`release/1.x` (tag `v1.1.0`) is an archive and gets no more releases. Users who need the 1.x migration install Rig 2.0.10 from `release/2.0.x`, a permanent branch. See [Migrate from Rig 1.x](./migrate-from-rig-1x.md).
 
 ## Steps
 
@@ -41,7 +42,7 @@ CI does not run a real Claude Code install. Before a stable release, and before 
 | Changed area | Check |
 |---|---|
 | Always | `npm test` on Linux and Windows; the plugin loads with `claude --plugin-dir ./plugins/rig` |
-| `rig-init` | Install Rig 1.x from `release/1.x`, then `rig-init --plan`, `--migrate`, `--runtime`, `--permissions`, and restore with the backup's `restore.cjs`. On Windows, also migrate with `statusline.cjs` held open (expect exit 3, then `--resume`) |
+| `rig-init` | In a terminal on a disposable `HOME`: `rig-init --plan`, `--runtime`, `--permissions` |
 | `bin/` | Each entrypoint by bare name in Git Bash, and through `node <bin>` in PowerShell and cmd |
 | `rig:remote` | `rig-remote doctor` and `rig-remote run` from Linux to a Windows worker with the new runtime |
 

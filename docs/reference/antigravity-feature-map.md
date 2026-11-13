@@ -95,7 +95,7 @@ Legend:
 | `team` skill (`rig:team`, Agent Teams) | Yes | Not supported | `/swarm` is a different model |
 | `remote` skill (`rig:remote`) | Yes | Not supported | Needs `claude -p` workers |
 | `statusline` skill (`/rig:statusline`) | Yes | Not supported | No statusline API |
-| `setup` skill (`/rig:setup`), `rig-init`, 1.x migration | Yes | Not supported | Install with `agy plugin install` |
+| `setup` skill (`/rig:setup`), `rig-init` | Yes | Not supported | Install with `agy plugin install`. The 1.x migration is removed in 2.1.0 (Rig 2.0.10 only) |
 | `create-skill` description optimizer | Yes | Not supported | Needs `claude -p` |
 | Model names (opus, sonnet, haiku) | Yes | Not supported | Antigravity uses `inherit` or Gemini tiers |
 

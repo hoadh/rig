@@ -1,12 +1,22 @@
 # Migrate from Rig 1.x
 
+> **The 1.x migration was removed in Rig 2.1.0.** In 2.1, `rig-init --migrate`, `--resume` and `--restore` exit with code `2` and point here. To migrate a 1.x install, or to finish or undo a 2.0.x migration, use the Rig 2.0.10 plugin. It stays available on branch `release/2.0.x`, which is permanent. Run these commands in a terminal, outside Claude Code:
+>
+> ```bash
+> claude plugin marketplace remove rig-marketplace   # only if Rig 2.1 is installed: the add below fails while the marketplace exists
+> claude plugin marketplace add hoadh/rig#release/2.0.x
+> claude plugin install rig@rig-marketplace
+> ```
+>
+> This installs Rig 2.0.10. Every `rig-init` command on this page is the 2.0.10 one. Run it through node with the absolute path of the 2.0.10 plugin, `node "<plugin dir>/bin/rig-init" <verb>`. When you finish, return to the normal marketplace: [Return to Rig 2.1](#return-to-rig-21).
+
 Rig 1.x copied its files into `~/.claude` and into projects (`.claude/`). Rig 2.x is a plugin, so those copies must move out of the way, or every hook runs twice. `rig-init --migrate` does that: it moves the 1.x files into a backup, rewrites the hook registrations, and leaves everything else alone. Nothing is deleted, and `rig-init --restore` puts it back.
 
 Read [Install and update Rig](./install-and-update-rig.md) for the plugin itself. Want to stay on 1.x? Skip this page and see [Stay on Rig 1.x](#stay-on-rig-1x).
 
 ## Before you start
 
-- Install the plugin and confirm Claude Code is 2.1.292 or newer. Do the migration **after** the plugin is installed: session context and the migration notice come from the plugin.
+- Install the Rig 2.0.10 plugin (see the route above) and confirm Claude Code is 2.1.292 or newer. Do the migration **after** the plugin is installed: session context and the migration notice come from the plugin.
 - Close other Claude Code sessions that use the project or `~/.claude`. Open sessions can hold files (on Windows an open statusline locks them).
 - Commit or stash your work in a team project (see [Team projects](#team-projects)).
 
@@ -84,6 +94,8 @@ rig-init --restore ~/.claude/rig-backups/<hash-or-global>/<timestamp>
 
 Then re-enable the plugin with `claude plugin enable rig@rig-marketplace`.
 
+Old backups do not need a Rig plugin for this step, but the 1.x hooks they restore run next to any enabled Rig plugin. Restore before you enable it.
+
 ## Blockers
 
 `--plan` reports these. Fix the cause and run `--plan` again. The migration re-checks them before it moves anything.
@@ -124,6 +136,18 @@ Do not install the 2.x plugin in the same project or `~/.claude` while you stay 
 - The 1.x `scripts/install-kit/` installer. `scripts/install-kit-from-local-repo.cjs` on `main` now only prints the steps above.
 
 Full list: [CHANGELOG](../../CHANGELOG.md), `2.0.0`, "Breaking".
+
+## Return to Rig 2.1
+
+When you finish the steps on this page, switch back to the normal marketplace. In a terminal, outside Claude Code:
+
+```bash
+claude plugin marketplace remove rig-marketplace
+claude plugin marketplace add hoadh/rig
+claude plugin install rig@rig-marketplace
+```
+
+Then run `rig-init --runtime` and `rig-init --permissions` with the 2.1 plugin, as in [Install and update Rig](./install-and-update-rig.md).
 
 ## Related
 
