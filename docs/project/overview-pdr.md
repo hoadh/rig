@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-Rig is an Agentic-Driven Development (ADD) toolkit for Claude Code: plans come first, specialized agents execute and verify each phase, and humans steer scope and approvals. Rig ships the agents, skills, hooks, rules and workflows that make that loop repeatable across projects and machines. A generated copy in `.agent/` and `GEMINI.md` serves Antigravity.
+Rig is an Agentic-Driven Development (ADD) toolkit for Claude Code: plans come first, specialized agents execute and verify each phase, and humans steer scope and approvals. Rig ships the agents, skills, hooks, rules and workflows that make that loop repeatable across projects and machines. A generated Antigravity plugin in `antigravity/rig/` serves Antigravity.
 
 ## Project Purpose
 
@@ -128,7 +128,7 @@ Full catalog: [guide/SKILLS.md](../../guide/SKILLS.md).
 
 **CI/CD** (GitHub Actions):
 - `ci.yml`: lint, Node tests on Ubuntu, Windows and macOS, eval tier 1 and Python skill tests on every push and PR to `main`
-- `antigravity-sync-check.yml`: fails when `.agent/` or `GEMINI.md` differ from a fresh sync
+- Antigravity plugin check: fails when `antigravity/rig/` differs from a fresh generation (CI wiring: see the plan `261113-1451-antigravity-plugin-port`, phase 04)
 
 ### 6. Multi-Machine Orchestration (`rig:remote`)
 
@@ -141,7 +141,7 @@ Run plan phases and test commands on other machines (macOS, Windows, Linux) over
 
 ### 7. Antigravity Support
 
-`node scripts/sync-antigravity-agent-dir.cjs` generates `.agent/` and `GEMINI.md` from `plugins/rig/` and `CLAUDE.md`. Workflows drop the `rig:` prefix. `rig:remote` and `rig:team` are Claude Code only. Details: [Antigravity vs Claude Code](../explanation/antigravity-vs-claude-code.md).
+A generated Antigravity plugin in `antigravity/rig/` ships from the same source as the Claude Code plugin. Skills drop the `rig:` prefix. `rig:remote`, `rig:team`, `rig:setup` and `statusline` are not ported. Details: [Antigravity feature map](../reference/antigravity-feature-map.md).
 
 ## Technical Requirements
 
@@ -368,7 +368,7 @@ Architecture details: [system architecture](../explanation/architecture.md).
 
 ### Technical Constraints
 - Requires Node.js >= 18.0.0
-- Depends on Claude Code CLI (Antigravity through the generated `.agent/` copy, without `rig:remote` and `rig:team`)
+- Depends on Claude Code CLI (Antigravity through the generated plugin in `antigravity/rig/`, without `rig:remote` and `rig:team`)
 - File-based communication has I/O overhead
 - Token limits on model context windows
 - `permissions.ask` covers the `Read`/`Edit` tools; `bash-safety-guard` asks before common Bash readers and copiers (`cat`, `grep`, `cp`, ...) touch secret files. Other commands are not covered

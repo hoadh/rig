@@ -39,4 +39,4 @@ Privileged steps and remote host rules are one line each in core. The full text 
 
 ## Antigravity
 
-`node scripts/sync-antigravity-agent-dir.cjs` copies `core-rules.md` to `.agent/rules/` and generates `GEMINI.md` from `CLAUDE.md`. `GEMINI.md` points to the same skill references, which are copied under `.agent/skills/`. `team` and `remote` are Claude Code only and are not copied.
+The generated Antigravity plugin in `antigravity/rig/` ships `core-rules.md` as a rule, loaded through SessionStart and the subagent context. The skill references are included with their skills. `team` and `remote` are Claude Code only and are not shipped. Details: [Antigravity feature map](../reference/antigravity-feature-map.md).

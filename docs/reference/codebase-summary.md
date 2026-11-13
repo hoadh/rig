@@ -7,7 +7,7 @@
 
 ## Overview
 
-Rig is an Agentic-Driven Development toolkit for Claude Code. Rig 2.x ships as a Claude Code plugin from the `rig-marketplace` marketplace. The plugin holds 33 skills, 14 agents, hooks, rules, `bin/` command entrypoints and the `rig-init` setup CLI. The repo also generates an Antigravity copy (`.agent/`, `GEMINI.md`).
+Rig is an Agentic-Driven Development toolkit for Claude Code. Rig 2.x ships as a Claude Code plugin from the `rig-marketplace` marketplace. The plugin holds 33 skills, 14 agents, hooks, rules, `bin/` command entrypoints and the `rig-init` setup CLI. The repo also generates an Antigravity plugin in `antigravity/rig/` (replaces the removed `.agent/` copy and `GEMINI.md`).
 
 ## Project Structure
 
@@ -27,17 +27,16 @@ rig/
 │   └── statusline.cjs        # statusline (items: hooks/lib/statusline-items.cjs, toggled by rig-statusline); copied to ~/.claude/rig/runtime
 ├── .claude/                  # DEV ONLY (not shipped): settings.json (permissions, attribution), .rig.json,
 │                             #   .env.example, .mcp.json.example, rules/ (empty)
-├── .agent/                   # Antigravity copy (generated; see GEMINI.md)
+├── antigravity/rig/          # Antigravity plugin (generated from plugins/rig/; do not edit)
 ├── .github/
-│   ├── workflows/            # ci.yml, plugin-validate.yml, antigravity-sync-check.yml
+│   ├── workflows/            # ci.yml, plugin-validate.yml, antigravity plugin check (see plan phase 04)
 │   └── CODEOWNERS
 ├── docs/                     # Diataxis: tutorials, how-to, reference, explanation, project (+ devlog, research, assets)
 ├── guide/                    # SKILLS.md catalog, ENVIRONMENT_RESOLVER.md, checks/
-├── scripts/                  # Repo tooling: Antigravity sync, eval, benchmark, plugin version check, install printer
+├── scripts/                  # Repo tooling: Antigravity generator, eval, benchmark, plugin version check, install printer
 ├── plans/                    # Plans and reports (gitignored in this repo)
 ├── CLAUDE.md                 # Project instructions for Claude Code (rules live in plugins/rig/rules/)
 ├── AGENTS.md                 # Project instructions for coding agents
-├── GEMINI.md                 # Generated: Antigravity instructions
 └── package.json              # Node scripts: test, lint, eval, bench
 ```
 
@@ -46,7 +45,7 @@ rig/
 ### Runtime & Dependencies
 - **Node.js**: >=18.0.0 (plugin runtime). Contributors running `npm run lint` need Node 20.19+, 22.13+ or 24+ (ESLint 10)
 - **Claude Code**: 2.1.292 floor (`plugin install --marketplace`)
-- **Python**: `rig-python` builds a venv from the skills' `requirements.txt` on first use
+- **Python**: in Antigravity `rig-python` is `python3` (no venv; see the [feature map](../reference/antigravity-feature-map.md)). In Claude Code `rig-python` builds a venv from the skills' `requirements.txt` on first use
 - **Package Manager**: npm
 - **License**: MIT (see `LICENSE`)
 
@@ -58,7 +57,7 @@ rig/
 ### CI/CD
 - **`ci.yml`**: lint, `npm test` on Ubuntu, Windows and macOS, eval tier 1, pytest for four skill suites
 - **`plugin-validate.yml`**: `claude plugin validate` on the 2.1.292 floor and on latest; PR-only plugin version bump check
-- **`antigravity-sync-check.yml`**: fails when `.agent/` or `GEMINI.md` drift from a fresh sync, or when a Claude Code-only reference leaks into them
+- **Antigravity plugin check**: fails when `antigravity/rig/` drifts from a fresh generation, or when a Claude Code-only reference leaks into it (wiring: plan phase 04)
 - **Versioning**: `plugins/rig/.claude-plugin/plugin.json` `version` must rise with every plugin change
 - **Release**: `scripts/release-plugin.cjs` pins the marketplace entry (ref, sha) and creates the `v<version>` tag; dry run by default, `--apply` in a terminal. `--check-ref` runs in CI
 
@@ -108,8 +107,8 @@ Shared modules: `hooks/lib/` (34 files), such as `plugin-data-dir.cjs` (state an
 ### 6. Remote (`rig:remote`)
 `plugins/rig/skills/remote/`: `scripts/remote.cjs` (orchestrator), `worker.cjs` and `worker-commands/`. Worker protocol version 2. The worker runs from `~/.claude/rig/runtime/remote/worker.cjs`. Version gate: `lib/rig-version-compat.cjs`. See [ADR 0002](../explanation/decisions/0002-multi-machine-remote-orchestration.md).
 
-### 7. Antigravity sync
-`scripts/sync-antigravity-agent-dir.cjs` builds `.agent/` and `GEMINI.md` from `plugins/rig/` and `CLAUDE.md`. Helpers: `scripts/antigravity/` (frontmatter filter, text rewrite table, leftover check). `--check-leftovers` scans the committed output.
+### 7. Antigravity plugin
+`antigravity/rig/` is generated from `plugins/rig/` by the Antigravity generator (`scripts/sync-antigravity-plugin.cjs`; plan `261113-1451-antigravity-plugin-port`, phase 02). It holds the Antigravity manifest (`.antigravity-plugin/plugin.json`), skills, agents, rules and the hook adapter output. Feature status: [Antigravity feature map](../reference/antigravity-feature-map.md).
 
 ### 8. Tests and evals
 - `npm test` runs `scripts/run-hook-tests.cjs`, which discovers every `*.test.cjs` and `*.test.js` under `plugins/rig/` and `scripts/`, and reports passed, failed and skipped counts.
@@ -126,7 +125,7 @@ Shared modules: `hooks/lib/` (34 files), such as `plugin-data-dir.cjs` (state an
 ### For Developers
 - Plugin: `claude --plugin-dir ./plugins/rig`
 - Tests: `npm test`; lint: `npm run lint`
-- Antigravity: `node scripts/sync-antigravity-agent-dir.cjs`, then `--check-leftovers`
+- Antigravity: `npm run sync:antigravity` regenerates `antigravity/rig/`; `node scripts/sync-antigravity-plugin.cjs --check` reports drift; then `agy plugin validate --strict --json antigravity/rig` (not in CI)
 
 ### For Agents
 - Core rules: `plugins/rig/rules/core-rules.md`

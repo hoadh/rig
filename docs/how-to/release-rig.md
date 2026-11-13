@@ -29,6 +29,7 @@ The version must be strict semver and greater than the latest `v*` tag. A prerel
 On the branch you release from, in one pull request:
 
 1. Set the version in `plugins/rig/.claude-plugin/plugin.json` and `package.json`.
+1a. Regenerate the Antigravity plugin in `antigravity/rig/`. Its version is `<rig version>-agy.<n>`; `<n>` lives in `scripts/antigravity/agy-version.json`. It resets to 1 for a new Rig version, or rises for an Antigravity-only fix. CI (`scripts/check-antigravity-version-bump.cjs`) requires the bump when `scripts/antigravity/**` or `antigravity/rig/**` changes. Then run `agy plugin validate --strict --json antigravity/rig` before tagging. CI does not run `agy` (not installed on the runners). The release script refuses to tag while `node scripts/sync-antigravity-plugin.cjs --check` reports drift. The plugin is generated; do not edit it by hand.
 2. In `CHANGELOG.md`, change `## <version> (unreleased)` to `## <version> (<YYYY-MM-DD>)` and check that its entries still match what ships: the GitHub Release notes are copied from this section. `release-plugin.cjs` refuses a stable version whose section is missing or still `(unreleased)`.
 3. Update the version lines in `docs/project/roadmap.md`, `docs/reference/codebase-summary.md`, `docs/explanation/architecture.md` and `docs/project/overview-pdr.md`.
 4. Wait for CI to pass on Ubuntu, Windows and macOS, plus `plugin-validate` on the Claude Code floor and the latest version.

@@ -22,11 +22,11 @@ Rig docs follow [Diataxis](https://diataxis.fr/): each page has one job. Layout 
 - [System components](./reference/system-components.md) - catalog of layers, agents, skills, hooks, and technology stack
 - [Skills interconnection map](./reference/skills-interconnection-map.md) - how skills call each other
 - [Skill native task management](./reference/skill-native-task.md) - the optional Tasks API: which skills use it and why phase files stay the record
+- [Antigravity feature map](./reference/antigravity-feature-map.md) - install, update and uninstall the Antigravity plugin, and which Rig features work in Antigravity
 - [Agent teams guide](./reference/agent-teams-guide.md) - what Rig adds to Claude Code agent teams, usage, configuration, limits
 
 ## Explanation
 - [Architecture](./explanation/architecture.md) - plugin layout, rig-init and the consent gate, coexistence with 1.x, how agents and file-based handoffs fit together
-- [Antigravity vs Claude Code](./explanation/antigravity-vs-claude-code.md) - concept differences between the two tools and the generated `.agent/` copy
 - [Rules layout](./explanation/rules-layout.md) - the one always-loaded rules file, the skill references, and where each moved section went
 - [ADR 0001: Agent state lives in files](./explanation/decisions/0001-agent-state-lives-in-files.md) - why agents keep no state outside `plans/`, `docs/` and the session temp file
 - [ADR 0002: Multi-machine remote orchestration](./explanation/decisions/0002-multi-machine-remote-orchestration.md) - git as transport, single-writer coordination branch, detached worker runs; extends ADR 0001

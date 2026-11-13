@@ -44,5 +44,5 @@ Put the steps in a skill, not in a rules file. The always-loaded rules are `plug
    ```
 2. Validate the manifest and the marketplace entry: `claude plugin validate ./plugins/rig --strict` and `claude plugin validate .`.
 3. Start a session and call the new skill (`/rig:my-skill`), or describe a task that should load the agent.
-4. Run `npm run lint` and `npm test`. The Antigravity copy is generated: run `node scripts/sync-antigravity-agent-dir.cjs` and commit the result.
+4. Run `npm run lint` and `npm test`. The Antigravity plugin in `antigravity/rig/` is generated: run `npm run sync:antigravity` and commit the result. Do not edit `antigravity/rig/` by hand.
 5. Bump `version` in `plugins/rig/.claude-plugin/plugin.json` for any change under `plugins/rig/`. CI fails a change without a greater version. Users receive the change through the marketplace; see [Install and update Rig](./install-and-update-rig.md).

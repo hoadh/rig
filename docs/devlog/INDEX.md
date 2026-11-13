@@ -5,6 +5,12 @@ Devlog of shipped work, decisions, failures and lessons learned. Newest first.
 
 ## November 2026
 
+- **261113-antigravity-plugin-port-implemented.md**
+  - Generated Antigravity plugin in `antigravity/rig/` replaces `.agent/` and `GEMINI.md`; Rig hooks run through an adapter
+  - Live probe on agy 1.5.4 before coding: `{}` from PreToolUse denies, `${PLUGIN_ROOT}` not expanded in skills
+  - Red team (15 findings) and code review (5 Medium) fixed; live checks pass except install from a release tag
+  - Lesson: our own injected context in the host transcript suppressed later plan context
+
 - **261106-rig-2-plugin-beta-implemented.md**
   - Rig 2.0 plugin packaging (plan 1426) implemented, draft PR #4, CI green on 3 OSes; beta tag and LIVE checks pending
   - rig-init migrator: journaled moves into backups, resume, restore, terminal-only consent gate

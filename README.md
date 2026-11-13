@@ -72,14 +72,13 @@ Full index: [docs/README.md](./docs/README.md), organized by [Diataxis](https://
 ├── .claude/                # Dev-only: this repo's own settings and templates. Not shipped.
 ├── docs/                   # Project documentation (Diataxis layout)
 ├── guide/                  # Skills catalog
-├── scripts/                # Release, Antigravity sync, eval, benchmark and test scripts
+├── scripts/                # Release, Antigravity generator, eval, benchmark and test scripts
 ├── CLAUDE.md               # Instructions loaded by Claude Code
 ├── AGENTS.md               # Agent coordination guidelines
-├── .agent/                 # Antigravity copy (rules, skills, workflows)
-└── GEMINI.md               # Instructions loaded by Antigravity
+├── antigravity/rig/        # Generated Antigravity plugin (do not edit by hand)
 ```
 
-`.agent/` and `GEMINI.md` are generated from `plugins/rig/` and `CLAUDE.md` by `node scripts/sync-antigravity-agent-dir.cjs`. Edit `plugins/rig/`, then run the sync. Antigravity workflows drop the `rig:` prefix (`/plan`, `/fix`), and `rig:remote` and `rig:team` are Claude Code only. Details: [Antigravity vs Claude Code](./docs/explanation/antigravity-vs-claude-code.md).
+`antigravity/rig/` is generated from `plugins/rig/`. Edit `plugins/rig/`, then regenerate. Antigravity skills drop the `rig:` prefix (`/plan`, `/fix`), and `rig:remote`, `rig:team`, `rig:setup` and `statusline` are Claude Code only. Install the Antigravity plugin with `agy plugin install https://github.com/hoadh/rig/tree/<tag>/antigravity/rig`. Which features work, and how to update or remove the old `.agent/` copy, is in the [Antigravity feature map](./docs/reference/antigravity-feature-map.md).
 
 ## Agents
 

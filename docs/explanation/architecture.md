@@ -91,7 +91,7 @@ The remote worker runs from the runtime copy (`~/.claude/rig/runtime/remote/work
 
 ### Antigravity output
 
-`.agent/` and `GEMINI.md` are generated from `plugins/rig/` and `CLAUDE.md` by `scripts/sync-antigravity-agent-dir.cjs`. The sync strips Claude Code-only frontmatter, rewrites bin names and `/rig:` commands to Antigravity paths, and fails when a Claude Code-only reference survives (`--check-leftovers`). Plugin-only behavior (session-context injection, runtime copies, `rig-init`) has no Antigravity equivalent and is described in the concept doc: [Antigravity vs Claude Code](./antigravity-vs-claude-code.md).
+The Antigravity plugin in `antigravity/rig/` is generated from `plugins/rig/` by `scripts/sync-antigravity-plugin.cjs` (`npm run sync:antigravity`; `--check` reports drift). It replaces the former `.agent/` copy and root `GEMINI.md`, which are removed. Hooks run through an adapter that translates Antigravity payloads into the Claude Code shape and back, so the hook logic in `plugins/rig/hooks/` is shared. Which features work in Antigravity, and which need Claude Code, is listed in the [Antigravity feature map](../reference/antigravity-feature-map.md).
 
 ### Repo-only files
 
@@ -411,7 +411,7 @@ git push origin main v<version>
 
 Step by step, with live checks and verification: [Release Rig](../how-to/release-rig.md). `main` takes changes only through pull requests with green CI (ruleset `main-ci-required`), the pin included. `--allow-branch` lets a beta tag come from a branch other than `main`; the pin then stays on that branch. The entry's `sha` is the release content commit and the tag points at that commit, so a user installing the entry gets exactly the tagged content. There is no zip and no npm publish.
 
-`plugin-validate.yml` runs `claude plugin validate --strict` on `plugins/rig` and the marketplace on the Claude Code floor (2.1.292) and on the latest release, and fails a change to `plugins/rig/**` that does not raise the plugin version. `antigravity-sync-check.yml` runs on every push and PR to `main` and fails when `.agent/` or `GEMINI.md` differ from a fresh sync, or when a Claude Code-only reference survives in them.
+`plugin-validate.yml` runs `claude plugin validate --strict` on `plugins/rig` and the marketplace on the Claude Code floor (2.1.292) and on the latest release, and fails a change to `plugins/rig/**` that does not raise the plugin version. The Antigravity plugin check (plan phase 04) fails a change when `antigravity/rig/` differs from a fresh generation, and the Antigravity version-bump check requires `scripts/antigravity/agy-version.json` to rise with those changes.
 
 ### Production Usage
 

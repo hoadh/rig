@@ -64,7 +64,7 @@ Before the second plugin ships:
 | Shared core | Domain plugins rely on `rig` for hooks, `rig-init`, the runtime and the core rules instead of copying them. Decide how a domain plugin states and checks that dependency |
 | Versions and tags | Each plugin has its own version. Move from `v<version>` tags to plugin-scoped tags (`rig--v2.1.0`, `rig-mobile--v0.1.0`, the form `claude plugin tag` creates) |
 | Release script and CI | `release-plugin.cjs`, the version bump check and `--check-ref` take a plugin name instead of assuming `rig` |
-| Antigravity sync | Generate `.agent/` per plugin, or only for the core |
+| Antigravity plugin | One generated Antigravity plugin per Claude plugin in `antigravity/<name>/`, or only for the core. Decide with the plan `261113-1451-antigravity-plugin-port` outcome |
 | Docs | Per-plugin install and skill catalog pages; the [release guide](../how-to/release-rig.md) covers more than one plugin |
 
 ---
@@ -149,7 +149,7 @@ No work is tracked for these. Confirm before starting.
 ## Technical Context
 
 - **Runtime:** Node.js >= 18.0.0 (`package.json` engines; ESLint 10 for `npm run lint` needs 20.19+, see "Node floor for lint" under [Next](#next)), Bash, Python 3 for some skill scripts
-- **Host:** Claude Code CLI. Antigravity reads `.agent/` and `GEMINI.md`, generated from `.claude/` by `scripts/sync-antigravity-agent-dir.cjs`
+- **Host:** Claude Code CLI. Antigravity installs the generated plugin in `antigravity/rig/` (see [feature map](../reference/antigravity-feature-map.md))
 - **Dev tooling:** ESLint 10 (devDependencies) for `npm run lint`; tests run with plain Node (`npm test`); CI in `.github/workflows/ci.yml`
 - **External services:** GitHub (Actions, tags, PRs via `gh`; the repo is the plugin marketplace), no npm publishing, ssh (rig:remote only)
 - **Constraints:** state lives in files ([ADR 0001](../explanation/decisions/0001-agent-state-lives-in-files.md)); agent definitions are Markdown with frontmatter; conventional commits required

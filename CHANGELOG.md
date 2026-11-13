@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased]
+
+### Breaking
+
+* **Antigravity plugin replaces `.agent/` and `GEMINI.md`.** Antigravity now reads plugins from `.agents/`, so the generated `.agent/` directory and root `GEMINI.md` are removed. The Antigravity plugin is generated in `antigravity/rig/` and installs with `agy plugin install https://github.com/hoadh/rig/tree/<tag>/antigravity/rig`. Update with uninstall and install (Antigravity has no `update` command). Anyone who copied `.agent/` into a project should delete it and `GEMINI.md`, then install the plugin. Which features work in Antigravity: [Antigravity feature map](docs/reference/antigravity-feature-map.md).
+
+### Features
+
+* **Antigravity plugin with subagents, rules and hooks.** The plugin ships Rig skills, subagents, rules and the Rig hooks through a hook adapter, so hook logic in `plugins/rig/hooks/` is shared with Claude Code. Verified features and open checks are listed in the [Antigravity feature map](docs/reference/antigravity-feature-map.md).
+
 ## 2.0.9 (2026-11-12)
 
 ### Fixes
