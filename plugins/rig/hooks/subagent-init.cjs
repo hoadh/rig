@@ -27,7 +27,7 @@ try {
   } = require('./lib/rig-config-utils.cjs');
   const { resolveSkillsVenv } = require('./lib/context-builder.cjs');
   const { createHookTimer, logHookCrash } = require('./lib/hook-logger.cjs');
-  const { yieldsToProjectCopy, isPluginCopy } = require('./lib/global-hook-yields-to-project-copy.cjs');
+  const { isPluginCopy } = require('./lib/plugin-copy-detector.cjs');
   const { normalizeAgentType, sanitizeForFilename } = require('./lib/agent-type-normalizer.cjs');
   const { resolveTeamMember } = require('./lib/team-member-resolver.cjs');
 
@@ -67,8 +67,8 @@ function buildPlanStatusSection(agentType) {
 /**
  * Core rules for subagents, switched by `.rig.json` `subagent.injectCoreRules`. Default: on in a plugin install
  * (Claude Code does not load a plugin's rules/*.md, and subagents do not inherit the SessionStart injection), off in a
- * 1.x files install (Claude Code already loads the install's rules files into subagents, so injecting again only costs tokens). Read from the .claude dir this hook runs from (project or global install);
- * fail open when missing or unreadable.
+ * copy without `.claude-plugin` (the generated Antigravity plugin, whose rules load natively). Fail open when the rules
+ * file is missing or unreadable.
  * @param {string} [rulesDir] - Directory holding core-rules.md (default: ../rules next to hooks/)
  * @returns {string[]} Lines to append (empty when unavailable)
  */
@@ -109,8 +109,6 @@ async function main() {
     }
 
     const payload = JSON.parse(stdin);
-    // Global copy exits when the project install runs this same hook.
-    if (yieldsToProjectCopy(__filename, payload)) process.exit(0);
     agentType = payload.agent_type || 'unknown';
     // An agent-team teammate reports its NAME as agent_type; use its agent definition from the team config instead
     const teammate = resolveTeamMember(payload);

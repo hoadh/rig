@@ -1,6 +1,6 @@
 # Rig for Antigravity
 
-Rig 2.0.10 as an Antigravity plugin (plugin version `2.0.10-agy.1`). Generated from `plugins/rig/` by `scripts/sync-antigravity-plugin.cjs`; do not edit by hand.
+Rig 2.1.0-beta.1 as an Antigravity plugin (plugin version `2.1.0-beta.1-agy.1`). Generated from `plugins/rig/` by `scripts/sync-antigravity-plugin.cjs`; do not edit by hand.
 
 It carries the Rig skills, subagents, always-on rules and the hooks that have an Antigravity equivalent.
 Claude-only parts (statusline, setup, `remote`, `team`, Agent Teams hooks) are not included.
@@ -10,7 +10,7 @@ Claude-only parts (statusline, setup, `remote`, `team`, Agent Teams hooks) are n
 Pin the install to a release tag:
 
 ```bash
-agy plugin install https://github.com/hoadh/rig/tree/v2.0.10/antigravity/rig
+agy plugin install https://github.com/hoadh/rig/tree/v2.1.0-beta.1/antigravity/rig
 ```
 
 If you installed the Claude plugin natively under the same name `rig`, uninstall it first.

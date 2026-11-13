@@ -156,7 +156,7 @@
       "properties": {
         "injectCoreRules": {
           "type": "boolean",
-          "description": "Append the Rig core rules (rules/core-rules.md) to every subagent's context. Unset: on in a plugin install (Claude Code does not load a plugin's rules into subagents), off in a 1.x files install (Claude Code loads its rules files natively). Set false to turn it off in a plugin install."
+          "description": "Append the Rig core rules (rules/core-rules.md) to every subagent's context. Unset: on in a Claude Code plugin install (Claude Code does not load a plugin's rules into subagents), off in the generated Antigravity plugin (its rules load natively). Set false to turn it off in a plugin install."
         }
       },
       "additionalProperties": true

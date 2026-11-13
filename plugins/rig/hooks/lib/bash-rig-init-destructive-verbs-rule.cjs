@@ -1,8 +1,10 @@
 /**
  * bash-rig-init-destructive-verbs-rule.cjs - rule `rig-init-destructive-verbs`.
  *
- * `rig-init` changes the user's Claude Code configuration with the verbs --migrate, --resume, --restore, --permissions,
- * --runtime and --deps (and a restore.cjs of a rig-backups dir does the same as --restore). The CLI itself refuses to run
+ * `rig-init` changes the user's Claude Code configuration with the verbs --permissions, --runtime and --deps. The 1.x
+ * migration verbs --migrate, --resume and --restore were removed in 2.1.0, but older plugin versions stay in the plugin
+ * cache (`~/.claude/plugins/cache/<marketplace>/rig/2.0.x`) and still run them, and every migration backup holds a restore.cjs:
+ * they stay guarded. The CLI itself refuses to run
  * inside a Claude Code session, under a Claude Code parent process and without a terminal; this rule is the second layer
  * and is advisory: if a model still tries, the user is asked first. Consent against a determined agent is defense in depth,
  * not a guarantee.

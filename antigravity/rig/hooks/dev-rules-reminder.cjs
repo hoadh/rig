@@ -18,7 +18,6 @@
 try {
   const fs = require('fs');
   const { createHookTimer, logHookCrash } = require('./lib/hook-logger.cjs');
-  const { yieldsToProjectCopy } = require('./lib/global-hook-yields-to-project-copy.cjs');
 
   // Import shared context building logic
   const {
@@ -47,8 +46,6 @@ async function main() {
     }
 
     const payload = JSON.parse(stdin);
-    // Global copy exits when the project install runs this same hook.
-    if (yieldsToProjectCopy(__filename, payload)) process.exit(0);
     // Get session ID from hook input or env var
     const sessionId = payload.session_id || process.env.RIG_SESSION_ID || null;
 

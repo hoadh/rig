@@ -35,9 +35,8 @@ function installPluginCopy({ coreRules, withManifest = true } = {}) {
   return root;
 }
 
-function runSessionInit(root, env = {}) {
-  const project = mkTmp('rig-plugin-project-');
-  const home = mkTmp('rig-plugin-home-'); // a real ~/.claude with 1.x hooks would make the plugin copy yield
+function runSessionInit(root, env = {}, { project = mkTmp('rig-plugin-project-') } = {}) {
+  const home = mkTmp('rig-plugin-home-'); // a real ~/.claude with 1.x files would add the unsupported-1.x notice
   const res = spawnSync(process.execPath, [path.join(root, 'hooks', 'session-init.cjs')], {
     input: JSON.stringify({ hook_event_name: 'SessionStart', source: 'startup', session_id: `t-${Date.now()}` }),
     cwd: project,
@@ -208,5 +207,31 @@ describe('session-init whole-context cap', () => {
     });
     assert.strictEqual(res.status, 0, res.stderr);
     assert.ok(JSON.parse(res.stdout).hookSpecificOutput.additionalContext.length <= 10000);
+  });
+});
+
+describe('leftover Rig 1.x install (unsupported since 2.1.0)', () => {
+  const contextOf = (res) => JSON.parse(res.stdout).hookSpecificOutput.additionalContext;
+
+  it('the plugin session-init still injects its full context next to a committed 1.x project install, and adds one notice line', () => {
+    const root = installPluginCopy();
+    const project = mkTmp('rig-1x-project-');
+    for (const rel of ['hooks/session-init.cjs', 'hooks/lib/rig-config-utils.cjs']) {
+      fs.mkdirSync(path.dirname(path.join(project, '.claude', rel)), { recursive: true });
+      fs.writeFileSync(path.join(project, '.claude', rel), '// 1.x\n');
+    }
+    fs.writeFileSync(path.join(project, '.claude', 'settings.json'), JSON.stringify({ hooks: { SessionStart: [{ hooks: [{ type: 'command', command: 'node "$CLAUDE_PROJECT_DIR"/.claude/hooks/session-init.cjs' }] }] } }));
+    const res = runSessionInit(root, {}, { project });
+    assert.strictEqual(res.status, 0, res.stderr);
+    const context = contextOf(res);
+    assert.match(context, /## Core Rules|# Core Rules/, 'core rules still injected (the plugin copy no longer yields)');
+    assert.match(context, /Rig 1\.x files are still installed \(this project \.claude\)[\s\S]*runs twice[\s\S]*Rig 2\.0\.10/);
+    assert.doesNotMatch(context, /--migrate/);
+  });
+
+  it('prints no 1.x notice without a 1.x install', () => {
+    const res = runSessionInit(installPluginCopy());
+    assert.strictEqual(res.status, 0, res.stderr);
+    assert.doesNotMatch(contextOf(res), /Rig 1\.x/);
   });
 });

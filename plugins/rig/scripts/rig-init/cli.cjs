@@ -1,8 +1,9 @@
 'use strict';
 const { rigInitTerminalCommand } = require('../../hooks/lib/rig-init-terminal-command.cjs');
 /**
- * rig-init CLI (`bin/rig-init`). Read-only verb: --plan [--json]. Apply verbs: --migrate [--global|--project <dir>],
- * --resume, --restore <backup-dir>, --permissions, --runtime, --deps.
+ * rig-init CLI (`bin/rig-init`). Read-only verb: --plan [--json]. Apply verbs: --permissions, --runtime, --deps.
+ * The 1.x migration verbs (--migrate, --resume, --restore, --global, --project) were removed in 2.1.0: they exit 2
+ * with the route through Rig 2.0.10 (MIGRATION_REMOVED).
  *
  * Consent (red team: failure-modes #3, security #3): an apply verb never runs inside a Claude Code session
  * (CLAUDECODE is set) and never without a terminal; it prints the exact command to run instead. In a terminal it
@@ -12,9 +13,8 @@ const { rigInitTerminalCommand } = require('../../hooks/lib/rig-init-terminal-co
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { applyRefusal, askYesNo, restoreBackup, describeRestore } = require('./backup-restore-standalone.cjs');
-const { planAll, planTarget, describeTarget } = require('./migration-planner.cjs');
-const { applyMigration, resumeMigration } = require('./migration-journal-applier.cjs');
+const { applyRefusal, askYesNo } = require('./terminal-consent-gate.cjs');
+const { readJsonFile, backupsDirFor } = require('./settings-json-io-and-backup-dir.cjs');
 const perms = require('./user-settings-permissions-and-runtime.cjs');
 const { checkClaudeCodeVersion, describeVersionCheck } = require('./cc-version-check.cjs');
 const { runSkillsInstaller } = require('./skills-dependency-installer-runner.cjs');
@@ -22,99 +22,106 @@ const { runSkillsInstaller } = require('./skills-dependency-installer-runner.cjs
 const PLUGIN_ROOT = path.resolve(__dirname, '..', '..');
 const HELP = `Usage: rig-init <verb>
   --plan [--json]                 show what the other verbs would change (read-only; also runs inside Claude Code)
-  --migrate [--global|--project <dir>]   move 1.x Rig files out of ~/.claude and/or the project into a backup
-  --resume [--global|--project <dir>]    finish an interrupted --migrate
-  --restore <backup-dir>          put a migration backup back (disable the Rig plugin first)
   --permissions                   merge the reviewed ask/deny rules into ~/.claude/settings.json
   --runtime                       write ~/.claude/rig/runtime (statusline, remote worker) and the statusLine setting
   --deps                          run the skills dependency installer (system, npm and pip packages)
 Every verb except --plan changes your configuration: it runs only in a terminal outside Claude Code and asks for
 confirmation. There is no option to skip that.`;
 
-const VERBS = ['--plan', '--migrate', '--permissions', '--runtime', '--deps'];
+const VERBS = ['--plan', '--permissions', '--runtime', '--deps'];
+const REMOVED = ['--migrate', '--resume', '--restore', '--global', '--project'];
+const MIGRATION_DOC = 'https://github.com/hoadh/rig/blob/main/docs/how-to/migrate-from-rig-1x.md';
+const MIGRATION_REMOVED = `1.x migration was removed in 2.1.0. To migrate a 1.x install, or to finish or undo a 2.0.x migration, use Rig 2.0.10: ${MIGRATION_DOC}`;
 
-/** Strict parse: unknown flags are errors. `--resume` alone or with `--migrate` resumes an interrupted migration. */
+class RemovedVerbError extends Error {}
+
+/** Strict parse: unknown flags are errors; a removed 1.x verb is its own error (exit 2 with the 2.0.10 route). */
 function parseArgs(argv) {
-  const o = { verb: null, resume: false, json: false, global: false, project: null, restoreDir: null, help: false };
-  const setVerb = (v) => {
-    if (o.verb && o.verb !== v) throw new Error(`use one verb at a time (${o.verb} and ${v})`);
-    o.verb = v;
-  };
-  const valueOf = (i, flag, what) => {
-    const v = argv[i];
-    if (!v || v.startsWith('-')) throw new Error(`${flag} needs ${what}`);
-    return v;
-  };
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
+  const o = { verb: null, json: false, help: false };
+  for (const a of argv) {
     if (a === '-h' || a === '--help') o.help = true;
     else if (a === '--json') o.json = true;
-    else if (a === '--global') o.global = true;
-    else if (a === '--project') o.project = valueOf(++i, a, 'a directory');
-    else if (a === '--restore') { setVerb(a); o.restoreDir = valueOf(++i, a, 'a backup directory'); } else if (a === '--resume') { setVerb('--migrate'); o.resume = true; } else if (VERBS.includes(a)) setVerb(a);
-    else throw new Error(`unknown option: ${a}`);
+    else if (REMOVED.includes(a)) throw new RemovedVerbError(`${a}: ${MIGRATION_REMOVED}`);
+    else if (VERBS.includes(a)) {
+      if (o.verb && o.verb !== a) throw new Error(`use one verb at a time (${o.verb} and ${a})`);
+      o.verb = a;
+    } else throw new Error(`unknown option: ${a}`);
   }
-  if (o.global && o.project) throw new Error('use --global or --project <dir>, not both');
-  if ((o.global || o.project) && o.verb !== '--migrate') throw new Error('--global and --project go with --migrate or --resume');
   if (o.json && o.verb !== '--plan') throw new Error('--json goes with --plan');
   return o;
 }
 
 const quote = (arg) => (/^[\w@%+=:,./-]+$/.test(arg) ? arg : `"${arg.replace(/(["\\$`])/g, '\\$1')}"`);
 
-/** Plan objects trimmed for JSON consumers (the /rig:setup skill): counts and a sample, not hundreds of paths. */
-function summarizeTarget(plan) {
-  const { moves, ...rest } = plan;
-  return { ...rest, moves: { count: moves.length, bytes: plan.bytes, generated: moves.filter((m) => m.generated).map((m) => m.rel), sample: moves.filter((m) => !m.generated).slice(0, 10).map((m) => m.rel) } };
-}
-
 function readRigVersion() {
   try { return JSON.parse(fs.readFileSync(path.join(PLUGIN_ROOT, '.claude-plugin', 'plugin.json'), 'utf8')).version; } catch { return 'unknown'; }
 }
 
-function scopeTargets(o, { home, cwd }) {
-  if (o.global) return [planTarget({ kind: 'global', root: home, home })].filter(Boolean);
-  if (o.project) {
-    const root = path.resolve(cwd, o.project);
-    if (!fs.existsSync(root)) throw new Error(`project directory not found: ${root}`);
-    return [planTarget({ kind: 'project', root: fs.realpathSync(root), home })].filter(Boolean);
+/**
+ * Unfinished 2.0.x migrations: backup dirs under ~/.claude/rig-backups whose journal is not `done` and that were not
+ * restored (restore.cjs writes restored.json but leaves the journal as it was). 2.1 cannot finish them; --plan names
+ * them so the user can finish with 2.0.10 or undo with the backup's own restore.cjs.
+ * @returns {{dir: string, kind: string, root: string|null}[]}
+ */
+function pendingMigrations(home) {
+  const root = backupsDirFor(home);
+  const found = [];
+  let groups;
+  try { groups = fs.readdirSync(root, { withFileTypes: true }); } catch { return found; }
+  for (const group of groups) {
+    if (!group.isDirectory() || group.name === 'user-settings') continue;
+    let names;
+    try { names = fs.readdirSync(path.join(root, group.name)); } catch { continue; }
+    for (const name of names) {
+      const dir = path.join(root, group.name, name);
+      try {
+        const journal = readJsonFile(path.join(dir, 'journal.json')).value;
+        if (!journal || journal.status === 'done' || fs.existsSync(path.join(dir, 'restored.json'))) continue;
+        found.push({ dir, kind: journal.kind === 'project' ? 'project' : 'global', root: typeof journal.root === 'string' ? journal.root : null });
+      } catch { /* unreadable journal: not a migration we can describe */ }
+    }
   }
-  return planAll({ home, cwd });
+  return found.sort((a, b) => a.dir.localeCompare(b.dir));
+}
+
+/** One line per unfinished migration: what it covers, the 2.0.10 resume command for that scope, and the undo. */
+function describePending({ dir, kind, root }) {
+  const scope = kind === 'project' && root ? `--project ${quote(root)}` : '--global';
+  const what = kind === 'project' && root ? `the project ${root}` : '~/.claude';
+  return `A 2.0.x migration of ${what} is unfinished (${dir}). Rig 2.1 cannot finish it. Install Rig 2.0.10 (${MIGRATION_DOC}) and run its \`rig-init --migrate --resume ${scope}\` in a terminal, or undo it: disable the Rig plugin, then node "${path.join(dir, 'restore.cjs')}".`;
 }
 
 /**
  * Internal entry with injectable streams, env, TTY flags, answers and ancestry: for tests only. The bin and `main()` never
  * use it, and the apply path runs the same gate (CLAUDECODE, TTY, Claude Code ancestry, prompt) wherever it is called from.
- * @param {object} io { argv, env, home, cwd, stdout, stderr, stdinIsTTY, stdoutIsTTY, ask, ancestors, pluginRoot, checkVersion, hooks, runInstaller }
- * @returns {Promise<number>} exit code: 0 ok, 1 error, 2 refused (not a terminal / inside Claude Code) or bad usage, 3 migration incomplete
+ * @param {object} io { argv, env, home, stdout, stderr, stdinIsTTY, stdoutIsTTY, ask, ancestors, pluginRoot, checkVersion, runInstaller }
+ * @returns {Promise<number>} exit code: 0 ok, 1 error, 2 refused (not a terminal / inside Claude Code), bad usage or a removed 1.x verb
  */
 async function mainWithIo(io = {}) {
   const {
-    argv = process.argv.slice(2), env = process.env, home = os.homedir(), cwd = process.cwd(),
+    argv = process.argv.slice(2), env = process.env, home = os.homedir(),
     stdout = (s) => process.stdout.write(`${s}\n`), stderr = (s) => process.stderr.write(`${s}\n`),
     stdinIsTTY = Boolean(process.stdin.isTTY), stdoutIsTTY = Boolean(process.stdout.isTTY),
-    ask = askYesNo, pluginRoot = PLUGIN_ROOT, checkVersion = checkClaudeCodeVersion, hooks = {}, runInstaller = runSkillsInstaller, ancestors,
+    ask = askYesNo, pluginRoot = PLUGIN_ROOT, checkVersion = checkClaudeCodeVersion, runInstaller = runSkillsInstaller, ancestors,
   } = io;
   let o;
   try {
     o = parseArgs(argv);
   } catch (err) {
-    stderr(`rig-init: ${err.message}\n${HELP}`);
+    stderr(err instanceof RemovedVerbError ? `rig-init ${err.message}` : `rig-init: ${err.message}\n${HELP}`);
     return 2;
   }
   if (o.help || !o.verb) { stdout(HELP); return o.help ? 0 : 2; }
 
   try {
-    if (o.verb === '--plan') return await runPlan(o, { home, cwd, stdout, pluginRoot, checkVersion });
+    if (o.verb === '--plan') return await runPlan(o, { home, stdout, pluginRoot, checkVersion });
 
     const refusal = applyRefusal({ env, stdinIsTTY, stdoutIsTTY, ancestors, command: `${rigInitTerminalCommand(path.resolve(__dirname, '..', '..'))} ${argv.map(quote).join(' ')}` });
     if (refusal) { stderr(refusal.trimEnd()); return 2; }
     const versionWarning = describeVersionCheck(checkVersion());
     if (versionWarning) stderr(versionWarning);
     const confirm = async (question) => { if (!(await ask(question))) { stdout('Cancelled, nothing changed.'); return false; } return true; };
-    const ctx = { o, home, cwd, stdout, stderr, confirm, pluginRoot, hooks, runInstaller };
-    if (o.verb === '--migrate') return await runMigrate(ctx);
-    if (o.verb === '--restore') return await runRestore(ctx);
+    const ctx = { o, home, stdout, stderr, confirm, pluginRoot, runInstaller };
     if (o.verb === '--permissions') return await runPermissions(ctx);
     if (o.verb === '--runtime') return await runRuntime(ctx);
     return await runDeps(ctx);
@@ -124,59 +131,20 @@ async function mainWithIo(io = {}) {
   }
 }
 
-async function runPlan(o, { home, cwd, stdout, pluginRoot, checkVersion }) {
-  const targets = planAll({ home, cwd });
+async function runPlan(o, { home, stdout, pluginRoot, checkVersion }) {
   const permissions = perms.planPermissions({ home });
   const runtime = perms.planRuntime({ home, pluginRoot });
   const claudeCode = checkVersion();
+  const pending = pendingMigrations(home);
   if (o.json) {
-    stdout(JSON.stringify({ rigInitVersion: readRigVersion(), claudeCode, home, targets: targets.map(summarizeTarget), permissions, runtime }, null, 2));
+    stdout(JSON.stringify({ rigInitVersion: readRigVersion(), claudeCode, home, permissions, runtime, pendingMigrations: pending }, null, 2));
     return 0;
   }
   const warning = describeVersionCheck(claudeCode);
   if (warning) stdout(warning);
-  stdout(targets.length ? targets.map(describeTarget).join('\n\n') : 'No 1.x Rig install found in ~/.claude or the current project.');
-  stdout(`\nPermissions (--permissions): ${permissions.needed ? `${permissions.needed} rule(s) to add` : 'up to date'}`);
+  for (const p of pending) stdout(describePending(p));
+  stdout(`Permissions (--permissions): ${permissions.needed ? `${permissions.needed} rule(s) to add` : 'up to date'}`);
   stdout(`Runtime (--runtime): ${runtime.installedVersion ? `installed ${runtime.installedVersion}` : 'not installed'}; statusLine ${runtime.statusLine === 'other' ? 'is your own and stays' : 'will point at the runtime copy'}`);
-  return 0;
-}
-
-async function runMigrate({ o, home, cwd, stdout, stderr, confirm, hooks }) {
-  const plans = scopeTargets(o, { home, cwd });
-  const interrupted = plans.filter((p) => p.pendingBackup);
-  if (!o.resume && interrupted.length) {
-    stderr(`rig-init: an earlier migration was interrupted (${interrupted.map((p) => p.pendingBackup).join(', ')}). Finish it first: rig-init --migrate --resume`);
-    return 1;
-  }
-  const todo = plans.filter((p) => (o.resume ? p.pendingBackup : p.detected));
-  if (!todo.length) {
-    const unmarked = plans.filter((p) => !p.identified && p.unmarkedMatches > 0);
-    for (const p of unmarked) stdout(`${describeTarget(p)}\n`);
-    stdout(o.resume ? 'No interrupted migration to resume.' : unmarked.length ? 'Nothing was migrated: no Rig 1.x install marker.' : 'No 1.x Rig files found, nothing to migrate.');
-    return 0;
-  }
-  for (const p of todo) stdout(`${describeTarget(p)}\n`);
-  if (todo.some((p) => p.blockers.length)) { stderr('rig-init: fix the blockers above first.'); return 1; }
-  if (!(await confirm(o.resume ? 'Resume the interrupted migration?' : 'Apply this migration?'))) return 0;
-  const rigVersion = readRigVersion();
-  let code = 0;
-  for (const p of todo) {
-    const result = o.resume ? resumeMigration({ backupDir: p.pendingBackup, home, hooks }) : applyMigration({ plan: p, home, rigVersion, hooks });
-    stdout(`${p.kind === 'global' ? 'Global' : `Project ${p.root}`}: ${result.status}, ${result.moved} path(s) moved to ${result.backupDir}`);
-    if (result.listFile) stdout(`  full list of moved paths: ${result.listFile}`);
-    if (result.blocked.length) {
-      code = 3;
-      stderr(`  ${result.blocked.length} path(s) are in use and stay in place: ${result.blocked.slice(0, 5).map((b) => `${b.rel} (${b.code})`).join(', ')}\n  Close Claude Code sessions that use them (an open statusline holds files on Windows), then run: rig-init --migrate --resume`);
-    }
-  }
-  if (code === 0) stdout('\nNext: enable the Rig plugin, then run `rig-init --runtime` (statusline, remote worker) and `rig-init --permissions` in a terminal. To undo: `node <backup-dir>/restore.cjs` after disabling the plugin.');
-  return code;
-}
-
-async function runRestore({ o, home, stdout, confirm }) {
-  const dir = path.resolve(o.restoreDir);
-  if (!(await confirm(`Restore the Rig 1.x files and hooks from ${dir}?`))) return 0;
-  stdout(describeRestore(restoreBackup({ backupDir: dir, home })));
   return 0;
 }
 
@@ -218,4 +186,4 @@ if (require.main === module) {
   main().then((code) => { process.exitCode = code; });
 }
 
-module.exports = { main, parseArgs, HELP, _mainWithIo: mainWithIo };
+module.exports = { main, parseArgs, pendingMigrations, HELP, MIGRATION_REMOVED, _mainWithIo: mainWithIo };

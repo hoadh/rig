@@ -1,8 +1,8 @@
 'use strict';
 /**
- * Preflight for the benchmark's rig arm. The child `claude` keeps the real HOME (the auth lives there), and the Rig
- * plugin's hooks yield to Rig 1.x hooks that are registered in the real `~/.claude/settings.json`: on such a machine the
- * rig arm would run WITHOUT Rig hooks (the isolated CLI never runs the 1.x copies) and the results would be wrong.
+ * Preflight for the benchmark's rig arm. The child `claude` keeps the real HOME (the auth lives there), so Rig 1.x hooks
+ * registered in the real `~/.claude/settings.json` would run next to the plugin hooks (since 2.1.0 nothing yields):
+ * every hook twice, and the results would be wrong.
  */
 const fs = require('fs');
 const os = require('os');
@@ -29,7 +29,7 @@ function assertNoGlobalRigHooks(home = os.homedir()) {
   try { text = fs.readFileSync(path.join(home, '.claude', 'settings.json'), 'utf8'); } catch { return; }
   const found = findGlobalRigHooks(text);
   if (found.length) {
-    throw new Error(`Rig arm: ${found.length} Rig 1.x hook(s) are registered in ${path.join(home, '.claude', 'settings.json')}; the plugin hooks would yield to them and the arm would run without Rig. Run \`rig-init --migrate\` (in a terminal) first.`);
+    throw new Error(`Rig arm: ${found.length} Rig 1.x hook(s) are registered in ${path.join(home, '.claude', 'settings.json')}; they would run next to the plugin hooks (every hook twice). Remove them from settings.json first (Rig 2.1 does not migrate 1.x).`);
   }
 }
 

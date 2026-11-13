@@ -162,7 +162,7 @@ test('project-local .rig.json toggles are ignored', () => {
   assert.strictEqual(out.permissionDecision, 'deny');
 });
 
-test('exactly one copy guards when global and project both install the hook (RT#8)', () => {
+test('since 2.1.0 no copy yields: a global and a project copy of the hook both guard (1.x installs are unsupported)', () => {
   const w = setup();
   const project = path.join(w.root, 'project');
   const projectHook = installHook(project);
@@ -173,9 +173,8 @@ test('exactly one copy guards when global and project both install the hook (RT#
   const input = bash('pkill -f vite', w);
   const globalRun = runHook(w, input, { env, cwd: project });
   const projectRun = runHook(w, input, { hook: projectHook, env, cwd: project });
-  assert.strictEqual(globalRun.out, null, 'global copy must yield');
+  assert.strictEqual(globalRun.out.permissionDecision, 'deny', 'global copy guards');
   assert.strictEqual(projectRun.out.permissionDecision, 'deny', 'project copy guards');
-  // without a project copy registered, the global copy guards
   const lone = setup();
   assert.strictEqual(runHook(lone, bash('pkill -f vite', lone), { env: { CLAUDE_PROJECT_DIR: lone.work } }).out.permissionDecision, 'deny');
 });

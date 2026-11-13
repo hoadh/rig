@@ -31,6 +31,14 @@ describe('rig-init-destructive-verbs', () => {
     ]) assert.strictEqual(decision(command), 'ask', command);
   });
 
+  it('still asks for the 1.x verbs removed in 2.1.0: the cached 2.0.x CLIs and every backup restore.cjs still run them', () => {
+    for (const command of [
+      'node ~/.claude/plugins/cache/rig-marketplace/rig/2.0.10/scripts/rig-init/cli.cjs --restore x',
+      'node /home/u/.claude/plugins/cache/rig-marketplace/rig/2.0.10/bin/rig-init --migrate --global',
+      'node ~/.claude/plugins/cache/rig-marketplace/rig/2.0.9/bin/rig-init --resume', 'rig-init --migrate -y',
+    ]) assert.strictEqual(decision(command), 'ask', command);
+  });
+
   it('allows the read-only plan and unrelated commands that only mention the words', () => {
     for (const command of ['rig-init --plan', 'rig-init --plan --json', 'rig-init --help', 'rig-init', 'git commit -m "docs: rig-init"',
       'ls ~/.claude/rig-backups', 'npm run migrate', 'some-tool --migrate']) {

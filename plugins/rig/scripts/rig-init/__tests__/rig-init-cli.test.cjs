@@ -1,16 +1,16 @@
 #!/usr/bin/env node
-/** Tests for the rig-init CLI: consent gate, verbs on fixture HOMEs, permissions, runtime, deps, the real bin. */
+/** Tests for the rig-init CLI: removed 1.x verbs, consent gate, --plan, permissions, runtime, deps, the real bin. */
 const { describe, it, after } = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
-const { _mainWithIo: main, parseArgs } = require('../cli.cjs');
+const { _mainWithIo: main, parseArgs, pendingMigrations, HELP } = require('../cli.cjs');
 const { applyPermissions, applyRuntime, planPermissions, missingRules } = require('../user-settings-permissions-and-runtime.cjs');
 const { checkClaudeCodeVersion, describeVersionCheck } = require('../cc-version-check.cjs');
+const { isRig1xStatusLineCommand } = require('../rig-statusline-command.cjs');
 const { installerCommand, runSkillsInstaller } = require('../skills-dependency-installer-runner.cjs');
-const { findIncompleteBackup } = require('../migration-planner.cjs');
-const { makeMachine, snapshot, tmpDir } = require('./rig-init-fixtures.cjs');
+const { makeMachine, snapshot, tmpDir, write } = require('./rig-init-fixtures.cjs');
 
 const PLUGIN_ROOT = path.resolve(__dirname, '..', '..', '..');
 const BIN = path.join(PLUGIN_ROOT, 'bin', 'rig-init');
@@ -19,12 +19,12 @@ const machine = (opts) => { const m = makeMachine(opts); machines.push(m); retur
 after(() => machines.forEach((m) => m.cleanup()));
 
 /** Drives main() with captured output; defaults to a real terminal outside Claude Code that answers `answer`. */
-async function run(m, argv, { env = {}, tty = true, answer = true, cwd, hooks, runInstaller } = {}) {
+async function run(m, argv, { env = {}, tty = true, answer = true, runInstaller } = {}) {
   const out = [];
   const err = [];
   const asked = [];
   const code = await main({
-    argv, env, home: m.home, cwd: cwd || m.project, ancestors: [], stdinIsTTY: tty, stdoutIsTTY: tty, pluginRoot: PLUGIN_ROOT, hooks, runInstaller,
+    argv, env, home: m.home, ancestors: [], stdinIsTTY: tty, stdoutIsTTY: tty, pluginRoot: PLUGIN_ROOT, runInstaller,
     stdout: (s) => out.push(s), stderr: (s) => err.push(s),
     ask: async (q) => { asked.push(q); return answer; },
     checkVersion: () => ({ status: 'ok', version: '2.1.318', min: '2.1.292' }),
@@ -34,18 +34,34 @@ async function run(m, argv, { env = {}, tty = true, answer = true, cwd, hooks, r
 
 describe('argument parsing', () => {
   it('has no --yes or any other skip-consent option', () => {
-    for (const bad of [['--yes'], ['-y'], ['--migrate', '--yes'], ['--migrate', '--force'], ['--i-reviewed', 'x']]) assert.throws(() => parseArgs(bad), /unknown option/, bad.join(' '));
+    for (const bad of [['--yes'], ['-y'], ['--runtime', '--yes'], ['--permissions', '--force'], ['--i-reviewed', 'x']]) assert.throws(() => parseArgs(bad), /unknown option/, bad.join(' '));
   });
-  it('accepts the documented forms and rejects mixed or misplaced flags', () => {
-    assert.deepStrictEqual(parseArgs(['--migrate', '--project', '/a']).project, '/a');
-    assert.strictEqual(parseArgs(['--resume']).resume, true);
-    assert.strictEqual(parseArgs(['--migrate', '--resume']).verb, '--migrate');
-    assert.strictEqual(parseArgs(['--restore', '/b']).restoreDir, '/b');
-    assert.throws(() => parseArgs(['--migrate', '--runtime']), /one verb/);
-    assert.throws(() => parseArgs(['--runtime', '--global']), /go with --migrate/);
-    assert.throws(() => parseArgs(['--migrate', '--global', '--project', '/x']), /not both/);
-    assert.throws(() => parseArgs(['--json', '--migrate']), /goes with --plan/);
-    assert.throws(() => parseArgs(['--restore']), /needs a backup directory/);
+  it('accepts the kept verbs and rejects mixed or misplaced flags', () => {
+    for (const verb of ['--plan', '--permissions', '--runtime', '--deps']) assert.strictEqual(parseArgs([verb]).verb, verb);
+    assert.strictEqual(parseArgs(['--plan', '--json']).json, true);
+    assert.throws(() => parseArgs(['--permissions', '--runtime']), /one verb/);
+    assert.throws(() => parseArgs(['--json', '--runtime']), /goes with --plan/);
+  });
+});
+
+describe('removed 1.x migration verbs', () => {
+  it('each exits 2 with the 2.0.10 route, before the consent gate, and changes nothing', async () => {
+    const m = machine();
+    const state = snapshot(m.root);
+    for (const argv of [['--migrate'], ['--migrate', '--global'], ['--resume'], ['--restore', '/x'], ['--project', '/p'], ['--global']]) {
+      for (const env of [{}, { CLAUDECODE: '1' }]) {
+        const r = await run(m, argv, { env });
+        assert.strictEqual(r.code, 2, argv.join(' '));
+        assert.match(r.err, /1\.x migration was removed in 2\.1\.0[\s\S]*Rig 2\.0\.10: https:\/\/github\.com\/hoadh\/rig\/blob\/main\/docs\/how-to\/migrate-from-rig-1x\.md/);
+        assert.doesNotMatch(r.err, /Usage:/);
+        assert.deepStrictEqual(r.asked, []);
+      }
+    }
+    assert.deepStrictEqual(snapshot(m.root), state);
+  });
+  it('--help lists only --plan, --permissions, --runtime, --deps', () => {
+    for (const gone of ['--migrate', '--resume', '--restore', '--global', '--project']) assert.ok(!HELP.includes(gone), gone);
+    for (const kept of ['--plan', '--permissions', '--runtime', '--deps']) assert.ok(HELP.includes(kept), kept);
   });
 });
 
@@ -53,7 +69,7 @@ describe('consent gate', () => {
   it('refuses every apply verb inside a Claude Code session, prints the terminal command, and changes nothing', async () => {
     const m = machine();
     const state = snapshot(m.root);
-    for (const argv of [['--migrate'], ['--migrate', '--global'], ['--resume'], ['--restore', '/x'], ['--permissions'], ['--runtime'], ['--deps']]) {
+    for (const argv of [['--permissions'], ['--runtime'], ['--deps']]) {
       const r = await run(m, argv, { env: { CLAUDECODE: '1' } });
       assert.strictEqual(r.code, 2, argv.join(' '));
       assert.match(r.err, /outside Claude Code/);
@@ -67,7 +83,7 @@ describe('consent gate', () => {
   it('refuses without a TTY (no way to answer, no skip option)', async () => {
     const m = machine();
     const state = snapshot(m.root);
-    const r = await run(m, ['--migrate'], { tty: false });
+    const r = await run(m, ['--permissions'], { tty: false });
     assert.strictEqual(r.code, 2);
     assert.match(r.err, /interactive terminal/);
     assert.deepStrictEqual(snapshot(m.root), state);
@@ -76,7 +92,7 @@ describe('consent gate', () => {
   it('answering no cancels and changes nothing', async () => {
     const m = machine();
     const state = snapshot(m.root);
-    const r = await run(m, ['--migrate'], { answer: false });
+    const r = await run(m, ['--permissions'], { answer: false });
     assert.strictEqual(r.code, 0);
     assert.match(r.out, /Cancelled, nothing changed/);
     assert.strictEqual(r.asked.length, 1);
@@ -89,89 +105,63 @@ describe('consent gate', () => {
     const r = await run(m, ['--plan', '--json'], { env: { CLAUDECODE: '1' }, tty: false });
     assert.strictEqual(r.code, 0);
     const plan = JSON.parse(r.out);
-    assert.deepStrictEqual(plan.targets.map((t) => t.kind), ['global', 'project']);
-    assert.ok(plan.targets[0].moves.count > 600 && plan.targets[0].moves.sample.length === 10);
+    assert.deepStrictEqual(Object.keys(plan).sort(), ['claudeCode', 'home', 'pendingMigrations', 'permissions', 'rigInitVersion', 'runtime']);
     assert.strictEqual(plan.permissions.needed > 0, true);
+    assert.strictEqual(plan.runtime.statusLine, 'rig');
     assert.strictEqual(plan.claudeCode.status, 'ok');
+    assert.deepStrictEqual(plan.pendingMigrations, []);
     assert.deepStrictEqual(snapshot(m.root), state);
     const text = await run(m, ['--plan'], { tty: false });
-    assert.match(text.out, /Global install[\s\S]*Project /);
+    assert.match(text.out, /Permissions \(--permissions\)[\s\S]*Runtime \(--runtime\)/);
+    assert.doesNotMatch(text.out, /1\.x Rig install/);
+  });
+
+  it('--plan names an unfinished 2.0.x migration with its scope, the 2.0.10 resume and the restore.cjs commands', async () => {
+    const m = machine();
+    const backups = path.join(m.home, '.claude', 'rig-backups');
+    const globalDir = path.join(backups, 'global', '261101-120000');
+    const projectDir = path.join(backups, 'a1b2c3d4e5f6', '261101-130000');
+    write(path.join(globalDir, 'journal.json'), '{"schema":1,"id":"a","status":"in-progress","kind":"global","root":"/h"}');
+    write(path.join(projectDir, 'journal.json'), '{"schema":1,"id":"p","status":"in-progress","kind":"project","root":"/work/my app"}');
+    write(path.join(backups, 'global', '261101-110000', 'journal.json'), '{"schema":1,"id":"b","status":"done"}');
+    const restored = path.join(backups, 'global', '261101-100000');
+    write(path.join(restored, 'journal.json'), '{"schema":1,"id":"r","status":"in-progress","kind":"global"}');
+    write(path.join(restored, 'restored.json'), '{}');
+    write(path.join(backups, 'user-settings', '261101-100000', 'settings.json'), '{}');
+    assert.deepStrictEqual(pendingMigrations(m.home), [
+      { dir: projectDir, kind: 'project', root: '/work/my app' },
+      { dir: globalDir, kind: 'global', root: '/h' },
+    ]);
+    const r = await run(m, ['--plan'], { tty: false });
+    assert.match(r.out, /migration of ~\/\.claude is unfinished[\s\S]*Install Rig 2\.0\.10 \(https:[^)]+\) and run its `rig-init --migrate --resume --global`[\s\S]*node ".*261101-120000.restore\.cjs"/);
+    assert.match(r.out, /migration of the project \/work\/my app is unfinished[\s\S]*--resume --project "\/work\/my app"`/);
+    assert.doesNotMatch(r.out, /261101-100000/, 'a restored backup is not pending');
+    assert.strictEqual(JSON.parse((await run(m, ['--plan', '--json'], { tty: false })).out).pendingMigrations.length, 2);
   });
 
   it('the real bin refuses a non-terminal run and prints the command (spawned, HOME is a fixture)', () => {
-    const m = machine({ project: false });
+    const m = machine();
     const state = snapshot(m.root);
     const env = { ...process.env, HOME: m.home, USERPROFILE: m.home };
     delete env.CLAUDECODE;
-    const res = spawnSync(process.execPath, [BIN, '--migrate', '--global'], { env, input: 'y\n', encoding: 'utf8', cwd: m.root });
+    const res = spawnSync(process.execPath, [BIN, '--permissions'], { env, input: 'y\n', encoding: 'utf8', cwd: m.root });
     assert.strictEqual(res.status, 2);
-    assert.match(res.stderr, /node "[^"]+[/\\\\]bin[/\\\\]rig-init" --migrate --global/);
+    assert.match(res.stderr, /node "[^"]+[/\\\\]bin[/\\\\]rig-init" --permissions/);
     assert.deepStrictEqual(snapshot(m.root), state);
     const inside = spawnSync(process.execPath, [BIN, '--runtime'], { env: { ...env, CLAUDECODE: '1' }, input: 'y\n', encoding: 'utf8', cwd: m.root });
     assert.strictEqual(inside.status, 2);
+    const removed = spawnSync(process.execPath, [BIN, '--migrate', '--global'], { env, encoding: 'utf8', cwd: m.root });
+    assert.strictEqual(removed.status, 2);
+    assert.match(removed.stderr, /removed in 2\.1\.0/);
     const plan = spawnSync(process.execPath, [BIN, '--plan', '--json'], { env, encoding: 'utf8', cwd: m.root });
     assert.strictEqual(plan.status, 0, plan.stderr);
-    assert.ok(JSON.parse(plan.stdout).targets.length >= 1);
-  });
-});
-
-describe('--migrate, --resume, --restore through the CLI', () => {
-  it('migrates global and project after one confirmation; restore brings them back', async () => {
-    const m = machine({ limit: 15 });
-    const r = await run(m, ['--migrate']);
-    assert.strictEqual(r.code, 0, r.err);
-    assert.strictEqual(r.asked.length, 1, 'one confirmation for the whole plan');
-    assert.match(r.out, /Global: done[\s\S]*Project .*: done/);
-    assert.ok(!fs.existsSync(path.join(m.home, '.claude', 'hooks', 'session-init.cjs')));
-    assert.ok(!fs.existsSync(path.join(m.project, '.claude', 'hooks', 'session-init.cjs')));
-    assert.match(r.out, /rig-init --runtime/);
-    const globalBackup = /Global: done, \d+ path\(s\) moved to (.+)/.exec(r.out)[1];
-    const back = await run(m, ['--restore', globalBackup]);
-    assert.strictEqual(back.code, 0, back.err);
-    assert.match(back.out, /Restored \d+ path\(s\), 6 hook registration/);
-    assert.ok(fs.existsSync(path.join(m.home, '.claude', 'hooks', 'session-init.cjs')));
-    const none = await run(m, ['--migrate', '--global']);
-    assert.strictEqual(none.code, 0);
-  });
-
-  it('exits 3 with the resume command when a path is in use, then --resume completes', async () => {
-    const m = machine({ project: false, limit: 12 });
-    const busy = Object.assign(new Error('busy'), { code: 'EBUSY' });
-    const movePath = (src, dest) => { if (src.endsWith('statusline.cjs')) throw busy; return require('../backup-restore-standalone.cjs').movePath(src, dest); };
-    const first = await run(m, ['--migrate', '--global'], { hooks: { movePath } });
-    assert.strictEqual(first.code, 3);
-    assert.match(first.err, /statusline\.cjs \(EBUSY\)[\s\S]*rig-init --migrate --resume/);
-    assert.ok(findIncompleteBackup({ kind: 'global', home: m.home, root: m.home }));
-    const again = await run(m, ['--migrate', '--global']);
-    assert.strictEqual(again.code, 1, 'a fresh --migrate is refused while a journal is open');
-    assert.match(again.err, /--resume/);
-    const resumed = await run(m, ['--resume', '--global']);
-    assert.strictEqual(resumed.code, 0, resumed.err);
-    assert.strictEqual(findIncompleteBackup({ kind: 'global', home: m.home, root: m.home }), null);
-    assert.ok(!fs.existsSync(path.join(m.home, '.claude', 'statusline.cjs')));
-  });
-
-  it('stops on a blocker (unparsable settings.json) before touching anything', async () => {
-    const m = machine({ project: false, limit: 12 });
-    fs.writeFileSync(path.join(m.home, '.claude', 'settings.json'), '{ nope');
-    const state = snapshot(m.root);
-    const r = await run(m, ['--migrate', '--global']);
-    assert.strictEqual(r.code, 1);
-    assert.match(r.err, /fix the blockers/);
-    assert.deepStrictEqual(snapshot(m.root), state);
-  });
-
-  it('--project needs an existing directory', async () => {
-    const m = machine({ project: false });
-    const r = await run(m, ['--migrate', '--project', path.join(m.root, 'missing')]);
-    assert.strictEqual(r.code, 1);
-    assert.match(r.err, /not found/);
+    assert.ok(JSON.parse(plan.stdout).permissions);
   });
 });
 
 describe('--permissions and --runtime', () => {
   it('merges the template rules once, keeps the user\'s rules and other permission keys, and saves a backup', async () => {
-    const m = machine({ project: false, limit: 5 });
+    const m = machine();
     const file = path.join(m.home, '.claude', 'settings.json');
     const before = JSON.parse(fs.readFileSync(file, 'utf8'));
     const r = await run(m, ['--permissions']);
@@ -191,7 +181,7 @@ describe('--permissions and --runtime', () => {
   });
 
   it('creates settings.json when there is none, and refuses to overwrite one it cannot parse', async () => {
-    const m = machine({ global: false, project: false });
+    const m = machine({ settings: false });
     fs.mkdirSync(path.join(m.home, '.claude'), { recursive: true });
     assert.ok(applyPermissions({ home: m.home }).added > 10);
     fs.writeFileSync(path.join(m.home, '.claude', 'settings.json'), '{ broken');
@@ -202,7 +192,7 @@ describe('--permissions and --runtime', () => {
   });
 
   it('writes the runtime copy and the statusLine, keeps a statusline the user chose, and replaces a 1.x Rig one', async () => {
-    const m = machine({ project: false, limit: 5 });
+    const m = machine();
     const file = path.join(m.home, '.claude', 'settings.json');
     // the fixture has the 1.x Rig statusLine: replaceable
     const r = await run(m, ['--runtime']);
@@ -225,9 +215,29 @@ describe('--permissions and --runtime', () => {
   });
 });
 
+describe('1.x statusLine recognizer', () => {
+  it('matches every root spelling of <home>/.claude/statusline.cjs and nothing else', () => {
+    const home = '/h';
+    for (const c of ['node "$HOME/.claude/statusline.cjs"', 'node ${HOME}/.claude/statusline.cjs', 'node ~/.claude/statusline.cjs', 'node /h/.claude/statusline.cjs',
+      'node %USERPROFILE%\\.claude\\statusline.cjs', 'node "$CLAUDE_CONFIG_DIR/statusline.cjs"']) assert.ok(isRig1xStatusLineCommand(c, home), c);
+    for (const c of ['node /other/.claude/statusline.cjs', 'node "$HOME/.claude/rig/runtime/statusline.cjs"', 'node /me/line.js', 'node ~/.claude/statusline.cjs.bak', null]) {
+      assert.ok(!isRig1xStatusLineCommand(c, home), String(c));
+    }
+  });
+
+  it('matches a home reached through a symlink in its real and its lexical spelling', (t) => {
+    if (process.platform === 'win32') return t.skip('symlink privileges');
+    const real = tmpDir();
+    const link = path.join(tmpDir(), 'home-link');
+    fs.symlinkSync(real, link);
+    assert.ok(isRig1xStatusLineCommand(`node ${link}/.claude/statusline.cjs`, link));
+    assert.ok(isRig1xStatusLineCommand(`node ${real}/.claude/statusline.cjs`, link));
+  });
+});
+
 describe('--deps and the version check', () => {
   it('asks first, runs the installer once, and reports a failing installer', async () => {
-    const m = machine({ global: false, project: false });
+    const m = machine({ settings: false });
     const calls = [];
     const ok = await run(m, ['--deps'], { runInstaller: (o) => { calls.push(o.pluginRoot); return 0; } });
     assert.strictEqual(ok.code, 0);

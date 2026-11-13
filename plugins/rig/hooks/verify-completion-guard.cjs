@@ -21,7 +21,6 @@
 try {
   const fs = require('fs');
   const { logHook } = require('./lib/hook-logger.cjs');
-  const { yieldsToProjectCopy } = require('./lib/global-hook-yields-to-project-copy.cjs');
   const { loadVerifyGuardConfig } = require('./lib/verify-guard-config.cjs');
   const { scanTurn } = require('./lib/turn-edit-and-verify-scanner.cjs');
   const { detectPackageManager, hasPackageScript } = require('./lib/verify-command-detector.cjs');
@@ -50,8 +49,6 @@ try {
     process.exit(0);
   }
   if (!payload || typeof payload !== 'object' || payload.hook_event_name === 'SubagentStop') process.exit(0);
-  // Global copy exits when the project install registers its own copy of this hook.
-  if (yieldsToProjectCopy(__filename, payload)) process.exit(0);
 
   const projectDir = env.CLAUDE_PROJECT_DIR || '';
   const config = loadVerifyGuardConfig({ projectDir });

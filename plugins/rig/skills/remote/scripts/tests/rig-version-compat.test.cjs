@@ -11,11 +11,11 @@ const PLUGIN_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'rig-vc-'));
 const mk = (name) => fs.mkdirSync(path.join(tmp, name), { recursive: true }) || path.join(tmp, name);
 
-t.test('readRigVersion: VERSION, then plugin.json, then metadata.json, else unknown', () => {
+t.test('readRigVersion: VERSION, then plugin.json, else unknown (a 1.x metadata.json is not read)', () => {
   const a = mk('a');
   t.eq(V.readRigVersion(a), 'unknown');
   fs.writeFileSync(path.join(a, 'metadata.json'), JSON.stringify({ version: '1.2.3' }));
-  t.eq(V.readRigVersion(a), '1.2.3');
+  t.eq(V.readRigVersion(a), 'unknown');
   fs.mkdirSync(path.join(a, '.claude-plugin'));
   fs.writeFileSync(path.join(a, '.claude-plugin', 'plugin.json'), JSON.stringify({ version: '2.0.0-beta.1' }));
   t.eq(V.readRigVersion(a), '2.0.0-beta.1');

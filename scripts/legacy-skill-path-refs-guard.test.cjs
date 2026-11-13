@@ -25,9 +25,8 @@ const PATTERN = /\.claude[\\/](?:skills|scripts|hooks|agents|statusline|rules)|s
 const ENV_FILE_PATH = /\.claude[\\/]skills[\\/](?:[^\s/`'")]+[\\/])?\.env\b/g;
 
 const ALLOWED_FILES = {
-  'plugins/rig/hooks/lib/global-hook-yields-to-project-copy.cjs': { count: 6, reason: 'detects the 1.x file install by the real hook path in project and ~/.claude settings' },
-  'plugins/rig/hooks/lib/rig-1x-copy-notice.cjs': { count: 2, reason: 'detects the 1.x file install by its real hook path (migration notice)' },
-  'plugins/rig/scripts/rig-init/rig-1x-owned-paths.json': { count: 28, reason: 'the 28 `skills/rig-plan` and `skills/rig-debug` paths (1.1 skill dirs) the migrator moves' },
+  'plugins/rig/hooks/lib/plugin-copy-detector.cjs': { count: 1, reason: 'detects a leftover 1.x file install by its real hook path (unsupported-1.x notice)' },
+  'plugins/rig/scripts/rig-init/rig-statusline-command.cjs': { count: 2, reason: 'recognizes the 1.x statusLine command `--runtime` may replace' },
   'plugins/rig/skills/create-skill/SKILL.md': { count: 2, reason: 'where a user creates their own project or user skills' },
   'plugins/rig/skills/create-skill/references/distribution-guide.md': { count: 1, reason: 'where a user places their own skills' },
   'plugins/rig/skills/create-skill/references/skill-anatomy-and-requirements.md': { count: 1, reason: 'layout of a user skills dir' },

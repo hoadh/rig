@@ -28,7 +28,7 @@ try {
   const { createHookTimer, logHookCrash } = require('./lib/hook-logger.cjs');
   const { pruneStaleState } = require('./lib/plugin-data-dir.cjs');
   const { buildReminderContext, clearReminderState } = require('./lib/context-builder.cjs');
-  const { yieldTarget, isPluginCopy } = require('./lib/global-hook-yields-to-project-copy.cjs');
+  const { isPluginCopy, rig1xHooksNotice } = require('./lib/plugin-copy-detector.cjs');
   const { sessionTeam } = require('./lib/team-member-resolver.cjs');
 
   // Early exit if hook disabled in config
@@ -46,10 +46,6 @@ try {
     samePath,
     buildContextOutput
   } = require('./lib/project-detector.cjs');
-
-const RIG_INIT = require('./lib/rig-init-terminal-command.cjs').rigInitTerminalCommand(path.dirname(__dirname));
-const GLOBAL_COPY_NOTICE = 'Rig plugin is installed but the 1.x Rig hooks in ~/.claude are still registered, so the 1.x hooks run and the plugin hooks yield. ' +
-  `Run \`${RIG_INIT} --migrate\` in a terminal to move the 1.x install to the plugin (preview with \`${RIG_INIT} --plan\`).`;
 
 // additionalContext is capped by Claude Code (10,000 characters); stay inside it.
 const CORE_RULES_MAX_CHARS = 10000;
@@ -92,19 +88,6 @@ async function main() {
   try {
     const stdin = fs.readFileSync(0, 'utf-8').trim();
     const data = stdin ? JSON.parse(stdin) : {};
-    // Global copy exits when the project install runs this same hook.
-    const yielded = yieldTarget(__filename, data);
-    if (yielded === 'global') {
-      // The plugin copy of every other hook yields silently too; say why once, at session start.
-      process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: GLOBAL_COPY_NOTICE } }));
-      process.exit(0);
-    }
-    if (yielded) {
-      // Project copy handles the session; the plugin copy only says once that a migration is pending
-      const notice = isPluginCopy(__filename) ? require('./lib/rig-1x-copy-notice.cjs').rig1xCopyNotice({ self: __filename }) : '';
-      if (notice) process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: notice } }));
-      process.exit(0);
-    }
     pruneStaleState();
     refreshRuntimeCopy();
     const envFile = process.env.CLAUDE_ENV_FILE;
@@ -229,14 +212,13 @@ async function main() {
       });
     }
 
-    // Plugin mode: 1.x files left in ~/.claude or the project (not registered, or yielding) get one migration line
+    // Plugin mode: 1.x files left in ~/.claude or the project are unsupported; if registered, every hook runs twice
     if (isPluginCopy(__filename)) {
-      const notice = require('./lib/rig-1x-copy-notice.cjs').rig1xCopyNotice({ self: __filename });
+      const notice = rig1xHooksNotice({ self: __filename });
       if (notice) out.push(`\n${notice}`);
     }
 
     // Plugin mode only: a plugin cannot ship rules files, so inject the core rules here.
-    // File installs (1.x) get them natively from their rules dir.
     const coreRules = readPluginCoreRules();
     if (coreRules) out.push(`\n${coreRules}`);
 

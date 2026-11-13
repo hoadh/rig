@@ -62,14 +62,13 @@ function classifyFailure({ code, stderr }) {
 
 /**
  * Resolve the worker script for the local transport: override > the runtime copy (same path ssh workers use, only
- * when its VERSION stamp exists) > a 1.x global install > this checkout.
+ * when its VERSION stamp exists) > this checkout.
  */
 function localWorkerPath() {
   if (process.env.RIG_REMOTE_WORKER_PATH) return process.env.RIG_REMOTE_WORKER_PATH;
   const runtime = path.join(os.homedir(), '.claude', 'rig', 'runtime');
   if (fs.existsSync(path.join(runtime, 'VERSION')) && fs.existsSync(path.join(runtime, 'remote', 'worker.cjs'))) return path.join(runtime, 'remote', 'worker.cjs');
-  const legacy = path.join(os.homedir(), '.claude', 'skills', 'remote', 'scripts', 'worker.cjs');
-  return fs.existsSync(legacy) ? legacy : path.join(__dirname, '..', 'worker.cjs');
+  return path.join(__dirname, '..', 'worker.cjs');
 }
 
 const useLocal = (machine) => process.env.RIG_REMOTE_TRANSPORT === 'local' || machine === selfMachineId();

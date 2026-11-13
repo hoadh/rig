@@ -119,7 +119,7 @@ t.test('handshake refuses a worker with another Rig major version, an unknown ve
     process.env.RIG_REMOTE_WORKER_PATH = rig;
   }
 });
-t.test('local transport prefers the runtime copy (with VERSION), then a 1.x install, then this checkout', () => {
+t.test('local transport prefers the runtime copy (with VERSION), then this checkout; a leftover 1.x install is never used', () => {
   const rig = process.env.RIG_REMOTE_WORKER_PATH;
   const home = process.env.HOME;
   try {
@@ -130,11 +130,11 @@ t.test('local transport prefers the runtime copy (with VERSION), then a 1.x inst
     const legacy = path.join(dir, '.claude', 'skills', 'remote', 'scripts', 'worker.cjs');
     fs.mkdirSync(path.dirname(legacy), { recursive: true });
     fs.writeFileSync(legacy, '');
-    t.eq(T.localWorkerPath(), legacy);
+    t.eq(T.localWorkerPath(), path.join(__dirname, '..', 'worker.cjs'), 'a 1.x worker.cjs is ignored');
     copyRuntime({ pluginRoot: path.resolve(__dirname, '..', '..', '..', '..'), home: dir });
     t.eq(T.localWorkerPath(), path.join(dir, '.claude', 'rig', 'runtime', 'remote', 'worker.cjs'));
     fs.rmSync(path.join(dir, '.claude', 'rig', 'runtime', 'VERSION'));
-    t.eq(T.localWorkerPath(), legacy, 'no VERSION: the runtime copy is not used');
+    t.eq(T.localWorkerPath(), path.join(__dirname, '..', 'worker.cjs'), 'no VERSION: the runtime copy is not used');
   } finally {
     process.env.RIG_REMOTE_WORKER_PATH = rig;
     process.env.HOME = home;

@@ -19,7 +19,6 @@ try {
   const os = require('os');
   const path = require('path');
   const { isHookEnabled } = require('./lib/rig-config-utils.cjs');
-  const { yieldsToProjectCopy } = require('./lib/global-hook-yields-to-project-copy.cjs');
   const { sessionTeamName } = require('./lib/team-member-resolver.cjs');
   const { stateDir } = require('./lib/plugin-data-dir.cjs');
   const { logHook } = require('./lib/hook-logger.cjs');
@@ -33,7 +32,6 @@ try {
   let payload;
   try { payload = JSON.parse(stdin); } catch { process.exit(0); }
   if (!payload || typeof payload !== 'object') process.exit(0);
-  if (yieldsToProjectCopy(__filename, payload)) process.exit(0);
 
   const teammate = typeof payload.teammate_name === 'string' ? payload.teammate_name : '';
   if (!teammate) process.exit(0);

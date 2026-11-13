@@ -11,10 +11,9 @@
  */
 const fs = require('fs');
 const path = require('path');
-const { readJsonFile, writeJsonAtomic, backupsDirFor } = require('./backup-restore-standalone.cjs');
-const { createBackupDir, privateDir } = require('./migration-journal-applier.cjs');
+const { readJsonFile, writeJsonAtomic, backupsDirFor, createBackupDir, privateDir } = require('./settings-json-io-and-backup-dir.cjs');
 const { copyRuntime, readRuntimeVersion, runtimeDirFor } = require('../../hooks/lib/runtime-copy-to-user-dir.cjs');
-const { rigCommandRel } = require('./rig-1x-owned-paths.cjs');
+const { isRig1xStatusLineCommand } = require('./rig-statusline-command.cjs');
 
 const TEMPLATE_FILE = path.join(__dirname, 'permissions-template.json');
 const RUNTIME_STATUSLINE_COMMAND = 'node "$HOME/.claude/rig/runtime/statusline.cjs"';
@@ -82,7 +81,7 @@ function statusLineOwner(settings, home) {
   const sl = settings && settings.statusLine;
   if (!sl) return 'none';
   const command = typeof sl === 'object' ? sl.command : null;
-  if (typeof command === 'string' && (RUNTIME_STATUSLINE_RE.test(command) || rigCommandRel(command, { kind: 'global', root: home }) === 'statusline.cjs')) return 'rig';
+  if (typeof command === 'string' && (RUNTIME_STATUSLINE_RE.test(command) || isRig1xStatusLineCommand(command, home))) return 'rig';
   return 'other';
 }
 

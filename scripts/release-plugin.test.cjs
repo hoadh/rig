@@ -325,3 +325,14 @@ describe('checkMarketplaceRef', () => {
     assert.match(checkMarketplaceRef(dir, GIT_ENV).message, /no v\* tag is reachable/);
   });
 });
+
+describe('lazy requires', () => {
+  it('every module release-plugin.cjs requires loads (the consent gate moved in 2.1.0)', () => {
+    const src = fs.readFileSync(path.join(__dirname, 'release-plugin.cjs'), 'utf8');
+    const rel = [...src.matchAll(/require\('(\.{1,2}\/[^']+)'\)/g)].map((m) => m[1]);
+    assert.ok(rel.some((r) => r.endsWith('terminal-consent-gate.cjs')));
+    for (const r of rel) assert.doesNotThrow(() => require(path.join(__dirname, r)), r);
+    const gate = require(path.join(__dirname, '..', 'plugins', 'rig', 'scripts', 'rig-init', 'terminal-consent-gate.cjs'));
+    for (const name of ['readAncestry', 'isClaudeCodeProcess', 'askYesNo', 'applyRefusal']) assert.strictEqual(typeof gate[name], 'function', name);
+  });
+});

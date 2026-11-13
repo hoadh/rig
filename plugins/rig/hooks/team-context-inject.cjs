@@ -13,7 +13,6 @@ try {
   const path = require('path');
   const os = require('os');
   const { isHookEnabled } = require('./lib/rig-config-utils.cjs');
-  const { yieldsToProjectCopy } = require('./lib/global-hook-yields-to-project-copy.cjs');
   const { resolveTeamMember, sessionTeamName } = require('./lib/team-member-resolver.cjs');
   const { roleLines, teamRuleLines } = require('./lib/teammate-role-context.cjs');
 
@@ -101,8 +100,6 @@ function main() {
     if (!stdin) process.exit(0);
 
     const payload = JSON.parse(stdin);
-    // Global copy exits when the project install runs this same hook.
-    if (yieldsToProjectCopy(__filename, payload)) process.exit(0);
     // Teammate? Team from session_id (or a legacy name@team agent_id), member from the team config
     const team = resolveTeamMember(payload, { teamsDir: TEAMS_DIR });
     if (!team) process.exit(0); // Not a teammate (plain subagent, lead, no team config): exit silently

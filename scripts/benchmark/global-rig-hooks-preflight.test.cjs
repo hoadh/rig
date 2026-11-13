@@ -24,7 +24,7 @@ describe('rig arm preflight', () => {
     assert.deepStrictEqual(findGlobalRigHooks('{ nope'), []);
   });
   it('refuses when the real HOME has 1.x Rig hooks, and passes without them', () => {
-    assert.throws(() => assertNoGlobalRigHooks(homeWith(rig1x)), /rig-init --migrate/);
+    assert.throws(() => assertNoGlobalRigHooks(homeWith(rig1x)), /every hook twice/);
     assert.doesNotThrow(() => assertNoGlobalRigHooks(homeWith('{}')));
     assert.doesNotThrow(() => assertNoGlobalRigHooks(homeWith()));
   });

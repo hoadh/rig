@@ -106,7 +106,7 @@ function applyRefusal({ env, stdinIsTTY, stdoutIsTTY, ancestors }) {
   if (env.CLAUDECODE) return `--apply tags and commits, so it only runs in a terminal outside Claude Code (CLAUDECODE is set here). ${outside}`;
   // Before the ancestry: a non-TTY run cannot confirm anyway, and must not start the Windows PowerShell query
   if (!stdinIsTTY || !stdoutIsTTY) return `--apply needs an interactive terminal to ask for confirmation (stdin/stdout is not a TTY). ${outside}`;
-  const { readAncestry, isClaudeCodeProcess } = require('../plugins/rig/scripts/rig-init/backup-restore-standalone.cjs');
+  const { readAncestry, isClaudeCodeProcess } = require('../plugins/rig/scripts/rig-init/terminal-consent-gate.cjs');
   let chain;
   try {
     chain = typeof ancestors === 'function' ? ancestors() : ancestors || readAncestry();
@@ -324,7 +324,7 @@ async function main(argv) {
       return 2;
     }
   }
-  const { askYesNo } = require('../plugins/rig/scripts/rig-init/backup-restore-standalone.cjs');
+  const { askYesNo } = require('../plugins/rig/scripts/rig-init/terminal-consent-gate.cjs');
   return release(opts, {
     cwd,
     env: process.env,

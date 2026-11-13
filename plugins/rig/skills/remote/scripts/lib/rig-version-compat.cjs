@@ -5,7 +5,7 @@
  * Where the version comes from (first hit wins):
  *   1. `<runtime>/VERSION`            the worker runtime copy (~/.claude/rig/runtime), stamped last by the copy
  *   2. `<root>/.claude-plugin/plugin.json`   a plugin install or a repo checkout
- *   3. `<root>/metadata.json`         a 1.x-style file install (written by the installer)
+ * A 1.x file install has neither, so its version reads `unknown` and the worker is refused with the install hint.
  * Orchestrator and worker must agree on the protocol AND the major version; anything else is refused
  * with a hint saying how to install Rig on the worker.
  */
@@ -34,8 +34,7 @@ function readVersionFile(file, parse) {
 function readRigVersion(root) {
   for (const r of root ? [root] : [RUNTIME_ROOT, KIT_ROOT]) {
     const v = readVersionFile(path.join(r, 'VERSION'), (t) => t.trim())
-      || readVersionFile(path.join(r, '.claude-plugin', 'plugin.json'), (t) => JSON.parse(t).version)
-      || readVersionFile(path.join(r, 'metadata.json'), (t) => JSON.parse(t).version);
+      || readVersionFile(path.join(r, '.claude-plugin', 'plugin.json'), (t) => JSON.parse(t).version);
     if (v) return v;
   }
   return 'unknown';

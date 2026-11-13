@@ -7,8 +7,6 @@
  * Scans .claude/, antigravity/rig/, .github/, docs/ (not docs/devlog, not changelog files), guide/, README.md, AGENTS.md,
  * and CLAUDE.md.
  * History files (CHANGELOG.md, docs/project/changelog.md, docs/devlog/) may still name them.
- * The 1.x owned-path list of rig-init (plugins/rig/scripts/rig-init/rig-1x-owned-paths.*) names the removed 1.x files on purpose (it moves
- * them out of old installs) and is exempt, together with its test.
  */
 
 const { describe, it } = require('node:test');
@@ -31,7 +29,6 @@ const FORBIDDEN = new RegExp(
 const SKIP_DIRS = new Set(['node_modules', '.git', '.venv', '.logs', 'devlog', '__pycache__']);
 const SKIP_FILES = new Set([
   'CHANGELOG.md', 'changelog.md', 'removed-features-reference-scan.test.cjs',
-  'rig-1x-owned-paths.json', 'rig-1x-owned-paths.cjs', 'owned-paths-and-command-form.test.cjs',
 ]);
 const BINARY_EXT = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.pdf', '.woff', '.woff2', '.ttf', '.zip', '.gz', '.mp4', '.mp3', '.pyc']);
 

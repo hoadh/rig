@@ -8,8 +8,8 @@
  *     common names (node, python, claude, ...)
  *   - secret-file-read: readers/copiers (cat, grep, source, cp, curl @file, `< .env`, ...) of the
  *     secret paths in settings.json permissions.ask Read entries (ask only)
- *   - rig-init-destructive-verbs: `rig-init --migrate|--resume|--restore|--permissions|--runtime|--deps` (ask only;
- *     the CLI itself also refuses inside a Claude Code session)
+ *   - rig-init-destructive-verbs: `rig-init --permissions|--runtime|--deps`, and the removed 1.x verbs
+ *     `--migrate|--resume|--restore` of cached 2.0.x copies (ask only; the CLI itself also refuses inside Claude Code)
  * Rules live in lib/bash-*-rule.cjs; the shared command tokenizer is
  * lib/bash-command-segment-tokenizer.cjs and the rule runner is lib/bash-safety-rule-engine.cjs.
  *
@@ -26,7 +26,6 @@ try {
   const crypto = require('crypto');
   const fs = require('fs');
   const { logHook, logHookCrash } = require('./lib/hook-logger.cjs');
-  const { yieldsToProjectCopy } = require('./lib/global-hook-yields-to-project-copy.cjs');
   const { loadGuardSwitches, isGuardEnabled, isRuleEnabled } = require('./lib/bash-safety-guard-config.cjs');
   const { evaluateCommand } = require('./lib/bash-safety-rule-engine.cjs');
 
@@ -52,9 +51,6 @@ try {
 
   const command = payload && payload.tool_input && payload.tool_input.command;
   if (!payload || payload.tool_name !== 'Bash' || typeof command !== 'string' || command === '') process.exit(0);
-
-  // Global copy exits when the project install registers its own copy of this hook.
-  if (yieldsToProjectCopy(__filename, payload)) process.exit(0);
 
   const switches = loadGuardSwitches();
   if (!isGuardEnabled(switches)) process.exit(0);
