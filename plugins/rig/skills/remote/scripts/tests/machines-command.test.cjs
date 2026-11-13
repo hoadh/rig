@@ -21,7 +21,8 @@ const projA = project('a', 'git@github.com:o/a.git');
 const projB = project('b', 'https://github.com/o/b.git');
 const projC = project('c', 'git@github.com:o/c.git');
 const noOrigin = project('none', '');
-const cli = (args, registry = file, cwd = projA) => spawnSync(process.execPath, [CLI, 'machines', ...args], {
+// --offline: these tests never probe (the registry targets are fake hosts); probing is tested via withRigVersions
+const cli = (args, registry = file, cwd = projA) => spawnSync(process.execPath, [CLI, 'machines', '--offline', ...args], {
   cwd, encoding: 'utf8', env: { ...process.env, RIG_MACHINES_FILE: registry, RIG_MACHINE: 'studio' },
 });
 
@@ -47,6 +48,34 @@ t.test('text output marks this machine', () => {
   t.eq(r.status, 0);
   t.ok(/studio \(this machine\)\s+macos\/bash/.test(r.stdout), r.stdout);
   t.ok(r.stdout.includes('win11  windows/powershell tools: Bash(npm test:*)'), r.stdout);
+});
+t.test('probing: this machine reads its own version, workers get the probe result or null', async () => {
+  const { withRigVersions } = require('../commands/machines-command.cjs');
+  const { readRigVersion } = require('../lib/rig-version-compat.cjs');
+  const seen = [];
+  const out = await withRigVersions([{ id: 'studio' }, { id: 'a' }, { id: 'b' }], 'studio', async (id) => { seen.push(id); return id === 'a' ? { version: '2.1.0', probe: 'ok' } : { version: null, probe: id === 'b' ? 'unreachable' : 'no-runtime' }; });
+  t.eq(out.map((m) => [m.id, m.rigVersion, m.rigProbe]), [['studio', readRigVersion(), 'ok'], ['a', '2.1.0', 'ok'], ['b', null, 'unreachable']]);
+  t.eq((await withRigVersions([{ id: 'c' }], 'studio', async () => ({ version: null, probe: 'no-runtime' })))[0].rigProbe, 'no-runtime');
+  t.eq(seen.sort(), ['a', 'b']); // never probes itself
+});
+t.test('without --offline: unanswered host = unreachable, a worker replying without a version = no Rig runtime (loopback transport)', () => {
+  const probe = (workerPath) => {
+    const env = { ...process.env, RIG_MACHINES_FILE: file, RIG_MACHINE: 'studio', RIG_REMOTE_TRANSPORT: 'local', RIG_REMOTE_WORKER_PATH: workerPath };
+    return {
+      json: spawnSync(process.execPath, [CLI, 'machines', '--json'], { cwd: projA, encoding: 'utf8', env }),
+      text: spawnSync(process.execPath, [CLI, 'machines'], { cwd: projA, encoding: 'utf8', env }),
+    };
+  };
+  const own = require('../lib/rig-version-compat.cjs').readRigVersion();
+  const silent = probe(path.join(dir, 'no-such-worker.cjs'));
+  t.eq(silent.json.status, 0, silent.json.stderr);
+  t.eq(JSON.parse(silent.json.stdout).machines.map((m) => [m.rigVersion, m.rigProbe]), [[own, 'ok'], [null, 'unreachable']]); // studio = self
+  t.ok(/win11 .*Rig unreachable/.test(silent.text.stdout), silent.text.stdout);
+  const stub = path.join(dir, 'error-worker.cjs');
+  fs.writeFileSync(stub, "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>{console.log('RIGJSON:'+JSON.parse(s).nonce+':'+JSON.stringify({error:{message:'no runtime',class:'worker-error'}}));});");
+  const noRt = probe(stub);
+  t.eq(JSON.parse(noRt.json.stdout).machines.map((m) => [m.rigVersion, m.rigProbe]), [[own, 'ok'], [null, 'no-runtime']]);
+  t.ok(/win11 .*Rig unknown \(no Rig runtime\)/.test(noRt.text.stdout), noRt.text.stdout);
 });
 t.test('missing registry -> found false with searched path, exit 0', () => {
   const nope = path.join(dir, 'nope.json');

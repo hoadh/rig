@@ -8,6 +8,8 @@
 const { EXIT, RemoteError, usageError } = require('../lib/remote-errors.cjs');
 const { parseFlags } = require('../lib/cli-flag-parser.cjs');
 const { loadRegistry, registryPath } = require('../lib/machine-registry.cjs');
+const { readRigVersion, SEMVER } = require('../lib/rig-version-compat.cjs');
+const { execWorker } = require('../lib/ssh-transport.cjs');
 const { projectOriginUrl, hasCloneForProject } = require('../lib/machine-repo-for-project-resolver.cjs');
 
 /** Registry machines as summaries: ssh/repo/repos/node/claude/pathPrepend are dropped; allowedTools is passed through verbatim. */
@@ -25,10 +27,39 @@ function listMachines(cwd = process.cwd()) {
   }
 }
 
+const PROBE_TIMEOUT_MS = 5_000;
+
+/** Probe classes that mean "answered, but no usable Rig runtime" (not the same as unreachable). */
+const NO_RUNTIME_CLASSES = new Set(['worker-missing', 'command-not-found', 'protocol-mismatch', 'version-mismatch', 'version-unknown', 'runtime-incomplete', 'worker-error']);
+
+/**
+ * Worker Rig version by one `info` call.
+ * @returns {Promise<{version: string|null, probe: 'ok'|'no-runtime'|'unreachable'}>}
+ */
+async function probeRigVersion(id, timeoutMs = PROBE_TIMEOUT_MS) {
+  try {
+    const { reply } = await execWorker(id, 'info', [], { timeoutMs });
+    if (reply && typeof reply.rigVersion === 'string' && SEMVER.test(reply.rigVersion)) return { version: reply.rigVersion, probe: 'ok' };
+    return { version: null, probe: 'no-runtime' };
+  } catch (e) {
+    return { version: null, probe: e && NO_RUNTIME_CLASSES.has(e.class) ? 'no-runtime' : 'unreachable' };
+  }
+}
+
+/** Adds `rigVersion` and `rigProbe` to every machine (parallel probes; this machine reads its own version, no ssh). */
+async function withRigVersions(machines, self, probe = probeRigVersion) {
+  return Promise.all(machines.map(async (m) => {
+    const r = m.id === self ? { version: readRigVersion(), probe: 'ok' } : await probe(m.id);
+    return { ...m, rigVersion: r.version, rigProbe: r.probe };
+  }));
+}
+
 async function run(argv, ctx) {
-  const { flags, positional } = parseFlags(argv, { '--json': 'bool' });
-  if (positional.length) throw usageError('usage: machines [--json]');
-  const { registry, found, machines } = listMachines();
+  const { flags, positional } = parseFlags(argv, { '--json': 'bool', '--offline': 'bool' });
+  if (positional.length) throw usageError('usage: machines [--json] [--offline]');
+  const listed = listMachines();
+  const { registry, found } = listed;
+  const machines = flags.offline ? listed.machines : await withRigVersions(listed.machines, ctx.self);
   if (flags.json) {
     process.stdout.write(`${JSON.stringify({ self: ctx.self, registry, found, machines })}\n`);
     return EXIT.OK;
@@ -38,10 +69,11 @@ async function run(argv, ctx) {
     const self = m.id === ctx.self ? ' (this machine)' : '';
     const tools = m.allowedTools.length ? ` tools: ${m.allowedTools.join(' ')}` : '';
     const clone = m.hasClone === false ? ' (no clone for this project)' : '';
-    lines.push(`  ${m.id}${self}  ${m.os}/${m.shell}${tools}${clone}`);
+    const ver = flags.offline ? '' : ` Rig ${m.rigVersion || (m.rigProbe === 'no-runtime' ? 'unknown (no Rig runtime)' : 'unreachable')}`;
+    lines.push(`  ${m.id}${self}  ${m.os}/${m.shell}${ver}${tools}${clone}`);
   }
   process.stdout.write(`${lines.join('\n')}\n`);
   return EXIT.OK;
 }
 
-module.exports = { run, listMachines };
+module.exports = { run, listMachines, withRigVersions, probeRigVersion };

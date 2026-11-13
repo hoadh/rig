@@ -4,10 +4,10 @@ Claude Code only: skip this file where the `remote` skill is not installed (Anti
 
 Decide early whether phases run on other machines, using real ids from the registry and the user's answers. The main agent runs this (subagents cannot ask the user) and passes the result to the planner. This machine is the orchestrator: the machine that runs `/rig:plan` also runs `/rig:implement`.
 
-## 1. Read the registry (local, no ssh)
+## 1. Read the registry (local, no ssh: `--offline` skips the worker version probe)
 
 ```
-rig-remote machines --json
+rig-remote machines --json --offline
 ```
 
 Output: `{ self, registry, found, machines: [{ id, os, shell, allowedTools, hasClone }] }`. "Other machines" = entries whose `id` differs from `self` and `hasClone !== false` (`false` = the machine has no clone of this project yet: mention `remote register <id> --repo <abs path>` + `setup <id>` instead of offering it; `null` = this directory has no origin). Exit 2 = invalid registry: show the error, continue single-machine unless the user wants to fix it first.

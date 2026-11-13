@@ -13,7 +13,7 @@ const { buildWorkerInvocation } = require('./remote-command-builder.cjs');
 const { getMachine, selfMachineId } = require('./machine-registry.cjs');
 const V = require('./identifier-validators.cjs');
 const { runChild, MAX_OUTPUT_BYTES } = require('./capped-child-process-runner.cjs');
-const { readRigVersion, checkWorkerCompat, WORKER_INSTALL_HINT } = require('./rig-version-compat.cjs');
+const { readRigVersion, checkWorkerCompat, compareVersions, WORKER_INSTALL_HINT } = require('./rig-version-compat.cjs');
 
 const DEFAULT_TIMEOUT_MS = 60_000;
 // Spike signatures: bash 127 "command not found"; cmd "is not recognized as an internal or external command";
@@ -115,14 +115,31 @@ async function execWorker(machine, sub, args = [], { payload, timeoutMs = DEFAUL
 
 const handshakes = new Map(); // machine -> Promise<info>
 
-/** Protocol handshake via `worker.cjs info`, once per process per machine. */
-function ensureWorkerCompatible(machine, opts) {
+/** Forget the cached handshake (the worker was upgraded; the next call asks again). */
+const resetHandshake = (machine) => { handshakes.delete(machine); };
+
+/** One stderr line for a same-major worker on another version; null when equal. */
+function driftHint(machine, workerVersion, orchVersion) {
+  if (workerVersion === orchVersion) return null;
+  if (compareVersions(workerVersion, orchVersion) > 0) {
+    return `${machine} runs Rig ${workerVersion}, newer than this machine ${orchVersion}: update this machine (claude plugin update rig@rig-marketplace)`;
+  }
+  return `${machine} runs Rig ${workerVersion}, this machine ${orchVersion}: run rig-remote upgrade ${machine}`;
+}
+
+/**
+ * Protocol handshake via `worker.cjs info`, once per process per machine. A same-major version drift is not
+ * refused: `onDrift(line)` (default: stderr) is called once per machine per process, then dispatch goes on.
+ */
+function ensureWorkerCompatible(machine, { onDrift = (line) => process.stderr.write(`${line}\n`), ...opts } = {}) {
   if (!handshakes.has(machine)) {
     const p = execWorker(machine, 'info', [], opts).then(({ reply }) => {
       // A worker that replies with an error (e.g. an incomplete runtime copy) has no version to compare
       if (reply.error) throw new RemoteError(`${machine}: ${reply.error.message}`, EXIT.TRANSPORT, { class: reply.error.class || 'worker-error', hint: reply.error.hint || WORKER_INSTALL_HINT });
       const refused = checkWorkerCompat(reply, { protocol: framing.PROTOCOL_VERSION, rigVersion: readRigVersion() });
       if (refused) throw new RemoteError(`${machine}: ${refused.message}`, EXIT.TRANSPORT, { class: refused.cls, hint: refused.hint });
+      const drift = driftHint(machine, reply.rigVersion, readRigVersion());
+      if (drift) onDrift(drift);
       return reply;
     });
     handshakes.set(machine, p);
@@ -131,4 +148,4 @@ function ensureWorkerCompatible(machine, opts) {
   return handshakes.get(machine);
 }
 
-module.exports = { buildSshArgv, classifyFailure, execWorker, ensureWorkerCompatible, localWorkerPath, MAX_OUTPUT_BYTES };
+module.exports = { buildSshArgv, classifyFailure, execWorker, ensureWorkerCompatible, resetHandshake, driftHint, isLocalTransport: useLocal, localWorkerPath, MAX_OUTPUT_BYTES };

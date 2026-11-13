@@ -81,4 +81,29 @@ function runtimeVersionProblem(dir) {
   return readVersionFile(path.join(dir, 'VERSION'), (t) => t.trim()) ? null : `Rig runtime copy at ${dir} has no valid VERSION (incomplete or being replaced)`;
 }
 
-module.exports = { readRigVersion, majorOf, checkVersionCompat, checkWorkerCompat, runtimeVersionProblem, WORKER_INSTALL_HINT, SEMVER };
+/** Numeric/prerelease semver order (negative: a < b); versions that do not parse sort as null. */
+function compareVersions(a, b) {
+  const parse = (v) => {
+    const m = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?/.exec(String(v));
+    return m && { nums: [Number(m[1]), Number(m[2]), Number(m[3])], pre: m[4] ? m[4].split('.') : null };
+  };
+  const x = parse(a);
+  const y = parse(b);
+  if (!x || !y) return null;
+  for (let i = 0; i < 3; i++) if (x.nums[i] !== y.nums[i]) return x.nums[i] - y.nums[i];
+  if (!x.pre || !y.pre) return x.pre ? -1 : y.pre ? 1 : 0;
+  for (let i = 0; i < Math.max(x.pre.length, y.pre.length); i++) {
+    const p = x.pre[i];
+    const q = y.pre[i];
+    if (p === undefined) return -1;
+    if (q === undefined) return 1;
+    const pn = /^\d+$/.test(p);
+    const qn = /^\d+$/.test(q);
+    if (pn && qn && Number(p) !== Number(q)) return Number(p) - Number(q);
+    if (pn !== qn) return pn ? -1 : 1;
+    if (!pn && p !== q) return p < q ? -1 : 1;
+  }
+  return 0;
+}
+
+module.exports = { compareVersions, readRigVersion, majorOf, checkVersionCompat, checkWorkerCompat, runtimeVersionProblem, WORKER_INSTALL_HINT, SEMVER };

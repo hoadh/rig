@@ -2,7 +2,7 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "rig",
   "displayName": "Rig",
-  "version": "2.1.0-beta.2-agy.1",
+  "version": "2.1.0-beta.3-agy.1",
   "description": "Rig — an Agentic-Driven Development toolkit for Antigravity: agents, skills, hooks and workflows that plan, build, test and review software.",
   "author": {
     "name": "Alex Dang"

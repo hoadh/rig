@@ -94,7 +94,7 @@ Load: `references/solution-design.md`
 
 ### 4. Plan Creation & Organization
 Load: `references/plan-organization.md`
-Multi-machine plans (phases on other computers via `/rig:remote`): read the registry with `remote machines --json`, confirm machines and test commands with the user, then add `machine`, `owns`, `dependsOn` per `references/output-standards.md`. Load: `references/multi-machine-planning.md`.
+Multi-machine plans (phases on other computers via `/rig:remote`): read the registry with `remote machines --json --offline`, confirm machines and test commands with the user, then add `machine`, `owns`, `dependsOn` per `references/output-standards.md`. Load: `references/multi-machine-planning.md`.
 
 ### 5. Task Breakdown & Output Standards
 Load: `references/output-standards.md`
@@ -130,7 +130,7 @@ flowchart TD
 1b. **Cross-Plan Scan** → Scan unfinished plans, detect `blockedBy`/`blocks` relationships, update both plans
 1c. **Scope Challenge** → Run Step 0 scope questions, select mode (see `references/scope-challenge.md`)
     **Skip if:** `--fast` mode or trivial task
-1d. **Machines** → `remote machines --json`; if other machines exist or the task names them, ask which machines to use (see `references/multi-machine-planning.md`). After step 5, confirm the phase → machine table with the user.
+1d. **Machines** → `remote machines --json --offline`; if other machines exist or the task names them, ask which machines to use (see `references/multi-machine-planning.md`). After step 5, confirm the phase → machine table with the user.
 2. **Mode Detection** → Auto-detect or use explicit flag (see `workflow-modes.md`)
 3. **Research Phase** → Spawn researchers (skip in fast mode)
 4. **Codebase Analysis** → Read docs, explore if needed
