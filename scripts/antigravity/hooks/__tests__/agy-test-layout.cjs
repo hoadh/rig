@@ -55,8 +55,12 @@ function runAdapter(layout, hook, payload, opts = {}) {
 
 const fixture = (name, over = {}, layout) => {
   const raw = fs.readFileSync(path.join(FIXTURES, `${name}.json`), 'utf8');
-  const j = JSON.parse(layout ? raw.replace(/\/home\/user\/work\/project/g, layout.workspace) : raw);
-  return { ...j, ...over };
+  // Swap the workspace after parsing: Windows paths have backslashes that would break raw JSON text.
+  const swap = (v) => (typeof v === 'string' ? v.split('/home/user/work/project').join(layout.workspace)
+    : Array.isArray(v) ? v.map(swap)
+      : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, swap(x)])) : v);
+  const j = JSON.parse(raw);
+  return { ...(layout ? swap(j) : j), ...over };
 };
 
 module.exports = { makeLayout, runAdapter, fixture, envFor, REPO, FIXTURES };
