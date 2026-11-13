@@ -1,8 +1,9 @@
 name: Antigravity Sync Check
 
-# Fails when .agent/ or GEMINI.md no longer match what
-# scripts/sync-antigravity-agent-dir.cjs generates from plugins/rig/ and CLAUDE.md,
-# or when they still contain Claude Code-only references (.claude/, plugin variables, bin names, ...).
+# Fails when antigravity/rig/ no longer matches what scripts/sync-antigravity-plugin.cjs generates from plugins/rig/
+# and scripts/antigravity/, when files are missing or stale, or when it contains Claude Code-only references.
+# `agy plugin validate --strict` is a release-checklist step (docs/how-to/release-rig.md), not a CI step: agy is not
+# available on the runners.
 
 on:
   push:
@@ -16,7 +17,7 @@ permissions:
 
 jobs:
   check:
-    name: .agent/ matches plugins/rig/
+    name: antigravity/rig/ matches plugins/rig/
     runs-on: ubuntu-latest
 
     steps:
@@ -28,22 +29,29 @@ jobs:
         with:
           node-version: 'lts/*'
 
-      - name: Test rewrite rules, frontmatter filter and leftover check
-        run: node --test scripts/antigravity/*.test.cjs
+      # Quoted globs: node expands them itself (`**` also matches the top level and `__tests__/`); an unquoted `**`
+      # in sh would drop the top-level tests, and a path that matches nothing runs zero tests without failing.
+      - name: Test the generator, rewrite rules, leftover check and hook adapter
+        run: node --test 'scripts/antigravity/**/*.test.cjs' scripts/check-antigravity-version-bump.test.cjs
 
-      - name: Regenerate .agent/ and GEMINI.md
-        run: node scripts/sync-antigravity-agent-dir.cjs
+      # Compares a fresh build with the checkout file by file, regardless of .gitignore (git status cannot see ignored files).
+      - name: Fail when antigravity/rig/ differs from a fresh build
+        run: node scripts/sync-antigravity-plugin.cjs --check
 
-      - name: Fail on drift
+      - name: Regenerate antigravity/rig/
+        run: node scripts/sync-antigravity-plugin.cjs
+
+      # Untracked files count: a generated file nobody committed is drift too.
+      - name: Fail on drift, new files and stale files
         run: |
-          drift=$(git status --porcelain -- .agent GEMINI.md)
+          drift=$(git status --porcelain --untracked-files=all -- antigravity)
           if [ -n "$drift" ]; then
             echo "$drift"
-            git diff --stat -- .agent GEMINI.md
-            echo "::error::.agent/ or GEMINI.md is out of date. Run 'node scripts/sync-antigravity-agent-dir.cjs' and commit the result."
+            git diff --stat -- antigravity
+            echo "::error::antigravity/rig/ is out of date. Run 'node scripts/sync-antigravity-plugin.cjs' and commit the result."
             exit 1
           fi
-          echo "✓ .agent/ and GEMINI.md match plugins/rig/"
+          echo "OK antigravity/rig/ matches plugins/rig/"
 
       - name: Fail on Claude Code-only leftovers
-        run: node scripts/sync-antigravity-agent-dir.cjs --check-leftovers
+        run: node scripts/sync-antigravity-plugin.cjs --check-leftovers

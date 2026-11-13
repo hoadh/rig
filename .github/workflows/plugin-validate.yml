@@ -2,7 +2,8 @@ name: Plugin validate
 
 # Validates the Claude Code plugin (plugins/rig) and the marketplace manifest (.claude-plugin/marketplace.json)
 # with the real `claude plugin validate`, on the Claude Code floor Rig supports and on the latest release.
-# The version-bump job fails a PR or main push that changes plugins/rig/** without a greater plugin.json version.
+# The version-bump job fails a PR or main push that changes plugins/rig/** without a greater plugin.json version,
+# or that changes antigravity/rig/** or scripts/antigravity/** without a greater Antigravity plugin version.
 # The marketplace-ref job (push to main) checks the release pin against the latest v* tag.
 # The node tests (hooks.json targets, bump logic) run in ci.yml on ubuntu, macOS and Windows.
 
@@ -70,6 +71,16 @@ jobs:
           elif [ -n "$BEFORE_SHA" ] && [ "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]; then base="$BEFORE_SHA"
           else base="HEAD^1"; fi
           node scripts/check-plugin-version-bump.cjs --base "$base"
+      # Same base logic: a change to the generated Antigravity plugin or its adapter needs a greater <rig>-agy.<n> version.
+      - name: Require a greater Antigravity plugin version when antigravity/rig/** or scripts/antigravity/** changed
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          if [ -n "$BASE_REF" ]; then base="origin/$BASE_REF"
+          elif [ -n "$BEFORE_SHA" ] && [ "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]; then base="$BEFORE_SHA"
+          else base="HEAD^1"; fi
+          node scripts/check-antigravity-version-bump.cjs --base "$base"
 
   # After a release the marketplace entry is pinned to a tag + sha. On main that pin must be the latest v* tag
   # reachable from the commit, and the sha must be that tag's commit. No ref yet = pre-release state, skipped.

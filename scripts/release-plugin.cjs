@@ -11,7 +11,9 @@
  *
  * Checks: clean tree; on `main` (or --allow-branch for betas); plugin.json version is strict semver and greater than
  * the latest v* tag (prerelease-aware); v<version> is not tagged yet; a stable version has a dated CHANGELOG section
- * (`## <version> (YYYY-MM-DD)`, not `(unreleased)`), so the tag never ships stale release notes; `npm test` passes.
+ * (`## <version> (YYYY-MM-DD)`, not `(unreleased)`), so the tag never ships stale release notes; antigravity/rig/ matches a
+ * fresh build (read-only `sync-antigravity-plugin.cjs --check`; regenerate through the release-prep PR, never here);
+ * `npm test` passes.
  *
  * Chicken-and-egg: the marketplace entry must name the commit that holds the release content, but writing the entry
  * is itself a commit. So the content commit is the current HEAD (S): the entry is committed on top of it (S+1) with
@@ -116,6 +118,16 @@ function applyRefusal({ env, stdinIsTTY, stdoutIsTTY, ancestors }) {
   return null;
 }
 
+const ANTIGRAVITY_SYNC = 'scripts/sync-antigravity-plugin.cjs';
+
+/** Why antigravity/rig/ is stale (generator output), or null. Read-only; a repo without the generator is skipped. */
+function antigravityStale(cwd) {
+  if (!fs.existsSync(path.join(cwd, ANTIGRAVITY_SYNC))) return null;
+  const r = spawnSync(process.execPath, [ANTIGRAVITY_SYNC, '--check'], { cwd, encoding: 'utf8' });
+  if (r.status === 0) return null;
+  return `antigravity/rig/ is stale or invalid; fix it in a release-prep PR (node ${ANTIGRAVITY_SYNC}) before tagging:\n${(r.stderr || r.stdout || r.error?.message || '').trim()}`;
+}
+
 function runNpmTest(cwd) {
   const r = spawnSync('npm', ['test'], { cwd, stdio: 'inherit', shell: process.platform === 'win32' });
   return r.status === 0;
@@ -192,6 +204,9 @@ async function release(opts, io) {
     const problem = changelogProblem(changelog, version);
     if (problem) fail(problem);
   }
+
+  const stale = (io.antigravityStale || antigravityStale)(cwd);
+  if (stale) fail(stale);
 
   if (failures.length === 0) {
     if (opts.skipTests) log('! tests skipped (--skip-tests)');
@@ -325,4 +340,6 @@ if (require.main === module) {
   main(process.argv.slice(2)).then((code) => { process.exitCode = code; }, (e) => { console.error(`x ${e.message}`); process.exitCode = 2; });
 }
 
-module.exports = { release, latestTag, tagArgs, pinnedEntry, applyRefusal, checkMarketplaceRef, parseArgs, changelogProblem };
+module.exports = {
+  antigravityStale, release, latestTag, tagArgs, pinnedEntry, applyRefusal, checkMarketplaceRef, parseArgs, changelogProblem,
+};

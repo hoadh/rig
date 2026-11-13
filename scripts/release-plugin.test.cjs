@@ -10,7 +10,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
-const { release, latestTag, tagArgs, pinnedEntry, checkMarketplaceRef, changelogProblem } = require('./release-plugin.cjs');
+const { release, latestTag, tagArgs, pinnedEntry, checkMarketplaceRef, changelogProblem, antigravityStale } = require('./release-plugin.cjs');
 const { compareSemver } = require('./check-plugin-version-bump.cjs');
 
 // Isolate from the developer's git config (signing, hooks, identity). GIT_CONFIG_GLOBAL must be a real file: git cannot open
@@ -112,6 +112,17 @@ describe('dry run', () => {
   });
 });
 
+describe('antigravityStale', () => {
+  it('skips a repo without the generator, reports a failing --check, passes a clean one', () => {
+    const dir = fixture();
+    assert.strictEqual(antigravityStale(dir), null);
+    write(dir, 'scripts/sync-antigravity-plugin.cjs', "console.error('x antigravity/rig/ is out of date'); process.exit(1);\n");
+    assert.match(antigravityStale(dir), /stale or invalid[\s\S]*out of date/);
+    write(dir, 'scripts/sync-antigravity-plugin.cjs', "if (!process.argv.includes('--check')) process.exit(3);\n");
+    assert.strictEqual(antigravityStale(dir), null);
+  });
+});
+
 describe('refusals', () => {
   const refused = async (dir, opts, ioOpts, pattern) => {
     const before = git(dir, 'rev-parse', 'HEAD');
@@ -186,6 +197,15 @@ describe('refusals', () => {
     git(dir, 'commit', '-qm', 'changelog');
     const { io, errs } = makeIo(dir);
     assert.strictEqual(await release(flags({ skipTests: true }), io), 0, errs.join('\n'));
+  });
+  it('a stale antigravity/rig/ blocks the release (dry run included) and nothing is written', async () => {
+    const dir = fixture();
+    const { io, errs } = makeIo(dir);
+    io.antigravityStale = () => 'antigravity/rig/ is stale: changed  skills/plan/SKILL.md';
+    assert.strictEqual(await release(flags({ skipTests: true }), io), 1);
+    assert.match(errs.join('\n'), /antigravity\/rig\/ is stale/);
+    assert.strictEqual(git(dir, 'status', '--porcelain'), '');
+    assert.strictEqual(git(dir, 'tag', '--list'), '');
   });
   it('--apply with --skip-tests', async () => {
     const dir = fixture();
