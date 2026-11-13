@@ -85,7 +85,7 @@ Legend:
 | Skills (`/plan`, `/implement`, `/fix`, ...) | Yes | Yes | No `rig:` prefix. Skill scripts run by absolute path |
 | `media` skill (Python packages) | Yes | Partial | Packages must be pip-installed by the user. See [Python dependencies](#python-dependencies) |
 | Skills that need extra bins or Python packages | Yes | Partial | Works when the tools and packages are on the machine |
-| Agents (planner, tester, code-reviewer, ...) | Subagents | Partial | Verified: a Rig subagent replied in a live run. `model: inherit`. Agents inherit the parent's full tool set in Antigravity; Claude `tools` lists are not mapped, so read-only roles like `code-reviewer` are not restricted |
+| Agents (planner, tester, code-reviewer, ...) | Subagents | Yes | Verified live: a Rig subagent runs, and `code-reviewer` gets only its mapped tools (no `write_file` or `edit_file`). `model: inherit`. Claude `tools` lists map to Antigravity tool names; `send_message` and `manage_task` are always granted |
 | Core rules | SessionStart hook | `rules/AGENTS.md` + SessionStart | Verified: the agent quoted the core rules and `Rig root:` |
 | Plan context per prompt, active plan | UserPromptSubmit + env file | PreInvocation + session state | Verified: `Now:` stamp and plan context per user message; active plan updates on the next turn |
 | Bash safety / secret-file guard | PreToolUse | PreToolUse | The matcher covers `run_command`, `send_command_input`, `read_file`, `view_file`, `view_file_outline` and `grep_search`. Only `run_command` and `read_file` were seen live: secret reads ask, and headless `agy -p` denies `ask`. Another plugin's hook can override this guard |
@@ -106,7 +106,6 @@ Rows marked "Not supported" are not ported by design. They are listed so that a 
 - Interactive `force_ask` prompt (needs the Antigravity app or TUI).
 - Hook precedence when another plugin also defines hooks.
 - Guard on `send_command_input`, `view_file`, `view_file_outline` and `grep_search` (matched, not seen live).
-- Per-agent tool restriction (not mapped; see the Agents row).
 - Install pinned to a release tag for this plugin.
 
 ## Related

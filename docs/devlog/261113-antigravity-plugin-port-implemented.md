@@ -27,10 +27,11 @@ Plan 261113-1451 replaced the generated `.agent/` kit and root `GEMINI.md` with 
 
 - Probe live before building on docs. Three plan assumptions were wrong (`{}` semantics, `${PLUGIN_ROOT}` in skills, PreInvocation frequency).
 - Our own injected context lands in the host transcript. The reminder's "recently injected" check then suppressed every later plan context; the adapter now hides the transcript from that hook.
+- Agent `tools` lists map to Antigravity names (`read_file`, `run_command`, ...); `view_file` next to `read_file` fails with a tool name conflict on the CLI.
 - A verify-on-stop test must edit a code file: `.txt` edits count as docs by design, which looked like a bug.
 
 ## Next Steps
 
 - Release with a tag, then verify `agy plugin install` from that tag.
 - Admin: add the `antigravity/rig/ matches plugins/rig/` job to the `main-ci-required` ruleset.
-- Open: per-agent tool restriction (agents inherit all tools), interactive `force_ask` prompt, hook precedence with other plugins.
+- Open: interactive `force_ask` prompt, hook precedence with other plugins.
