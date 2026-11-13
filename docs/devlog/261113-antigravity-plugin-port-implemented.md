@@ -3,7 +3,7 @@
 **Date**: 2026-11-13 15:45
 **Severity**: Medium
 **Component**: Antigravity output, hook adapter, generator, CI, release
-**Status**: Implemented on `feat/antigravity-plugin-port`, not merged. All local checks green; live checks on agy 1.5.4 pass except install from a release tag (needs the tag).
+**Status**: Released in 2.0.10 (PR #31, tag `v2.0.10`). All live checks on agy 1.5.4 pass, including install from the release tag.
 
 ## What Happened
 
@@ -32,6 +32,4 @@ Plan 261113-1451 replaced the generated `.agent/` kit and root `GEMINI.md` with 
 
 ## Next Steps
 
-- Release with a tag, then verify `agy plugin install` from that tag.
-- Admin: add the `antigravity/rig/ matches plugins/rig/` job to the `main-ci-required` ruleset.
 - Open: interactive `force_ask` prompt, hook precedence with other plugins.

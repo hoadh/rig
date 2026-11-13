@@ -13,9 +13,9 @@ Install a pinned release tag. Do not install from `main`.
 agy plugin install https://github.com/hoadh/rig/tree/<tag>/antigravity/rig
 ```
 
-Replace `<tag>` with a Rig release tag, for example `v2.1.0`. The plugin version has the form `<rig version>-agy.<n>`, for example `2.1.0-agy.1`.
+Replace `<tag>` with a Rig release tag, for example `v2.0.10`. The plugin version has the form `<rig version>-agy.<n>`, for example `2.0.10-agy.1`.
 
-The install from a GitHub subdirectory at a tag was shown with a probe plugin. It is not yet verified for this plugin's first release tag.
+Verified with `v2.0.10` on agy 1.5.4: the install gives `rig` `2.0.10-agy.1` with 29 skills, 14 agents, 1 rule and 4 hooks.
 
 ## Update
 
@@ -106,7 +106,6 @@ Rows marked "Not supported" are not ported by design. They are listed so that a 
 - Interactive `force_ask` prompt (needs the Antigravity app or TUI).
 - Hook precedence when another plugin also defines hooks.
 - Guard on `send_command_input`, `view_file`, `view_file_outline` and `grep_search` (matched, not seen live).
-- Install pinned to a release tag for this plugin.
 
 ## Related
 
