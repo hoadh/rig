@@ -76,7 +76,7 @@ The registry then holds `"repos": {"github.com/org/app": "/home/rig/app", "githu
 rig-remote setup linux waso
 rig-remote setup linux --git-name "Rig linux" --git-email rig-linux@example.com
 rig-remote setup waso --accept-existing-clone   # only after inspecting an existing clone
-rig-remote machines                             # what /rig:plan will offer
+rig-remote machines                             # what /rig:plan will offer, with each worker's Rig version
 ```
 
 `setup` never overwrites anything. It refuses a non-git directory, a dirty clone, a clone with a different origin, and a quarantined clone. Installing the Rig plugin, ssh keys, host keys and the claude login stay manual, and the `fix:` lines give the exact commands. Guided flow: [worker setup guide](../../plugins/rig/skills/remote/references/worker-setup-guide.md).
@@ -92,7 +92,7 @@ Fix every `fail` before dispatching (each one prints a `fix:` hint in text outpu
 
 ## 3. Mark phases in the plan
 
-Run `/rig:plan` after steps 1 and 2. It reads the registry (`remote.cjs machines --json`, local, no ssh). If other machines are registered or your task names them, it asks:
+Run `/rig:plan` after steps 1 and 2. It reads the registry (`remote.cjs machines --json --offline`, local, no ssh). If other machines are registered or your task names them, it asks:
 - which machines to use,
 - each machine's test command.
 
@@ -189,7 +189,7 @@ It lists the old orchestrator's in-flight runs. Wait for them with `status --wai
 
 ## 9. Update the workers
 
-Update every worker after you update Rig on the orchestrator. The orchestrator talks to the worker's runtime copy (`~/.claude/rig/runtime/remote/worker.cjs`), so a worker keeps its old Rig until both its plugin and its runtime copy are updated.
+Update every worker after you update Rig on the orchestrator (`rig-remote upgrade`, below). The orchestrator talks to the worker's runtime copy (`~/.claude/rig/runtime/remote/worker.cjs`), so a worker keeps its old Rig until both its plugin and its runtime copy are updated.
 
 What a version difference does:
 
@@ -200,7 +200,28 @@ What a version difference does:
 | Same version, different script files | Commands run. `doctor` fails `rig-version`: `scripts differ (tampered or half-updated install)` |
 | No runtime copy on the worker | Refused with `worker-missing` and the install hint |
 
-Wait until the worker has no active run (`rig-remote status <machine> <runId>`, or `status <plan-dir>`). Then, on each worker:
+`rig-remote upgrade` does the whole update from the orchestrator, over ssh, for registered machines:
+
+```bash
+rig-remote upgrade waso-vm            # one worker
+rig-remote upgrade --all              # every registered machine, one after the other
+rig-remote upgrade --all --check      # preview: installed, runtime and pinned versions; changes no plugin, runtime or settings (the worker only does its usual run-directory housekeeping)
+rig-remote upgrade waso-vm --wait     # wait (up to 30 minutes) for an active run to finish instead of refusing
+```
+
+Per machine it checks that ssh works and Claude Code is 2.1.292 or newer, and that `rig@rig-marketplace` is installed (otherwise it skips the machine and prints the install command). It refuses while a run is active on the worker (`--wait` polls until it ends). Then it runs `claude plugin marketplace update rig-marketplace` and `claude plugin update rig@rig-marketplace`, refreshes the runtime copy from the updated plugin (the same copy a session start makes, without touching `settings.json`), and proves the result with a fresh handshake: the worker's version and scripts hash must match this machine. It prints one line per machine, for example `waso-vm  2.0.10 -> 2.1.0  ok (scripts identical)`. A failed machine prints the failing step, the end of its stderr and a `fix:` line, and the next machine still runs. Exit code 1 if any machine failed or was skipped. A worker that ends up newer than this machine is reported with "update this machine too". The machine you run it on is never touched; update it with `claude plugin update rig@rig-marketplace`.
+
+Dispatch, `run` and `collect --test` print one line (`waso-vm runs Rig 2.0.0, this machine 2.1.0: run rig-remote upgrade waso-vm`) when a worker is on another minor or patch version. `rig-remote machines` shows each worker's Rig version (`--offline` skips the ssh probe).
+
+Check afterwards:
+
+```bash
+rig-remote doctor
+```
+
+Expect `OK rig-version <version>, scripts identical` for each worker.
+
+Manual fallback (no registry entry, a Rig older than 2.1.0 on the worker, or Claude Code older than 2.1.292). Wait until the worker has no active run (`rig-remote status <machine> <runId>`, or `status <plan-dir>`). Then, on each worker:
 
 1. Update the plugin, in a terminal on that machine (or over `ssh <worker>`):
 
@@ -214,13 +235,7 @@ Wait until the worker has no active run (`rig-remote status <machine> <runId>`, 
    - start one Claude Code session on the worker and exit it (the session start refreshes `~/.claude/rig/runtime`), or
    - run `rig-init --runtime` in a terminal on the worker. It asks `y/N` and also points `statusLine` at the runtime copy.
 
-3. Check from the orchestrator:
-
-   ```bash
-   rig-remote doctor
-   ```
-
-   Expect `OK rig-version <version>, scripts identical` for each worker. `version drift` means step 1 or 2 did not take: check `claude plugin list` on the worker and the `VERSION` file in `~/.claude/rig/runtime`.
+3. Run `rig-remote doctor` from the orchestrator. `version drift` means step 1 or 2 did not take: check `claude plugin list` on the worker and the `VERSION` file in `~/.claude/rig/runtime`.
 
 If the worker still has a Rig 1.x file install, `rig:remote` does not use it: the worker reads as `unknown` and gets the install hint. Migrate it first with Rig 2.0.10 in a terminal there ([Migrate from Rig 1.x](./migrate-from-rig-1x.md)).
 

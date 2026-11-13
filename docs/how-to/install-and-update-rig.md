@@ -85,7 +85,7 @@ Each release pins the marketplace to its tag, so you keep the version you instal
 
    Skill npm packages install inside the plugin directory. A plugin update replaces that directory, so `--deps` must run again after every update.
 
-4. If you use `rig:remote`, update every worker machine too. Orchestrator and workers must run the same major version (2.x with 2.x). Steps and checks: [Update the workers](./run-plan-across-machines.md#9-update-the-workers).
+4. If you use `rig:remote`, update every worker machine too. Orchestrator and workers must run the same major version (2.x with 2.x). From the orchestrator, `rig-remote upgrade --all` updates the plugin and the runtime copy on every registered worker over ssh and checks the result (`--check` previews). Steps, checks and the manual fallback: [Update the workers](./run-plan-across-machines.md#9-update-the-workers).
 
 What stays as it is:
 

@@ -110,6 +110,7 @@ Testers can install now with the command the script printed (`/plugin marketplac
 
    Expect the new version, enabled. `claude plugin validate <cache dir>` passes, and `node <cache dir>/bin/rig-init --plan` runs.
 3. On a machine that has the previous release, follow [Update](./install-and-update-rig.md#update) and check that `claude plugin list` shows the new version.
+4. If you registered `rig:remote` workers, upgrade one from the orchestrator (`rig-remote upgrade <worker>`, after `--check`). It must end `ok (scripts identical)`, and `rig-remote doctor <worker>` must show `rig-version <version>, scripts identical`. For a beta, point the worker's marketplace at the beta ref first.
 
 ### 7. Publish the GitHub Release
 
