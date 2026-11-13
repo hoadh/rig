@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## 2.0.10 (2026-11-13)
 
 ### Breaking
 
@@ -8,7 +8,11 @@
 
 ### Features
 
-* **Antigravity plugin with subagents, rules and hooks.** The plugin ships Rig skills, subagents, rules and the Rig hooks through a hook adapter, so hook logic in `plugins/rig/hooks/` is shared with Claude Code. Verified features and open checks are listed in the [Antigravity feature map](docs/reference/antigravity-feature-map.md).
+* **Antigravity plugin with subagents, rules and hooks.** The plugin ships Rig skills, subagents, rules and the Rig hooks through a hook adapter, so hook logic in `plugins/rig/hooks/` is shared with Claude Code. Each subagent gets only the Antigravity tools that match its Claude `tools` list, so read-only roles such as `code-reviewer` cannot write files. Verified features and open checks are listed in the [Antigravity feature map](docs/reference/antigravity-feature-map.md).
+
+### Fixes
+
+* **`mcp` skill and `mcp-runner` no longer say Rig ships a `GEMINI.md`.** The Antigravity rules now come from the plugin.
 
 ## 2.0.9 (2026-11-12)
 
