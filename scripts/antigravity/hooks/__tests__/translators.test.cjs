@@ -88,7 +88,7 @@ test('guardOutput: deny -> deny, ask -> force_ask with context, empty allows, un
   const mk = (d, extra = {}) => JSON.stringify({ hookSpecificOutput: { permissionDecision: d, permissionDecisionReason: 'why', ...extra } });
   assert.deepStrictEqual(JSON.parse(out.guardOutput(mk('deny')).out), { decision: 'deny', reason: 'why' });
   assert.deepStrictEqual(JSON.parse(out.guardOutput(mk('ask', { additionalContext: 'fix' })).out), { decision: 'force_ask', reason: 'why fix' });
-  assert.deepStrictEqual(out.guardOutput(''), { out: '', recognized: true });
+  assert.deepStrictEqual(out.guardOutput(''), { out: '', recognized: true, decision: '' });
   for (const bad of ['{}', '{broken', mk('allow'), mk('weird'), 'plain text']) assert.strictEqual(out.guardOutput(bad).recognized, false, bad);
   assert.notStrictEqual(out.guardOutput('{}').out, '{}');
 });

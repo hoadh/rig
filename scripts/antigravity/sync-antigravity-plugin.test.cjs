@@ -5,7 +5,8 @@ const assert = require('node:assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { generate, checkFresh, assertSafeOutDir } = require('../sync-antigravity-plugin.cjs');
+const { generate, checkFresh, checkLeftoversOnDisk, assertSafeOutDir } = require('../sync-antigravity-plugin.cjs');
+const { gitTrackedFiles } = require('./build-antigravity-plugin.cjs');
 const { collectHookFiles } = require('./hook-files-collector.cjs');
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'rig-agy-gen-'));
@@ -130,8 +131,38 @@ describe('generate', () => {
   });
 
   it('fails when the adapter module has the wrong shape', () => {
+    const good = fs.readFileSync(path.join(root, 'scripts/antigravity/hooks/antigravity-hooks-json.cjs'), 'utf8');
     write('scripts/antigravity/hooks/antigravity-hooks-json.cjs', 'module.exports = {};\n');
     assert.throws(() => generate({ root, outDir: out, listFiles }), /must export/);
+    write('scripts/antigravity/hooks/antigravity-hooks-json.cjs', good);
+  });
+});
+
+describe('L11: generator input and --check-leftovers --out', () => {
+  it('ships only tracked adapter files: an untracked local .cjs in the adapter dirs is left out', () => {
+    const repo = path.join(tmp, 'git-repo');
+    fs.cpSync(root, repo, { recursive: true });
+    const { execFileSync } = require('child_process');
+    const git = (...a) => execFileSync('git', a, { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    git('init', '-q');
+    git('add', '-A');
+    write('scripts/antigravity/hooks/local-experiment.cjs', '// untracked\n', repo);
+    write('scripts/antigravity/scripts/local-tool.cjs', '// untracked\n', repo);
+    const gitOut = path.join(tmp, 'git-out');
+    generate({ root: repo, outDir: gitOut, listFiles: gitTrackedFiles });
+    assert.ok(fs.existsSync(path.join(gitOut, 'hooks', 'adapter.cjs')), 'tracked adapter file ships');
+    assert.ok(fs.existsSync(path.join(gitOut, 'scripts', 'set-active-plan-antigravity.cjs')), 'tracked adapter script ships');
+    assert.ok(!fs.existsSync(path.join(gitOut, 'hooks', 'local-experiment.cjs')), 'untracked hook stays out');
+    assert.ok(!fs.existsSync(path.join(gitOut, 'scripts', 'local-tool.cjs')), 'untracked script stays out');
+  });
+
+  it('checkLeftoversOnDisk checks the files in outDir, not antigravity/rig', () => {
+    const alt = path.join(tmp, 'alt-out');
+    generate({ root, outDir: alt, listFiles });
+    assert.doesNotThrow(() => checkLeftoversOnDisk({ root, outDir: alt, listFiles }));
+    write('skills/plan/extra.md', 'Uses ${CLAUDE_PLUGIN_ROOT}/x\n', alt);
+    assert.throws(() => checkLeftoversOnDisk({ root, outDir: alt, listFiles }), /leftover|Claude Code-only|CLAUDE_PLUGIN_ROOT/i);
+    assert.throws(() => checkLeftoversOnDisk({ root, outDir: path.join(tmp, 'no-such-out'), listFiles }), /missing or empty/, 'reviewer L-d');
   });
 });
 

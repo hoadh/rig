@@ -5,6 +5,7 @@
  * Antigravity: `workspacePaths[0]` is the project, `cwd` the agent's directory, `conversationId` the session.
  * Each translator returns the child's stdin object. Tool classification for PreToolUse lives here too.
  */
+const fs = require('fs');
 const path = require('path');
 const { sessionIdFrom } = require('./antigravity-session-id.cjs');
 
@@ -44,7 +45,25 @@ const preInvocation = (ag, workspace) => ({
 });
 
 /**
- * @returns {{kind: 'shell', command: string|null, payload: object} | {kind: 'read', paths: string[], includes: string[]} | {kind: 'other'}}
+ * Where a run_command runs, for the guard's payload `cwd` (L6). The child process cwd and CLAUDE_PROJECT_DIR stay the
+ * workspace either way, so project settings rules keep applying. No Cwd: the workspace. An absolute Cwd that exists:
+ * that directory. Anything else (relative, missing, not a directory): unknown, never the plugin dir; the adapter then
+ * asks (a guard deny still wins), because no rule can be trusted to have checked the right directory.
+ * @returns {{cwd: string, unknown: boolean}}
+ */
+function commandCwd(args, workspace) {
+  if (!Object.prototype.hasOwnProperty.call(args, 'Cwd') || args.Cwd === '' || args.Cwd === null || args.Cwd === undefined) return { cwd: workspace, unknown: false };
+  const cwd = args.Cwd;
+  try {
+    if (typeof cwd === 'string' && path.isAbsolute(cwd) && fs.statSync(cwd).isDirectory()) return { cwd: path.resolve(cwd), unknown: false };
+  } catch { /* missing: unknown below */ }
+  return { cwd: workspace, unknown: true };
+}
+
+/**
+ * send_command_input types into a terminal whose directory the payload does not give; it is checked against the
+ * workspace (a known limit, see the feature map).
+ * @returns {{kind: 'shell', command: string|null, payload: object, cwdUnknown?: boolean} | {kind: 'read', paths: string[], includes: string[]} | {kind: 'other'}}
  * A run_command without a string command yields command null: the adapter treats that as a translation miss.
  */
 function classifyTool(ag, workspace) {
@@ -56,12 +75,14 @@ function classifyTool(ag, workspace) {
     // send_command_input also terminates a command or waits (no Input): no text reaches the shell, so nothing to guard.
     if (name !== 'run_command' && (typeof raw !== 'string' || raw === '')) return { kind: 'other' };
     const command = typeof raw === 'string' && raw !== '' ? raw : null;
+    const where = name === 'run_command' ? commandCwd(args, workspace) : { cwd: workspace, unknown: false };
     const payload = command === null ? null : {
       ...base(ag, 'PreToolUse', workspace),
+      cwd: where.cwd,
       tool_name: 'Bash',
       tool_input: { command },
     };
-    return { kind: 'shell', command, payload };
+    return { kind: 'shell', command, payload, cwdUnknown: where.unknown };
   }
   if (READ_TOOLS.has(name)) {
     const paths = Object.entries(args).filter(([k, v]) => PATH_ARG.test(k) && typeof v === 'string' && v !== '').map(([, v]) => v);
@@ -81,4 +102,4 @@ const stop = (ag, workspace, { transcriptPath, lastAssistantMessage, turnId }) =
   prompt_id: turnId,
 });
 
-module.exports = { workspaceOf, sessionStart, preInvocation, classifyTool, stop };
+module.exports = { workspaceOf, sessionStart, preInvocation, classifyTool, commandCwd, stop };

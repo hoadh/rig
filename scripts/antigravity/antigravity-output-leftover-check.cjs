@@ -7,7 +7,9 @@
  *   - `CLAUDE_PLUGIN_*` and `CLAUDE_SKILL_DIR` variables
  *   - `rig-init` and `hooks.json`
  *   - bare plugin bin names (`rig-worktree`, ...): Antigravity has no PATH entry for them
- *   - `rig:<x>` prefixes of skills that are not in the plugin
+ *   - `rig:<x>` prefixes of skills that are not in the plugin; links or paths into Claude Code-only skill dirs, and
+ *     mentions of those skills without the "(Claude Code only, not in this plugin)" note (the concept note in
+ *     rules/AGENTS.md is exempt: it is the place that explains them)
  *   - `node ./x`, `node ../x`, `node|npx tsx|python|bash scripts/x` and `python dir/x.py`: nothing may resolve against the workspace
  *   - `TeamCreate` (Agent Teams)
  *
@@ -16,10 +18,21 @@
  * matches an entry in ALLOWED. Keep that list small and justified.
  */
 
+const { CLAUDE_ONLY_SKILL_DIRS, CLAUDE_ONLY_NOTE } = require('./claude-to-antigravity-text-rewrite.cjs');
+
+const ONLY = [...CLAUDE_ONLY_SKILL_DIRS].join('|');
+const escapeRe = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 const EXEMPT_PATHS = [/^hooks\//, /^hooks\.json$/];
 
 // Spans removed from a line before the forbidden patterns run. `files` (optional) limits an entry to matching paths.
 const ALLOWED = [
+  {
+    name: 'concept note of Claude Code-only skills',
+    reason: 'rules/AGENTS.md carries the concept note that tells the agent which Rig skills are Claude Code only.',
+    files: /^rules\/AGENTS\.md$/,
+    span: new RegExp(`\\/?rig:(?:${ONLY})(?![\\w-])`, 'g'),
+  },
   {
     name: 'user-level Claude Code files',
     reason: 'Skills read API keys and settings from ~/.claude/ (.env, .rig.json); those user files exist outside the kit.',
@@ -52,7 +65,11 @@ function buildForbidden(binNames) {
     { id: 'CLAUDE_SKILL_DIR variable', pattern: /CLAUDE_SKILL_DIR/ },
     { id: 'rig-init', pattern: /(?<![\w./$-])rig-init(?![\w-])/ },
     { id: 'hooks.json', pattern: /hooks\.json/ },
-    { id: 'rig:<x> prefix without a plugin skill', pattern: /(?<![\w-])\/?rig:(?!remote|team)[a-z]/ },
+    // rig:remote / rig:team are handled by the two rules below; rig:teammate (another name) is still caught here (L8)
+    { id: 'rig:<x> prefix without a plugin skill', pattern: new RegExp(`(?<![\\w-])\\/?rig:(?!(?:${ONLY})(?![\\w-]))[a-z]`) },
+    { id: 'link or path into a Claude Code-only skill', pattern: new RegExp(`(?:\\]\\(|\`)(?:\\.\\/)?(?:(?:<Rig root>\\/)?skills\\/|(?:\\.\\.\\/)+(?:skills\\/)?)(?:${ONLY})\\/`) },
+    // A line that names one must also carry the note (the rewrite puts it right after the mention or its code span)
+    { id: 'Claude Code-only skill without the not-in-this-plugin note', pattern: new RegExp(`^(?!.*${escapeRe(CLAUDE_ONLY_NOTE.slice(1, -1))}).*(?<![\\w-])\\/?rig:(?:${ONLY})(?![\\w-])`) },
     { id: '.agent/ kit dir', pattern: /\.agent[/\\]/ },
     { id: 'workspace-relative node call', pattern: /\bnode \.{1,2}[/\\]/ },
     { id: 'bare scripts/ call without the Rig root', pattern: /\b(?:npx tsx|npx ts-node|node|python3?|bash|sh) (?:\.\/)?scripts\// },

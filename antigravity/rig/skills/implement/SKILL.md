@@ -154,7 +154,7 @@ Why subagents at Large: tester and reviewer run with fresh context, so they do n
 
 ## Multi-Machine Plans
 
-If a plan phase has `machine:` other than this machine, Step 3 routes that phase to `/rig:remote` (dispatch, `status --wait`, review, `remote review`) and Step 4 is preceded by `remote collect --test <machine>=<cmd>`. See `../remote/references/remote-implement-workflow.md`. Local phases, the review gate and single-machine plans are unchanged.
+If a plan phase has `machine:` other than this machine, Step 3 routes that phase to `/rig:remote` (Claude Code only, not in this plugin) (dispatch, `status --wait`, review, `remote review`) and Step 4 is preceded by `remote collect --test <machine>=<cmd>`. See the `rig:remote` docs (Claude Code only, not in this plugin). Local phases, the review gate and single-machine plans are unchanged.
 
 ## References
 

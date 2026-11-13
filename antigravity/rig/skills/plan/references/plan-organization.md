@@ -116,7 +116,7 @@ Brief description of what this plan accomplishes.
 - Link to detailed phase files
 - Key dependencies
 
-### Multi-Machine Plans (`/rig:remote`)
+### Multi-Machine Plans (`/rig:remote` (Claude Code only, not in this plugin))
 
 When phases run on other machines, plan.md gets `branch:` (`orchestrator:` is written later by `remote dispatch`, never by the planner); each remote phase gets `machine`, `owns` (required, disjoint between machines), optional `dependsOn`. Order phases so each machine's phases are contiguous and dependencies precede dependents. Success Criteria of a remote phase names that machine's test command. `reviewedSha`/`reviewScore` are set later by the orchestrator, never at planning time. Field reference: `output-standards.md` -> Multi-Machine Fields.
 

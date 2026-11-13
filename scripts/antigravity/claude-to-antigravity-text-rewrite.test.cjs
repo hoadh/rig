@@ -95,3 +95,20 @@ test('dropClaudeOnlyFileLines removes only lines naming a Claude Code-only file'
   assert.strictEqual(t.dropClaudeOnlyFileLines(text), 'keep\nalso keep');
   assert.ok(t.CLAUDE_ONLY_SKILL_FILES.has('plan/references/multi-machine-planning.md'));
 });
+
+test('noteClaudeOnlySkillRefs (L8): links, paths and rig:<x> mentions of Claude Code-only skills get a note; idempotent', () => {
+  const { noteClaudeOnlySkillRefs: n } = require('./claude-to-antigravity-text-rewrite.cjs');
+  const cases = [
+    ['See `../remote/references/remote-implement-workflow.md`.', 'See the `rig:remote` docs (Claude Code only, not in this plugin).'],
+    ['routes to `/rig:remote` (dispatch)', 'routes to `/rig:remote` (Claude Code only, not in this plugin) (dispatch)'],
+    ['run `/rig:remote dispatch --resume` now', 'run `/rig:remote dispatch --resume` (Claude Code only, not in this plugin) now'],
+    ['keep `team/notes.md` and [docs](setup/README.md)', 'keep `team/notes.md` and [docs](setup/README.md)'],
+    ['use /rig:team for that', 'use `rig:team` (Claude Code only, not in this plugin) for that'],
+    ['See [the flow](../team/references/x.md) now', 'See the flow (`rig:team`, Claude Code only, not in this plugin) now'],
+    ['rig:teammate and rig:plan and git remote stay', 'rig:teammate and rig:plan and git remote stay'],
+  ];
+  for (const [input, want] of cases) {
+    assert.strictEqual(n(input), want, input);
+    assert.strictEqual(n(n(input)), want, `idempotent: ${input}`);
+  }
+});

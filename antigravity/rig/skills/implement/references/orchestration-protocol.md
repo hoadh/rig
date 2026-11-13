@@ -89,4 +89,4 @@ Report format:
 Subagents get only what they need, never session history: task, files to read/modify, acceptance criteria, constraints, plan phase text (not the whole plan), work context and reports paths. Write "Implement X per phase-02.md" or "Fix null check in auth.ts:45, cause: missing validation", not "continue where we left off". Coordination stays in the main agent.
 
 ## Agent Teams
-For multi-session collaboration use `/rig:team` (`SKILL.md` of the `team` skill); it is not part of the default flow.
+For multi-session collaboration use `/rig:team` (Claude Code only, not in this plugin) (`SKILL.md` of the `team` skill); it is not part of the default flow.

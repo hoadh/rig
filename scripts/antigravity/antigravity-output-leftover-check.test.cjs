@@ -14,7 +14,8 @@ test('flags each forbidden reference', () => {
   assert.deepStrictEqual(check('run rig-init --plan'), ['rig-init', 'bare plugin bin name']);
   assert.deepStrictEqual(check('hooks/hooks.json'), ['hooks.json']);
   assert.deepStrictEqual(check('run `rig-worktree info`'), ['bare plugin bin name']);
-  assert.deepStrictEqual(check('use /rig:setup now'), ['rig:<x> prefix without a plugin skill']);
+  assert.deepStrictEqual(check('use /rig:setup now'), ['Claude Code-only skill without the not-in-this-plugin note']);
+  assert.deepStrictEqual(check('use /rig:teammate now'), ['rig:<x> prefix without a plugin skill'], 'L8: rig:teammate is not rig:team');
   assert.deepStrictEqual(check('load rig:plan'), ['rig:<x> prefix without a plugin skill']);
   assert.deepStrictEqual(check('the .agent/skills dir'), ['.agent/ kit dir']);
   assert.deepStrictEqual(check('node ./a.cjs and node ../b.cjs'), ['workspace-relative node call']);
@@ -35,7 +36,7 @@ test('reports path and line number', () => {
 
 test('clean text, rewritten paths and unrelated look-alikes pass', () => {
   assert.deepStrictEqual(check('node <Rig root>/skills/worktree/scripts/worktree.cjs and node <Rig root>/scripts/a.cjs and .agents/x and .claude-archived/a and my-rig-worktree and rig-worktree.cjs and bin/rig-worktree'), []);
-  assert.deepStrictEqual(check('/rig:remote and /rig:team stay'), []);
+  assert.deepStrictEqual(check('`rig:remote` (Claude Code only, not in this plugin) and the `rig:team` docs (Claude Code only, not in this plugin)'), []);
 });
 
 test('allowlist: user-level ~/.claude files and API-key .env files', () => {
@@ -70,7 +71,20 @@ test('create-skill may quote the rig: namespace as an example', () => {
   assert.deepStrictEqual(check('name: rig:my-skill', 'skills/plan/SKILL.md'), ['rig:<x> prefix without a plugin skill']);
 });
 
+test('L8: links and paths into Claude Code-only skills, and bare mentions, are flagged; the concept note in AGENTS.md is exempt', () => {
+  const NOTE = 'Claude Code-only skill without the not-in-this-plugin note';
+  const LINK = 'link or path into a Claude Code-only skill';
+  assert.deepStrictEqual(check('See `../remote/references/remote-implement-workflow.md`.'), [LINK]);
+  assert.deepStrictEqual(check('See [x](../team/SKILL.md).'), [LINK]);
+  assert.deepStrictEqual(check('`<Rig root>/skills/setup/SKILL.md`'), [LINK]);
+  assert.deepStrictEqual(check('routes to `/rig:remote` (dispatch)'), [NOTE]);
+  assert.deepStrictEqual(check('`rig:remote`, `rig:team` are not part of this plugin', 'rules/AGENTS.md'), []);
+  assert.deepStrictEqual(check('the remote branch and git remote add stay', 'skills/git/SKILL.md'), []);
+  assert.deepStrictEqual(check('run `/rig:remote dispatch --resume` (Claude Code only, not in this plugin) now'), [], 'code span with arguments, noted after it');
+  assert.deepStrictEqual(check('keep `team/notes.md` and [docs](setup/README.md)'), [], 'unanchored paths are not skill dirs');
+});
+
 test('the allowlist stays small and each entry says why', () => {
-  assert.ok(ALLOWED.length <= 4);
+  assert.ok(ALLOWED.length <= 5);
   for (const a of ALLOWED) assert.ok(a.name && a.reason && a.span.global, a.name);
 });

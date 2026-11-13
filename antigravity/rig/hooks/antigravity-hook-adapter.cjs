@@ -66,15 +66,21 @@ function runGuard(ag, ctx) {
       logNote(ctx.hook, 'PreToolUse', 'translate-miss no-command', 'deny', ctx.pluginData);
       return write(out.guardDenyOutput('Rig safety guard could not read the command of this shell tool call; blocked.'));
     }
+    const UNKNOWN_CWD = 'Rig safety guard could not resolve the Cwd of this command, so its directory-relative checks may not apply; confirm it.';
     const res = runHookChild({ ...ctx, script: ctx.script, payload: tool.payload });
     if (!res.ok && !res.stdout.trim()) {
-      logNote(ctx.hook, 'PreToolUse', `child-failed ${res.reason} fail-open`, 'error', ctx.pluginData);
-      return;
+      logNote(ctx.hook, 'PreToolUse', `child-failed ${res.reason} ${tool.cwdUnknown ? 'cwd-unknown ask' : 'fail-open'}`, 'error', ctx.pluginData);
+      return tool.cwdUnknown ? write(out.guardAskOutput(UNKNOWN_CWD)) : undefined;
     }
     const g = out.guardOutput(res.stdout);
     if (!g.recognized) {
       logNote(ctx.hook, 'PreToolUse', 'translate-miss unreadable-decision', 'deny', ctx.pluginData);
       return write(out.guardDenyOutput('Rig safety guard returned a decision this adapter could not read; blocked.'));
+    }
+    // An unresolvable Cwd (L6): a deny stands, anything else becomes an ask, since the rules checked the workspace
+    if (tool.cwdUnknown && g.decision !== 'deny') {
+      logNote(ctx.hook, 'PreToolUse', 'cwd-unknown ask', 'ask', ctx.pluginData);
+      return write(out.guardAskOutput(g.decision === 'force_ask' && g.reason ? `${g.reason} ${UNKNOWN_CWD}` : UNKNOWN_CWD));
     }
     return write(g.out);
   }

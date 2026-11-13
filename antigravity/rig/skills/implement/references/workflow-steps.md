@@ -84,7 +84,7 @@ Before starting:
 
 **Multi-machine plans** (a phase has `machine:` other than this machine; plan has `orchestrator:`):
 - Phases on this machine: unchanged. Commit and push before dispatching anything.
-- Foreign-machine phase: follow `../remote/references/remote-implement-workflow.md` (`remote dispatch` -> `status --wait` in background -> `code-reviewer` on the fetched worker diff -> `remote review`; `dispatch --resume` at most 3 times, then ask the user).
+- Foreign-machine phase: follow the `rig:remote` docs (Claude Code only, not in this plugin) (`remote dispatch` -> `status --wait` in background -> `code-reviewer` on the fetched worker diff -> `remote review`; `dispatch --resume` at most 3 times, then ask the user).
 - Before Step 4 run `remote collect <plan-dir> --test <machine>=<cmd>` so tests run on the integration branch; Step 4 then covers this machine's tests.
 - Plans without `machine:` fields skip all of this.
 

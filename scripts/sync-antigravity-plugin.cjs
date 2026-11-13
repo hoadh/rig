@@ -102,6 +102,14 @@ function generate({ root = ROOT, outDir = path.join(root, 'antigravity', 'rig'),
   return { stats };
 }
 
+/** Leftover check of the files on disk in `outDir` (default antigravity/rig); throws on a leftover. */
+function checkLeftoversOnDisk({ root = ROOT, outDir = path.join(root, 'antigravity', 'rig'), listFiles } = {}) {
+  const tree = fs.existsSync(outDir) ? readTree(outDir) : [];
+  if (tree.length === 0) throw new Error(`${outDir} is missing or empty: nothing to check`);
+  const { outputs } = buildOutputs({ root, listFiles });
+  assertNoLeftovers(tree.map((f) => ({ ...f, verbatim: Boolean(outputs.get(f.path)?.verbatim) })), root, listFiles);
+}
+
 /** @returns {{ stale: boolean, report: string[] }} */
 function checkFresh({ root = ROOT, outDir = path.join(root, 'antigravity', 'rig'), listFiles } = {}) {
   const { outputs } = buildOutputs({ root, listFiles });
@@ -115,10 +123,9 @@ function main(argv) {
   const outIdx = argv.indexOf('--out');
   const outDir = outIdx !== -1 && argv[outIdx + 1] ? path.resolve(argv[outIdx + 1]) : DEFAULT_OUT;
   if (argv.includes('--check-leftovers')) {
-    // Verbatim files (hooks, adapter scripts) are known from a build; the committed files are what gets checked.
-    const { outputs } = buildOutputs({ root: ROOT });
-    assertNoLeftovers(readTree(DEFAULT_OUT).map((f) => ({ ...f, verbatim: Boolean(outputs.get(f.path)?.verbatim) })));
-    console.log('OK no Claude Code-only leftovers in antigravity/rig/');
+    // Verbatim files (hooks, adapter scripts) are known from a build; the files on disk in --out are what gets checked.
+    checkLeftoversOnDisk({ outDir });
+    console.log(`OK no Claude Code-only leftovers in ${path.relative(ROOT, outDir) || outDir}/`);
   } else if (argv.includes('--check')) {
     const { stale, report } = checkFresh({ outDir });
     if (stale) {
@@ -142,4 +149,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { assertSafeOutDir, generate, checkFresh, compareWithDisk, assertNoLeftovers };
+module.exports = { assertSafeOutDir, generate, checkFresh, checkLeftoversOnDisk, compareWithDisk, assertNoLeftovers };

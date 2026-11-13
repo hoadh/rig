@@ -21,9 +21,9 @@ created: 2025-12-16
 ---
 ```
 
-### Multi-Machine Fields (only for plans using `/rig:remote`)
+### Multi-Machine Fields (only for plans using `/rig:remote` (Claude Code only, not in this plugin))
 
-Optional; single-machine plans omit them all. `plan.md` frontmatter: `orchestrator: <machine-id>` (set by `rig:remote` on first dispatch; do not hand-edit) and `branch:` (shared base branch, required to dispatch). Phase file frontmatter:
+Optional; single-machine plans omit them all. `plan.md` frontmatter: `orchestrator: <machine-id>` (set by `rig:remote` (Claude Code only, not in this plugin) on first dispatch; do not hand-edit) and `branch:` (shared base branch, required to dispatch). Phase file frontmatter:
 
 ```yaml
 machine: win11        # machine id from the registry; absent = this machine
@@ -33,7 +33,7 @@ reviewedSha: <sha>    # written by the orchestrator via `remote review`, never b
 reviewScore: 9        # same
 ```
 
-`owns` globs may not touch `.git*`, `.github/`, `.agents/`, CI or hook paths unless listed explicitly. Same-machine phases are contiguous. Put the per-machine test command in each remote phase's Success Criteria (used for `collect --test machine=cmd`). See `/rig:remote`.
+`owns` globs may not touch `.git*`, `.github/`, `.agents/`, CI or hook paths unless listed explicitly. Same-machine phases are contiguous. Put the per-machine test command in each remote phase's Success Criteria (used for `collect --test machine=cmd`). See `/rig:remote` (Claude Code only, not in this plugin).
 
 ### Auto-Population Rules
 

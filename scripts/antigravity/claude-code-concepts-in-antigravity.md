@@ -29,7 +29,7 @@ If a hook context is missing, use these defaults:
 
 ## Not available here
 
-* The Claude Code statusline, plugin setup and migration commands, `rig:remote`, `rig:team` and Agent Teams are not part of this plugin.
+* The Claude Code statusline, plugin setup, `rig:remote`, `rig:team` and Agent Teams are not part of this plugin.
 * `claude -p`, Claude model names (opus, sonnet, haiku) and Claude Code settings do not apply. When a skill step needs `claude -p` (for example the description optimizer in `create-skill`), skip that step and tell the user.
 * Paths under `~/.claude/` point to Claude Code user files. API keys for skill scripts (for example `GEMINI_API_KEY` for `media`) are read from environment variables first.
 * There is no Rig Python venv: skills that run Python use `python3` and need their packages installed (`google-genai`, `pypdf`, see the skill's `requirements.txt`).

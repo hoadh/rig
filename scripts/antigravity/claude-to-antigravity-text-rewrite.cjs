@@ -119,6 +119,35 @@ function createTextRewriter(dirRenames, knownSkillNames) {
   };
 }
 
+const ONLY_DIRS = [...CLAUDE_ONLY_SKILL_DIRS].join('|');
+const CLAUDE_ONLY_NOTE = '(Claude Code only, not in this plugin)';
+// A path into a Claude-only skill dir needs an anchor (`../`, `skills/`, `<Rig root>/skills/`), so `team/notes.md` stays
+const ONLY_DIR_PATH = `(?:(?:<Rig root>\\/)?skills\\/|(?:\\.\\.\\/)+(?:skills\\/)?)(${ONLY_DIRS})\\/`;
+// `[text](../remote/x.md)`: a link into a Claude-only skill dir (L8)
+const CLAUDE_ONLY_LINK = new RegExp(`\\[([^\\]]*)\\]\\((?:\\.\\/)?${ONLY_DIR_PATH}[^)]*\\)`, 'g');
+// `` `../remote/x.md` ``: a code span that is only such a path
+const CLAUDE_ONLY_PATH = new RegExp(`\`(?:\\.\\/)?${ONLY_DIR_PATH}[^\`\\s]*\``, 'g');
+// rig:remote, /rig:team: a skill this plugin does not have (word boundary: rig:teammate is another name)
+const ONLY_SKILL_REF = new RegExp(`(?<![\\w-])\\/?rig:(${ONLY_DIRS})(?![\\w-])`);
+const ONLY_SKILL_REF_G = new RegExp(ONLY_SKILL_REF.source, 'g');
+
+/**
+ * Markdown only: links, paths and `rig:<x>` mentions of Claude Code-only skills get a short note, so no synced text
+ * points at a file or a skill the plugin does not ship (L8). A code span that names one (`/rig:remote dispatch`)
+ * stays intact and gets the note after it. Idempotent.
+ */
+function noteClaudeOnlySkillRefs(text) {
+  const step1 = text
+    .replace(CLAUDE_ONLY_LINK, (_, label, dir) => `${label} (\`rig:${dir}\`, ${CLAUDE_ONLY_NOTE.slice(1)}`)
+    .replace(CLAUDE_ONLY_PATH, (_, dir) => `the \`rig:${dir}\` docs ${CLAUDE_ONLY_NOTE}`);
+  const parts = step1.split(/(`[^`\n]*`)/);
+  const noted = (i) => (parts[i + 1] || '').startsWith(` ${CLAUDE_ONLY_NOTE}`) || (parts[i + 1] || '').startsWith(` docs ${CLAUDE_ONLY_NOTE}`) || (parts[i + 1] || '').startsWith(`, ${CLAUDE_ONLY_NOTE.slice(1)}`);
+  return parts.map((part, i) => {
+    if (i % 2 === 1) return ONLY_SKILL_REF.test(part) && !noted(i) ? `${part} ${CLAUDE_ONLY_NOTE}` : part;
+    return part.replace(ONLY_SKILL_REF_G, (_, dir) => `\`rig:${dir}\` ${CLAUDE_ONLY_NOTE}`);
+  }).join('');
+}
+
 /** Set the `name:` line inside the leading frontmatter block only, leaving every other key and the body untouched. */
 const setFrontmatterName = (text, name) => text.replace(/^---\r?\n[\s\S]*?\r?\n---/, (fm) => fm.replace(/^name:.*$/m, `name: ${name}`));
 
@@ -144,6 +173,8 @@ module.exports = {
   CLAUDE_ONLY_SKILL_DIRS,
   CLAUDE_ONLY_SKILL_FILES,
   dropClaudeOnlyFileLines,
+  noteClaudeOnlySkillRefs,
+  CLAUDE_ONLY_NOTE,
   parseFrontmatter,
   agentSkillName,
   createTextRewriter,

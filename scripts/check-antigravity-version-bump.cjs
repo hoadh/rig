@@ -5,10 +5,12 @@
  *   node scripts/check-antigravity-version-bump.cjs [--base origin/main]
  *
  * "Change" = any file under antigravity/rig/ or scripts/antigravity/ that differs from the merge base, except tests
- * (`*.test.cjs`) and their `__fixtures__/`, which never ship. The version is the `version` of
+ * (`*.test.cjs`), `__fixtures__/`, and the test helpers in any `__tests__/` dir under scripts/antigravity/, which never ship. A
+ * `__tests__/` dir inside antigravity/rig/ is shipped content (a skill's own tests) and still counts. The version is the `version` of
  * antigravity/rig/.antigravity-plugin/plugin.json, `<rig version>-agy.<n>`. It counts as bumped when the Rig version is
  * greater, or the Rig version is equal and `n` is greater. Passes when nothing changed, or when the base has no
- * Antigravity plugin yet (first release). Exit 1 = bump missing, exit 2 = could not compare.
+ * Antigravity plugin yet (first release). A base manifest that exists but has no readable version is not a first
+ * release: it cannot be compared (exit 2). Exit 1 = bump missing, exit 2 = could not compare.
  */
 const { execFileSync } = require('child_process');
 const path = require('path');
@@ -17,7 +19,10 @@ const { parseAgyVersion } = require('./antigravity/plugin-manifest-writer.cjs');
 
 const MANIFEST = 'antigravity/rig/.antigravity-plugin/plugin.json';
 const WATCHED = ['antigravity/rig', 'scripts/antigravity'];
-const SHIPS = (file) => !/\.test\.cjs$/.test(file) && !/(^|\/)__fixtures__\//.test(file);
+const SHIPS = (file) => !/\.test\.cjs$/.test(file) && !/(^|\/)__fixtures__\//.test(file)
+  && !/^scripts\/antigravity\/(.+\/)?__tests__\//.test(file);
+
+class UnreadableBaseError extends Error {}
 
 const git = (cwd, args) => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 64 * 1024 * 1024 });
 
@@ -53,14 +58,18 @@ function decide({ changedFiles, baseVersion, headVersion }) {
 function check(cwd, base) {
   const mergeBase = git(cwd, ['merge-base', base, 'HEAD']).trim();
   const changedFiles = git(cwd, ['diff', '--name-only', mergeBase, 'HEAD', '--', ...WATCHED]).split('\n').filter(Boolean);
-  const versionAt = (rev) => {
+  const textAt = (rev) => {
     try {
-      return parseManifestVersion(git(cwd, ['show', `${rev}:${MANIFEST}`]));
+      return git(cwd, ['show', `${rev}:${MANIFEST}`]);
     } catch {
       return null; // no manifest at that revision
     }
   };
-  return decide({ changedFiles, baseVersion: versionAt(mergeBase), headVersion: versionAt('HEAD') });
+  const baseText = textAt(mergeBase);
+  const baseVersion = baseText === null ? null : parseManifestVersion(baseText);
+  if (baseText !== null && baseVersion === null) throw new UnreadableBaseError(`the base ${MANIFEST} exists but has no readable "<rig version>-agy.<n>" version`);
+  const headText = textAt('HEAD');
+  return decide({ changedFiles, baseVersion, headVersion: headText === null ? null : parseManifestVersion(headText) });
 }
 
 function main(argv) {
@@ -70,6 +79,7 @@ function main(argv) {
   try {
     result = check(path.resolve(__dirname, '..'), base);
   } catch (err) {
+    if (err instanceof UnreadableBaseError) { console.error(`x Cannot compare with ${base}: ${err.message}`); return 2; }
     console.error(`x Cannot compare with ${base} (is it fetched? CI needs fetch-depth: 0): ${String(err.stderr || err.message).split('\n')[0]}`);
     return 2;
   }
@@ -79,4 +89,4 @@ function main(argv) {
 
 if (require.main === module) process.exitCode = main(process.argv.slice(2));
 
-module.exports = { decide, parseManifestVersion, check };
+module.exports = { decide, parseManifestVersion, check, SHIPS, UnreadableBaseError };

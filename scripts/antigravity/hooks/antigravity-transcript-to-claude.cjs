@@ -4,8 +4,12 @@
  *
  * Antigravity steps: USER_INPUT (source USER_EXPLICIT for a real prompt), PLANNER_RESPONSE ({content, tool_calls[]}),
  * GENERIC (a tool result, `status` DONE|ERROR), SYSTEM_MESSAGE. Tool calls have no ids and results do not name their
- * call, so results are paired with calls in order (first pending call gets the next GENERIC step). Pairing is
- * unverified for tools without a result step; the Stop hook fails open on any mismatch it can notice.
+ * call. A live capture (agy 1.5.8, three parallel calls: write_file, run_command x2) shows one GENERIC step per call,
+ * in call order, right after the PLANNER_RESPONSE. So results are paired only inside their batch (the GENERIC steps
+ * after one PLANNER_RESPONSE), and only when the batch adds up: as many results as calls, and each result has the
+ * shape of its call (a run_command result reads "Command exited with code" or a background note; a write/edit result
+ * does not). Otherwise the whole batch stays unpaired: its calls count as unverified (fail closed, L5), and no result
+ * ever moves onto another call.
  *
  * Mapping: run_command -> Bash{command}; write_file / write_to_file -> Write{file_path}; edit_file /
  * replace_file_content / multi_replace_file_content -> Edit{file_path}. invoke_subagent is kept under its own name
@@ -38,6 +42,18 @@ function isErrorResult(step) {
   return m !== null && Number(m[1]) !== 0;
 }
 
+const COMMAND_RESULT = /Command exited with code -?\d+|Command output:/;
+
+/** Does `step` look like the result of `use` (a mapped tool_use entry)? An ERROR step fits any call. */
+function resultFits(use, step) {
+  if (step.status === 'ERROR') return true;
+  const name = use.message.content[0].name;
+  const text = textOf(step.content);
+  if (name === 'Bash') return COMMAND_RESULT.test(text) || BACKGROUND_RESULT.test(text);
+  if (name === 'Write' || name === 'Edit') return !EXIT_CODE.test(text);
+  return true;
+}
+
 function readSteps(file) {
   if (fs.statSync(file).size > MAX_BYTES) return null;
   const steps = [];
@@ -67,37 +83,53 @@ function convertTranscript(file, conversationId) {
   if (!steps || steps.length === 0) return null;
 
   const entries = [];
-  const pending = []; // {entry, id}
+  let batch = null; // { calls: tool_use entries of one PLANNER_RESPONSE, results: GENERIC steps after it }
   let explicitCount = 0;
   let lastPrompt = '';
   let lastAssistantMessage = '';
   const uuid = (i, j = 0) => `agy-${i}-${j}`;
 
+  /** Pair a finished batch, all or nothing (see the header). */
+  const flush = () => {
+    if (!batch) return;
+    const { calls, results } = batch;
+    batch = null;
+    if (calls.length === 0 || results.length !== calls.length || !calls.every((use, k) => resultFits(use, results[k].step))) return;
+    calls.forEach((use, k) => {
+      const { step, i } = results[k];
+      const block = use.message.content[0];
+      if (block.name === 'Bash' && BACKGROUND_RESULT.test(textOf(step.content))) block.input.run_in_background = true;
+      entries.push({ type: 'user', uuid: uuid(i), timestamp: step.created_at, message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: block.id, is_error: isErrorResult(step), content: textOf(step.content).slice(0, 2000) }] } });
+    });
+  };
+
   steps.forEach((step, i) => {
     const ts = step.created_at;
     if (step.type === 'USER_INPUT') {
+      flush();
       const explicit = step.source === 'USER_EXPLICIT';
       if (explicit) { explicitCount += 1; lastPrompt = textOf(step.content); lastAssistantMessage = ''; }
       entries.push({ type: 'user', uuid: uuid(i), timestamp: ts, isMeta: !explicit, message: { role: 'user', content: [{ type: 'text', text: textOf(step.content) }] } });
     } else if (step.type === 'PLANNER_RESPONSE') {
+      flush();
       const text = textOf(step.content);
       if (text.trim()) {
         lastAssistantMessage = text;
         entries.push({ type: 'assistant', uuid: uuid(i), timestamp: ts, message: { role: 'assistant', content: [{ type: 'text', text }] } });
       }
+      const calls = [];
       (Array.isArray(step.tool_calls) ? step.tool_calls : []).forEach((call, j) => {
         const { name, input } = mapToolUse(call && call.name, call && call.args);
         const entry = { type: 'assistant', uuid: uuid(i, j + 1), timestamp: ts, message: { role: 'assistant', content: [{ type: 'tool_use', id: `agy-call-${i}-${j}`, name, input }] } };
         entries.push(entry);
-        pending.push(entry);
+        calls.push(entry);
       });
-    } else if (step.type === 'GENERIC' && pending.length > 0) {
-      const use = pending.shift();
-      const block = use.message.content[0];
-      if (use.message.content[0].name === 'Bash' && BACKGROUND_RESULT.test(textOf(step.content))) block.input.run_in_background = true;
-      entries.push({ type: 'user', uuid: uuid(i), timestamp: ts, message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: block.id, is_error: isErrorResult(step), content: textOf(step.content).slice(0, 2000) }] } });
+      batch = { calls, results: [] };
+    } else if (step.type === 'GENERIC' && batch) {
+      batch.results.push({ step, i });
     }
   });
+  flush();
 
   const turnId = crypto.createHash('sha256').update(`${conversationId}:${explicitCount}:${lastPrompt}`).digest('hex').slice(0, 16);
   return { isSubagent: steps[0].type === 'SYSTEM_MESSAGE', entries, lastAssistantMessage, turnId };

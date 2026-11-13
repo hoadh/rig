@@ -40,18 +40,20 @@ function contextOutput(stdout, prefix = '') {
 
 /**
  * Guard output. deny -> deny, ask -> force_ask (ignores cached "always allow").
- * @returns {{out: string, recognized: boolean}} recognized=false: the child printed something we cannot read,
+ * @returns {{out: string, recognized: boolean, decision?: string, reason?: string}} decision: '' (allow), 'deny' or
+ * 'force_ask'. recognized=false: the child printed something we cannot read,
  * which the adapter must treat as a decision it failed to translate (fail closed).
  */
 function guardOutput(stdout) {
   const text = String(stdout || '').trim();
-  if (!text) return { out: '', recognized: true };
+  if (!text) return { out: '', recognized: true, decision: '' };
   const hso = (parseJson(text) || {}).hookSpecificOutput;
   const decision = hso && hso.permissionDecision;
   if (decision !== 'deny' && decision !== 'ask') return { out: '', recognized: false };
   const parts = [hso.permissionDecisionReason, hso.additionalContext].filter((s) => typeof s === 'string' && s);
   const reason = [...new Set(parts)].join(' '); // the guard repeats the reason as context on ask
-  return { out: JSON.stringify({ decision: decision === 'deny' ? 'deny' : 'force_ask', reason: reason.slice(0, MAX_REASON) }), recognized: true };
+  const mapped = decision === 'deny' ? 'deny' : 'force_ask';
+  return { out: JSON.stringify({ decision: mapped, reason: reason.slice(0, MAX_REASON) }), recognized: true, decision: mapped, reason: reason.slice(0, MAX_REASON) };
 }
 
 /** Failure result the adapter prints when a guard decision cannot be translated. */

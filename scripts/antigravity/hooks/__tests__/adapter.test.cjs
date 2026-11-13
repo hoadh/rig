@@ -87,6 +87,45 @@ test('guard: deny -> deny, ask -> force_ask', () => {
   assert.match(ask.reason, /\.env/);
 });
 
+test('guard: run_command Cwd (L6) - rules see the directory the command runs in; project settings still apply', (t) => {
+  if (process.platform === 'win32') return t.skip('symlink privileges');
+  const ws = L.workspace;
+  const sub = path.join(ws, 'l6-sub');
+  const outside = path.join(L.root, 'l6-outside.txt');
+  fs.mkdirSync(sub, { recursive: true });
+  fs.writeFileSync(outside, 'x\n');
+  fs.symlinkSync(outside, path.join(sub, 'link'));
+  fs.writeFileSync(path.join(sub, 'secret.txt'), 'k\n');
+  fs.mkdirSync(path.join(ws, 'config'), { recursive: true });
+  fs.mkdirSync(path.join(ws, '.claude'), { recursive: true });
+  fs.writeFileSync(path.join(ws, '.claude', 'settings.json'), JSON.stringify({ permissions: { ask: ['Read(./l6-sub/secret.txt)', 'Read(/config/master.key)'] } }));
+  const run = (command, Cwd) => {
+    const r = guard(command, { toolCall: { id: 'c', name: 'run_command', args: Cwd === undefined ? { CommandLine: command } : { CommandLine: command, Cwd } } });
+    return r.stdout ? JSON.parse(r.stdout).decision : 'allow';
+  };
+  try {
+    // The workspace has no `link` and no `secret.txt`: only the Cwd makes these hit
+    assert.strictEqual(run('sed -i s/a/b/ link', sub), 'deny', 'symlink in the Cwd');
+    assert.strictEqual(run('sed -i s/a/b/ link'), 'allow', 'no Cwd: the workspace, where link does not exist');
+    assert.strictEqual(run('cat secret.txt', sub), 'force_ask', 'project Read rule matches the file in the Cwd');
+    assert.strictEqual(run('cat ../config/master.key', path.join(ws, 'config', '..', 'l6-sub')), 'force_ask', 'settings-root rule still applies (CLAUDE_PROJECT_DIR stays the workspace)');
+    // A Cwd the adapter cannot resolve: every command asks (no rule can be trusted to have checked the right directory),
+    // and a deny of the guard still stands. The command text reaches the guard unchanged (reviewer M1: anchored pkill -f).
+    for (const bad of ['l6-sub', path.join(ws, 'missing-dir'), 42, '~/x']) {
+      assert.strictEqual(run('ls', bad), 'force_ask', `unknown Cwd ${bad}`);
+      assert.strictEqual(run('cat secret.txt', bad), 'force_ask', `unknown Cwd ${bad}: secret read asks (reviewer M2)`);
+    }
+    assert.strictEqual(run("pkill -f '^pkill'", 'l6-sub'), 'deny', 'anchored pkill -f is still denied with an unknown Cwd');
+    assert.strictEqual(run("pkill -f '^pkill'"), 'deny');
+    fs.symlinkSync(outside, path.join(ws, 'link'));
+    assert.strictEqual(run('sed -i s/a/b/ link'), 'deny', 'known workspace cwd: deny');
+    assert.strictEqual(run('sed -i s/a/b/ link', 'l6-sub'), 'deny', 'a deny stands with an unknown Cwd');
+  } finally {
+    fs.rmSync(path.join(ws, '.claude'), { recursive: true, force: true });
+    fs.rmSync(path.join(ws, 'link'), { force: true });
+  }
+});
+
 test('guard: terminal input is guarded like a command', () => {
   const r = runAdapter(L, 'bash-safety-guard', fx('pre-tool-use-run-command', { toolCall: { id: 'c', name: 'send_command_input', args: { Input: 'cat .env' } } }));
   assert.strictEqual(JSON.parse(r.stdout).decision, 'force_ask');

@@ -5,7 +5,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
-const { decide, parseManifestVersion, check } = require('./check-antigravity-version-bump.cjs');
+const { decide, parseManifestVersion, check, UnreadableBaseError } = require('./check-antigravity-version-bump.cjs');
 
 const v = (rig, n) => ({ rig, n });
 const F = 'antigravity/rig/skills/plan/SKILL.md';
@@ -14,6 +14,12 @@ describe('decide', () => {
   it('passes when nothing shipped changed (tests and fixtures do not count)', () => {
     assert.strictEqual(decide({ changedFiles: [], baseVersion: v('2.0.9', 1), headVersion: v('2.0.9', 1) }).ok, true);
     assert.strictEqual(decide({ changedFiles: ['scripts/antigravity/a.test.cjs', 'scripts/antigravity/hooks/__fixtures__/x.json', 'docs/a.md'], baseVersion: v('2.0.9', 1), headVersion: v('2.0.9', 1) }).ok, true);
+  });
+  it('test helpers under scripts/antigravity/**/__tests__/ do not count; shipped __tests__ inside antigravity/rig/ do (L9)', () => {
+    const same = { baseVersion: v('2.0.9', 1), headVersion: v('2.0.9', 1) };
+    assert.strictEqual(decide({ changedFiles: ['scripts/antigravity/hooks/__tests__/agy-test-layout.cjs', 'scripts/antigravity/hooks/__tests__/transcript-builder.cjs'], ...same }).ok, true);
+    assert.strictEqual(decide({ changedFiles: ['antigravity/rig/skills/browser/scripts/__tests__/x.test.js'], ...same }).ok, false);
+    assert.strictEqual(decide({ changedFiles: ['scripts/antigravity/hooks/antigravity-hook-adapter.cjs'], ...same }).ok, false);
   });
   it('fails on a change without a bump', () => {
     const r = decide({ changedFiles: [F], baseVersion: v('2.0.9', 1), headVersion: v('2.0.9', 1) });
@@ -64,5 +70,17 @@ describe('check against a temp git repo', () => {
     write('antigravity/rig/.antigravity-plugin/plugin.json', manifest('2.0.9-agy.2'));
     git('commit', '-qam', 'bump');
     assert.strictEqual(check(dir, 'main').ok, true);
+  });
+
+  it('a base manifest without a readable version cannot be compared (not a first release, L9)', () => {
+    git('checkout', '-q', 'main');
+    git('checkout', '-q', '-b', 'broken-base');
+    write('antigravity/rig/.antigravity-plugin/plugin.json', manifest('garbage'));
+    git('commit', '-qam', 'broken base');
+    git('checkout', '-q', '-b', 'topic2');
+    write('antigravity/rig/.antigravity-plugin/plugin.json', manifest('2.0.9-agy.1'));
+    write(F, 'c');
+    git('commit', '-qam', 'change on a broken base');
+    assert.throws(() => check(dir, 'broken-base'), UnreadableBaseError);
   });
 });

@@ -30,21 +30,10 @@ function gitTrackedFiles(root, prefix) {
   return res.stdout.split('\0').filter(Boolean);
 }
 
-function walkFiles(dir, out = []) {
-  if (!fs.existsSync(dir)) return out;
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) walkFiles(full, out);
-    else out.push(full);
-  }
-  return out;
-}
-
-/** Non-test `.cjs` files (no `__tests__/` or `__fixtures__/` helpers) under a repo-relative dir, as repo-relative POSIX paths, sorted. */
-function ownedCjsFiles(root, relDir) {
-  return walkFiles(path.join(root, relDir))
-    .filter((f) => f.endsWith('.cjs') && !f.endsWith('.test.cjs') && !/(^|[\\/])__(tests|fixtures)__[\\/]/.test(path.relative(path.join(root, relDir), f)))
-    .map((f) => path.relative(root, f).split(path.sep).join('/'))
+/** Non-test adapter `.cjs` files under `relDir` (no `__tests__/` or `__fixtures__/` helpers), from the same file list as skills and agents: git-tracked, so a local untracked file never ships (L11). */
+function ownedCjsFiles(root, relDir, listFiles) {
+  return listFiles(root, relDir)
+    .filter((rel) => rel.endsWith('.cjs') && !rel.endsWith('.test.cjs') && !/(^|\/)__(tests|fixtures)__\//.test(rel.slice(relDir.length + 1)))
     .sort();
 }
 
@@ -85,7 +74,7 @@ function buildOutputs({ root, listFiles = gitTrackedFiles }) {
   const renames = new Map([...LEGACY_SKILL_DIR_RENAMES, ...skills.filter((s) => s.name !== s.dir).map((s) => [s.dir, s.name])]);
   const rewrite = t.createTextRewriter(renames, new Set(skills.map((s) => s.name)));
   // INSTALLATION.md explains where the plugin root `<kit>` is; here the root is `<Rig root>`.
-  const rewriteSkillText = (text, ctx) => t.dropClaudeOnlyFileLines(rewrite(t.dropSection(text, 'Where is `<kit>`?'), ctx));
+  const rewriteSkillText = (text, ctx) => t.noteClaudeOnlySkillRefs(t.dropClaudeOnlyFileLines(rewrite(t.dropSection(text, 'Where is `<kit>`?'), ctx)));
 
   for (const rel of skillFiles) {
     const parts = rel.split('/').slice(3); // drop "plugins/rig/skills"
@@ -104,11 +93,11 @@ function buildOutputs({ root, listFiles = gitTrackedFiles }) {
   const agentFiles = listFiles(root, `${PLUGIN_SRC}/agents`).filter((rel) => rel.endsWith('.md'));
   for (const rel of agentFiles) {
     const skillName = AGENT_SCRIPT_SKILL.get(path.basename(rel));
-    copy(rel, `agents/${path.basename(rel)}`, (s) => mapAgentFrontmatter(rewrite(s, { skillName })));
+    copy(rel, `agents/${path.basename(rel)}`, (s) => mapAgentFrontmatter(t.noteClaudeOnlySkillRefs(rewrite(s, { skillName }))));
   }
 
   for (const file of t.AGENT_SCRIPT_FILES) copy(`${PLUGIN_SRC}/scripts/${file}`, `scripts/${file}`, (s) => s, { verbatim: true });
-  const adapterScripts = ownedCjsFiles(root, `${ADAPTER_DIR}/scripts`);
+  const adapterScripts = ownedCjsFiles(root, `${ADAPTER_DIR}/scripts`, listFiles);
   for (const rel of adapterScripts) copy(rel, `scripts/${rel.slice(`${ADAPTER_DIR}/scripts/`.length)}`, (s) => s, { verbatim: true });
 
   const adapterPath = path.join(root, ADAPTER_DIR, HOOKS_JSON_MODULE);
@@ -118,7 +107,7 @@ function buildOutputs({ root, listFiles = gitTrackedFiles }) {
     throw new Error(`${ADAPTER_DIR}/${HOOKS_JSON_MODULE} must export { hooksJson, portedHooks }`);
   }
   put('hooks.json', `${JSON.stringify(adapter.hooksJson, null, 2)}\n`, { verbatim: true });
-  const adapterHooks = ownedCjsFiles(root, `${ADAPTER_DIR}/hooks`)
+  const adapterHooks = ownedCjsFiles(root, `${ADAPTER_DIR}/hooks`, listFiles)
     .filter((rel) => rel !== `${ADAPTER_DIR}/${HOOKS_JSON_MODULE}`); // generator input, not runtime code
   // The adapter's own requires count too: they must ship even if no Claude hook happens to pull them in.
   const extraSources = [
