@@ -12,6 +12,14 @@
 * **`rig:remote` no longer uses a 1.x worker.** The local transport no longer falls back to a 1.x `~/.claude/skills/remote` worker, and version detection no longer reads 1.x `metadata.json`. A 1.x worker reads `unknown` and gets the install hint.
 * **Guard still asks for the old verbs.** `bash-safety-guard` still asks before `rig-init --migrate`, `--resume` and `--restore` (cached 2.0.x CLIs still run them), and before any backup `restore.cjs`.
 
+### Fixes
+
+* **Antigravity: the guard checks `run_command` in its own directory.** A `Cwd` that is absolute and exists is where cwd-relative rules (symlink edits, relative secret paths) look; project settings rules still come from the workspace. A `Cwd` that cannot be resolved always asks (a guard deny still wins), instead of checking the wrong directory.
+* **Antigravity: tool results never land on the wrong call.** The Stop hook pairs results with calls only within one model step, and only when every call has a result of the right kind; otherwise those calls count as unverified. Checked against a live `agy` 1.5.8 run with parallel calls.
+* **Antigravity: no links to skills the plugin does not ship.** Links and paths into `rig:remote`, `rig:team`, `rig:setup` and `rig:statusline` become a short "Claude Code only, not in this plugin" note, and the leftover check enforces it (`rig:teammate` is no longer mistaken for `rig:team`).
+* **Antigravity: documented hook precedence.** Probed live with `agy` 1.5.8: Rig's ask wins over another plugin's `allow` or `permissionOverrides`, and another plugin's `overwrite` is applied before Rig checks the command. A workspace `.agents/` hook that rewrites a command is applied after Rig's check and runs without another prompt; the [feature map](docs/reference/antigravity-feature-map.md#guard-and-other-hooks) and the plugin README say so.
+* **Antigravity build checks.** The generator ships only git-tracked adapter files; `--check-leftovers` honors `--out`; the version check ignores test helpers under `scripts/antigravity/**/__tests__/` (shipped `__tests__` still count) and refuses a base manifest with an unreadable version instead of treating it as a first release.
+
 ## 2.0.10 (2026-11-13)
 
 ### Breaking

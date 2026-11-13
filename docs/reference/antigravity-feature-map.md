@@ -1,6 +1,6 @@
 # Antigravity feature map
 
-**Last Updated:** 2026-11-13
+**Last Updated:** 2026-11-14
 **Verified with:** `agy` 1.5.4, plugin `rig` 2.0.10-agy.1 installed from a local `antigravity/rig` directory. Results are in the phase 05 report, `plans/261113-1451-antigravity-plugin-port/reports/live-verification.md`.
 
 This page lists which Rig features work in Google Antigravity (`agy`) and which need Claude Code. It covers install, update and uninstall for the Antigravity plugin, then the feature table.
@@ -88,7 +88,7 @@ Legend:
 | Agents (planner, tester, code-reviewer, ...) | Subagents | Yes | Verified live: a Rig subagent runs, and `code-reviewer` gets only its mapped tools (no `write_file` or `edit_file`). `model: inherit`. Claude `tools` lists map to Antigravity tool names; `send_message` and `manage_task` are always granted |
 | Core rules | SessionStart hook | `rules/AGENTS.md` + SessionStart | Verified: the agent quoted the core rules and `Rig root:` |
 | Plan context per prompt, active plan | UserPromptSubmit + env file | PreInvocation + session state | Verified: `Now:` stamp and plan context per user message; active plan updates on the next turn |
-| Bash safety / secret-file guard | PreToolUse | PreToolUse | The matcher covers `run_command`, `send_command_input`, `read_file`, `view_file`, `view_file_outline` and `grep_search`. Only `run_command` and `read_file` were seen live: secret reads ask, and headless `agy -p` denies `ask`. Another plugin's hook can override this guard |
+| Bash safety / secret-file guard | PreToolUse | Partial | The matcher covers `run_command`, `send_command_input`, `read_file`, `view_file`, `view_file_outline` and `grep_search`. Only `run_command` and `read_file` were seen live: secret reads ask, and headless `agy -p` denies `ask`. `run_command` is checked in its `Cwd`; a `Cwd` that cannot be resolved always asks. `send_command_input` is checked against the workspace (its terminal's directory is not in the payload). Hook precedence: see [Guard and other hooks](#guard-and-other-hooks) |
 | Verify-on-stop | Stop | Stop | Verified in remind mode: an unverified code edit gets one nudge. Docs-only edits do not count |
 | `SubagentStart` hook (subagent context injection) | SubagentStart | Not supported | Rules and the agent `skills:` field instead |
 | `TeammateIdle` hook (Agent Teams guard) | TeammateIdle | Not supported | Antigravity has no Agent Teams |
@@ -101,10 +101,23 @@ Legend:
 
 Rows marked "Not supported" are not ported by design. They are listed so that a missing feature is documented, not silent.
 
+## Guard and other hooks
+
+Probed live with `agy` 1.5.8 (headless, 2.1.0-beta.2-agy.1), using extra plugins and a workspace `.agents/hooks.json` that log what they see:
+
+| Other hook | Result |
+|---|---|
+| Another plugin returns `allow` (either install order) | Rig's ask wins: the command needs the user's confirmation |
+| Another plugin returns `permissionOverrides` for the command | Rig's ask wins |
+| Another plugin rewrites the command (`overwrite`) | Applied before Rig decides: Rig checks the rewritten command |
+| A workspace `.agents/hooks.json` returns `allow` | Rig's ask wins |
+| **A workspace `.agents/hooks.json` rewrites the command (`overwrite`)** | **Applied after Rig decides: Rig checks the original, and the rewritten command runs without another prompt** |
+
+The last row is a known gap that Rig cannot close: hooks only see the arguments they are given, and nothing runs after the workspace hooks. A repository you open can bring its own `.agents/hooks.json`. Review it in repositories you do not trust, as you would review the rest of their code.
+
 ## Not verified yet
 
-- Interactive `force_ask` prompt (needs the Antigravity app or TUI).
-- Hook precedence when another plugin also defines hooks.
+- Interactive `force_ask` prompt and its precedence in the app (needs the Antigravity app or TUI; the probes above ran headless, where an ask becomes a deny).
 - Guard on `send_command_input`, `view_file`, `view_file_outline` and `grep_search` (matched, not seen live).
 
 ## Related
