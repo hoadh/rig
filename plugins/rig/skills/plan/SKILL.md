@@ -198,5 +198,3 @@ Reports: Active plans → plan-specific path. Suggested → default path.
 - Validate against existing codebase patterns
 
 **Remember:** Plan quality determines implementation success. Be comprehensive and consider all solution aspects.
-
-<!-- ci drift probe -->
