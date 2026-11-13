@@ -1,6 +1,6 @@
 # Rig - Project Roadmap
 
-**Last Updated:** 2026-11-11
+**Last Updated:** 2026-11-13
 **Current Version:** 2.0.9 (2026-11-12); 1.1.0 on `release/1.x`
 **Repository:** https://github.com/hoadh/rig
 
@@ -51,7 +51,7 @@ After 2.0, Rig grows from one plugin into several, all in the `rig-marketplace` 
 
 | Plugin | Install | Scope | Status |
 |---|---|---|---|
-| `rig` | `rig@rig-marketplace` | Core workflow, hooks, `rig-init`, runtime, `rig:remote` | Beta |
+| `rig` | `rig@rig-marketplace` | Core workflow, hooks, `rig-init`, runtime, `rig:remote` | Released (2.0.9) |
 | `rig-mobile` | `rig-mobile@rig-marketplace` | Mobile app development: iOS and Android builds, device and simulator testing, store release | Idea |
 | `rig-security` | `rig-security@rig-marketplace` | Security review, threat models, dependency and secret audits | Idea |
 | `rig-devops` | `rig-devops@rig-marketplace` | CI/CD, infrastructure as code, containers, deployment and runbooks | Idea |
@@ -148,7 +148,7 @@ No work is tracked for these. Confirm before starting.
 
 ## Technical Context
 
-- **Runtime:** Node.js >= 18.0.0 (`package.json` engines), Bash, Python 3 for some skill scripts
+- **Runtime:** Node.js >= 18.0.0 (`package.json` engines; ESLint 10 for `npm run lint` needs 20.19+, see "Node floor for lint" under [Next](#next)), Bash, Python 3 for some skill scripts
 - **Host:** Claude Code CLI. Antigravity reads `.agent/` and `GEMINI.md`, generated from `.claude/` by `scripts/sync-antigravity-agent-dir.cjs`
 - **Dev tooling:** ESLint 10 (devDependencies) for `npm run lint`; tests run with plain Node (`npm test`); CI in `.github/workflows/ci.yml`
 - **External services:** GitHub (Actions, tags, PRs via `gh`; the repo is the plugin marketplace), no npm publishing, ssh (rig:remote only)
@@ -170,5 +170,5 @@ Code size, naming and quality rules: [code standards](../reference/code-standard
 ---
 
 **Maintained By:** Rig Team
-**Last Review:** 2026-11-09
+**Last Review:** 2026-11-13
 **Next Review:** at the next release
