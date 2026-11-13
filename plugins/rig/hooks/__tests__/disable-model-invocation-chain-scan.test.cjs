@@ -4,7 +4,7 @@
  * chains into it (`/rig:<name>`, `Skill(...<name>...)`, "activate <name>") would silently break.
  * Run: node --test plugins/rig/hooks/__tests__/disable-model-invocation-chain-scan.test.cjs
  *
- * For every such skill, scans Markdown of all OTHER skills and agents under plugins/rig/ and .agent/. The skill's own
+ * For every such skill, scans Markdown of all OTHER skills and agents under plugins/rig/ and antigravity/rig/. The skill's own
  * directory is exempt (it may describe its own usage). Docs, README and rules are not chains and are not scanned.
  */
 
@@ -65,15 +65,16 @@ describe('disable-model-invocation skills are not chained', () => {
 
   it('no skill or agent invokes a disable-model-invocation skill', () => {
     const files = [];
-    for (const base of ['plugins/rig', '.agent']) {
+    for (const base of ['plugins/rig', 'antigravity/rig']) {
       collectMarkdown(path.join(ROOT, base, 'skills'), files);
       collectMarkdown(path.join(ROOT, base, 'agents'), files);
     }
     assert.ok(files.length > 50, 'scan found the kit files');
+    assert.ok(files.some((f) => f.split(path.sep).join('/').includes('/antigravity/rig/')), 'scan covers the generated antigravity/rig/ plugin (run node scripts/sync-antigravity-plugin.cjs)');
     const hits = [];
     for (const { bare, dirName } of dmiSkills) {
       const patterns = invokePatterns(bare);
-      const ownDirs = ['plugins/rig', '.agent'].map((b) => path.join(ROOT, b, 'skills', dirName) + path.sep);
+      const ownDirs = ['plugins/rig', 'antigravity/rig'].map((b) => path.join(ROOT, b, 'skills', dirName) + path.sep);
       for (const file of files) {
         if (ownDirs.some((d) => file.startsWith(d))) continue;
         fs.readFileSync(file, 'utf8').split(/\r?\n/).forEach((line, i) => {

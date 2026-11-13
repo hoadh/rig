@@ -49,7 +49,7 @@ See [references/configuration.md](references/configuration.md) and [references/g
 {"server":"name","tool":"name","success":true,"result":<data>,"error":null}
 ```
 
-Do not rely on `GEMINI.md` for this: in Rig it holds the Antigravity rules, not a response format.
+Do not rely on `GEMINI.md` for this: a project may use it for other instructions, not a response format.
 
 ### 2. Capability Discovery
 

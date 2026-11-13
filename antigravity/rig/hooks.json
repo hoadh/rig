@@ -1,0 +1,43 @@
+{
+  "rig-session-init": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "node ./hooks/antigravity-hook-adapter.cjs session-init",
+        "timeout": 15
+      }
+    ]
+  },
+  "rig-dev-rules-reminder": {
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "node ./hooks/antigravity-hook-adapter.cjs dev-rules-reminder",
+        "timeout": 10
+      }
+    ]
+  },
+  "rig-bash-safety-guard": {
+    "PreToolUse": [
+      {
+        "matcher": "run_command|send_command_input|read_file|view_file|view_file_outline|grep_search",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./hooks/antigravity-hook-adapter.cjs bash-safety-guard",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  },
+  "rig-verify-completion-guard": {
+    "Stop": [
+      {
+        "type": "command",
+        "command": "node ./hooks/antigravity-hook-adapter.cjs verify-completion-guard",
+        "timeout": 10
+      }
+    ]
+  }
+}

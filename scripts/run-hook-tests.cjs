@@ -4,7 +4,7 @@
  * Used by `npm test` and CI; run it before a release.
  *
  * Discovery: every *.test.cjs / *.test.js under plugins/ and scripts/ (node_modules,
- * .venv, .git and worktrees are ignored; .agent/ is a generated mirror and is not scanned).
+ * .venv, .git and worktrees are ignored; antigravity/rig/ is generated and is not scanned).
  * Test files are plain Node scripts (some use node:test, some print their own results);
  * each one is run as `node <file>` and judged by its exit code.
  * Files run in parallel; output is printed only for failures.

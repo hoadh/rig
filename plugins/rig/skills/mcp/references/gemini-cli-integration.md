@@ -37,7 +37,7 @@ PROMPT
 
 The suffix contains double quotes, so pass the prompt through a quoted heredoc (`<<'PROMPT'`), not `echo "..."`; the heredoc is still stdin, so MCP servers load.
 
-Do not rely on `GEMINI.md` for the format. Gemini CLI auto-loads `GEMINI.md` from the project root, and in Rig that file holds the Antigravity rules, not a response format. If the reply is not valid JSON, treat it as plain text and report it as is.
+Do not rely on `GEMINI.md` for the format. Gemini CLI auto-loads `GEMINI.md` from the project root, and that file holds the project's own instructions, not a response format. If the reply is not valid JSON, treat it as plain text and report it as is.
 
 ## Overview
 

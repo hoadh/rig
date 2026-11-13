@@ -22,7 +22,7 @@ Read model from `.claude/.rig.json`: `gemini.model` (default: `gemini-3-flash-pr
 
 ## Response Format Suffix
 
-Append this to every prompt sent to Gemini CLI (`<suffix>` below). Do not rely on `GEMINI.md` for the format: in Rig it holds the Antigravity rules.
+Append this to every prompt sent to Gemini CLI (`<suffix>` below). Do not rely on `GEMINI.md` for the format: a project may use it for other instructions.
 
 ```text
 Respond with one line of JSON only, no markdown or prose: {"server":"<name>","tool":"<name>","success":true|false,"result":<data>,"error":null|"<message>"}. Keep it under 500 characters; summarize longer results and give file paths for artifacts.

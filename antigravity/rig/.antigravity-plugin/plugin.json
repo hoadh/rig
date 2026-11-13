@@ -1,0 +1,20 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "rig",
+  "displayName": "Rig",
+  "version": "2.0.10-agy.1",
+  "description": "Rig — an Agentic-Driven Development toolkit for Antigravity: agents, skills, hooks and workflows that plan, build, test and review software.",
+  "author": {
+    "name": "Alex Dang"
+  },
+  "homepage": "https://github.com/hoadh/rig#readme",
+  "repository": "https://github.com/hoadh/rig",
+  "license": "MIT",
+  "keywords": [
+    "antigravity",
+    "ai-agents",
+    "agentic-driven-development",
+    "workflow",
+    "automation"
+  ]
+}

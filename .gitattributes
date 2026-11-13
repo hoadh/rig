@@ -1,6 +1,6 @@
 *.sh text eol=lf
 plugins/rig/skills/ui-design/data/** text eol=lf
-.agent/skills/ui-design/data/** text eol=lf
+antigravity/rig/skills/ui-design/data/** text eol=lf
 *.cjs text eol=lf
 *.mjs text eol=lf
 bin/* text eol=lf

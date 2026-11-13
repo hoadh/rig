@@ -3,7 +3,7 @@
  * Guards against tool names Claude Code no longer ships (or that are off by default) in kit agents, skills and docs.
  * Run: node --test plugins/rig/hooks/__tests__/dead-tool-reference-scan.test.cjs
  *
- * Scans Markdown under plugins/rig/ and .agent/ (agents, skills, rules). Code files are out of scope: they may legitimately
+ * Scans Markdown under plugins/rig/ and antigravity/rig/ (agents, skills, rules). Code files are out of scope: they may legitimately
  * name OS concepts such as a Windows "Scheduled Task". History files (changelogs, devlog) are excluded.
  * Flagged: MultiEdit, BashOutput, KillBash, the LS tool (in `tools:` lists or "LS tool" prose), `Task(...)` call/spec syntax
  * (use `Agent(...)` or the built-in Explore agent), and "Task tool" wording (the tool is the Agent tool).
@@ -68,10 +68,11 @@ describe('Tasks API is optional in skills', () => {
 });
 
 describe('dead tool names are not referenced', () => {
-  it('has no MultiEdit, LS, BashOutput, KillBash, Task( or "Task tool" in plugins/rig/ and .agent/ Markdown', () => {
+  it('has no MultiEdit, LS, BashOutput, KillBash, Task( or "Task tool" in plugins/rig/ and antigravity/rig/ Markdown', () => {
     const files = [];
-    for (const target of ['plugins/rig', '.agent']) collect(path.join(ROOT, target), files);
+    for (const target of ['plugins/rig', 'antigravity/rig']) collect(path.join(ROOT, target), files);
     assert.ok(files.length > 50, 'scan found the kit files');
+    assert.ok(files.some((f) => f.split(path.sep).join('/').includes('/antigravity/rig/')), 'scan covers the generated antigravity/rig/ plugin (run node scripts/sync-antigravity-plugin.cjs)');
 
     const hits = [];
     for (const file of files) {

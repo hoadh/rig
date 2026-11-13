@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint';
 export default tseslint.config(
   {
     ignores: [
-      '.agent/**', // generated mirror of plugins/rig/ (see sync-antigravity-agent-dir.cjs)
+      'antigravity/rig/**', // generated Antigravity plugin (see scripts/sync-antigravity-plugin.cjs)
       '**/node_modules/**',
       '**/.venv/**',
       '**/worktrees/**',

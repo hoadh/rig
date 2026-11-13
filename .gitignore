@@ -19,6 +19,8 @@ coverage-ui.json
 /.next/
 /out/
 dist/
+# The generated Antigravity plugin ships the mcp skill's compiled CLI like plugins/rig does (tracked there).
+!antigravity/rig/skills/mcp/scripts/dist/
 bin/
 !/plugins/rig/bin/
 
@@ -94,7 +96,7 @@ worktrees/
 
 # Python venvs created by skills install.sh (.claude/ and the Antigravity copy)
 .claude/skills/.venv/
-.agent/skills/.venv/
+antigravity/rig/skills/.venv/
 
 # Benchmark results: only the summary is committed, not raw logs or per-run records
 scripts/benchmark/results/*/*

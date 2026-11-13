@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This file provides guidance to coding agents that read `AGENTS.md` when working with code in this repository. Claude Code reads `CLAUDE.md`; Antigravity reads `GEMINI.md`.
+This file provides guidance to coding agents that read `AGENTS.md` when working with code in this repository. Claude Code reads `CLAUDE.md`; Antigravity gets Rig as a plugin generated into `antigravity/rig/` (see `docs/reference/antigravity-feature-map.md`).
 
 ## Project Overview
 

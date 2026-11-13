@@ -4,8 +4,8 @@
  * Run: node --test plugins/rig/hooks/__tests__/removed-features-reference-scan.test.cjs
  *
  * Case-insensitive; also flags links to the deleted skill reference files.
- * Scans .claude/, .agent/, .github/, docs/ (not docs/devlog, not changelog files), guide/, README.md, AGENTS.md,
- * CLAUDE.md and GEMINI.md.
+ * Scans .claude/, antigravity/rig/, .github/, docs/ (not docs/devlog, not changelog files), guide/, README.md, AGENTS.md,
+ * and CLAUDE.md.
  * History files (CHANGELOG.md, docs/project/changelog.md, docs/devlog/) may still name them.
  * The 1.x owned-path list of rig-init (plugins/rig/scripts/rig-init/rig-1x-owned-paths.*) names the removed 1.x files on purpose (it moves
  * them out of old installs) and is exempt, together with its test.
@@ -53,8 +53,9 @@ function collect(target, out) {
 describe('removed features are not referenced', () => {
   it('has no references to sequential-thinking, TeamCreate/TeamDelete, notify.cjs, codingLevel, coding-level or output-styles', () => {
     const files = [];
-    for (const target of ['.claude', 'plugins/rig', '.claude-plugin', '.agent', '.github', 'docs', 'guide', 'README.md', 'AGENTS.md', 'CLAUDE.md', 'GEMINI.md']) collect(path.join(ROOT, target), files);
+    for (const target of ['.claude', 'plugins/rig', '.claude-plugin', 'antigravity/rig', '.github', 'docs', 'guide', 'README.md', 'AGENTS.md', 'CLAUDE.md']) collect(path.join(ROOT, target), files);
     assert.ok(files.length > 50, 'scan found the kit files');
+    assert.ok(files.some((f) => f.split(path.sep).join('/').includes('/antigravity/rig/')), 'scan covers the generated antigravity/rig/ plugin (run node scripts/sync-antigravity-plugin.cjs)');
 
     const hits = [];
     for (const file of files) {

@@ -1,7 +1,12 @@
 /**
- * Pure text rewrites that turn Claude Code kit files (plugins/rig/) into the Antigravity copy (.agent/).
+ * Pure text rewrites that turn Claude Code kit files (plugins/rig/) into the Antigravity plugin (antigravity/rig/).
  * No file system access, so every rule can be unit-tested.
+ *
+ * Antigravity does not expand a plugin-root variable inside SKILL.md, so skill text points at `<Rig root>/...`;
+ * the SessionStart hook prints `Rig root: <absolute path>` into the session and the always-on rules explain the token.
  */
+
+const RIG_ROOT = '<Rig root>';
 
 // Skills that only work inside Claude Code (headless `claude -p` workers, Agent Teams, plugin setup via rig-init,
 // the Claude Code statusline).
@@ -10,7 +15,7 @@ const CLAUDE_ONLY_SKILL_DIRS = new Set(['remote', 'setup', 'statusline', 'team']
 // They are not copied, and lines naming them are dropped from the synced text.
 const CLAUDE_ONLY_SKILL_FILES = new Set(['plan/references/multi-machine-planning.md']);
 
-// plugins/rig/scripts/ files copied to .agent/scripts/ (the docs validator and migrator, with the helpers they require).
+// plugins/rig/scripts/ files copied to antigravity/rig/scripts/ (the docs validator and migrator, with the helpers they require).
 // Everything else in that dir needs Claude Code hooks, the plugin runtime or the Claude Code env layout.
 const AGENT_SCRIPT_FILES = [
   'validate-docs.cjs',
@@ -20,22 +25,22 @@ const AGENT_SCRIPT_FILES = [
   'migrate-docs-link-rewrite-helpers.cjs',
 ];
 
-// Rules copied into .agent/rules/. Task-specific rules live in skill references and ship with the skills.
-const SYNCED_RULE_FILES = ['core-rules.md'];
 
 // Claude Code kit text calls plugin bin/ commands by name (`rig-worktree`); Antigravity has no PATH entry for them,
-// so the ones whose script ships inside a synced skill go back to the script path in .agent/skills/.
+// so each goes back to the script path under the Rig root.
 const BIN_COMMANDS_IN_SKILLS = new Map([
-  ['rig-worktree', 'node .agent/skills/worktree/scripts/worktree.cjs'],
-  ['rig-markdown-viewer', 'node .agent/skills/markdown-viewer/scripts/server.cjs'],
-  ['rig-classify-doc', 'bash .agent/skills/diataxis-writer/scripts/classify-doc.sh'],
-  ['rig-ui-search', 'python .agent/skills/ui-design/scripts/search.py'],
-  ['rig-mcp', 'node .agent/skills/mcp/scripts/dist/cli.js'],
-  // Scripts the sync copies into .agent/scripts/ (AGENT_SCRIPT_FILES), since they live in plugins/rig/scripts/.
-  ['rig-validate-docs', 'node .agent/scripts/validate-docs.cjs'],
-  ['rig-migrate-docs', 'node .agent/scripts/migrate-docs-to-diataxis-layout.cjs'],
-  // install.sh builds the venv next to the skills.
-  ['rig-python', '.agent/skills/.venv/bin/python3'],
+  ['rig-worktree', `node ${RIG_ROOT}/skills/worktree/scripts/worktree.cjs`],
+  ['rig-markdown-viewer', `node ${RIG_ROOT}/skills/markdown-viewer/scripts/server.cjs`],
+  ['rig-classify-doc', `bash ${RIG_ROOT}/skills/diataxis-writer/scripts/classify-doc.sh`],
+  ['rig-ui-search', `python3 ${RIG_ROOT}/skills/ui-design/scripts/search.py`],
+  ['rig-mcp', `node ${RIG_ROOT}/skills/mcp/scripts/dist/cli.js`],
+  // Scripts the generator copies into antigravity/rig/scripts/ (AGENT_SCRIPT_FILES), since they live in plugins/rig/scripts/.
+  ['rig-validate-docs', `node ${RIG_ROOT}/scripts/validate-docs.cjs`],
+  ['rig-migrate-docs', `node ${RIG_ROOT}/scripts/migrate-docs-to-diataxis-layout.cjs`],
+  // The Antigravity variant keys the marker on ANTIGRAVITY_CONVERSATION_ID (scripts/antigravity/scripts/).
+  ['rig-set-active-plan', `node ${RIG_ROOT}/scripts/set-active-plan-antigravity.cjs`],
+  // No Rig venv: Python skills run with the system interpreter and need their packages installed.
+  ['rig-python', 'python3'],
 ]);
 const BIN_COMMAND_PATTERN = new RegExp(`(?<![\\w./$-])(${[...BIN_COMMANDS_IN_SKILLS.keys()].join('|')})(?![\\w.-])`, 'g');
 
@@ -63,46 +68,52 @@ function parseFrontmatter(text) {
   return out;
 }
 
-/** `rig:plan` → `plan`, `diataxis-writer` → `diataxis-writer`. Used for skill dirs and workflow names. */
+/** `rig:plan` → `plan`, `diataxis-writer` → `diataxis-writer`. Used for skill dirs. */
 const agentSkillName = (frontmatterName, dirName) => (frontmatterName || dirName).replace(/^rig:/, '').replace(/:/g, '-');
 
-// No Antigravity equivalent, so the command is replaced by a note (set-active-plan feeds Claude Code hooks)
-// or its line is dropped (resolve_env.py hard-codes the Claude Code .env lookup paths, so it is not copied).
-const ACTIVE_PLAN_NOTE = 'no command needed: Antigravity has no active-plan marker, keep the plan path in your notes';
+// resolve_env.py hard-codes the Claude Code .env lookup paths, so it is not copied and its line is dropped.
 const bareBin = (name) => `(?<![\\w./$-])${name}(?![\\w.-])`;
-const ACTIVE_PLAN_INLINE = new RegExp(`\`${bareBin('rig-set-active-plan')}[^\`]*\``, 'g');
-const ACTIVE_PLAN_LINE = new RegExp(`^([ \\t]*)(?:\\$ )?${bareBin('rig-set-active-plan')}.*$`, 'gm');
 const RESOLVE_ENV_LINE = new RegExp(`^.*${bareBin('rig-resolve-env')}.*(?:\\r?\\n|$)`, 'gm');
 
 /**
  * Build the rewrite function for one sync run.
- * @param {Map<string,string>} dirRenames - .claude skill dir → .agent skill dir (e.g. rig-plan → plan)
+ * @param {Map<string,string>} dirRenames - Claude skill dir → plugin skill dir (e.g. rig-plan → plan)
  * @param {Set<string>} knownSkillNames - names that `rig:<name>` references may point to
  */
 function createTextRewriter(dirRenames, knownSkillNames) {
   const renamePattern = dirRenames.size
     ? new RegExp(`skills/(${[...dirRenames.keys()].map(escapeRegExp).join('|')})(?=[/\`'"\\s)]|$)`, 'g')
     : null;
-  /** @param {{skillName?: string}} [ctx] skillName: the .agent skill dir a file belongs to, for `${CLAUDE_SKILL_DIR}`. */
+  const R = RIG_ROOT;
+  /** @param {{skillName?: string}} [ctx] skillName: the skill dir a file belongs to, for `${CLAUDE_SKILL_DIR}`. */
   return function rewrite(text, ctx = {}) {
     let out = text
-      .replace(/(~|\$HOME|\$\{HOME\})\/\.claude\/skills\//g, '.agent/skills/')
-      .replace(/\.\/\.claude\//g, './.agent/')
-      .replace(/(^|[^\w/~.}-])\.claude\//gm, '$1.agent/')
-      .replace(/(^|[^\w/~.}-])\.claude\\/gm, '$1.agent\\')
-      .replace(/(^|[^\w/~.}-])plugins\/rig\//gm, '$1.agent/')
-      .replace(/(<project>|\$SKILL_DIR)\/\.claude\/browser\//g, '$1/.agent/browser/')
-      .replace(/<kit>(?=[/\\])/g, '.agent');
-    if (ctx.skillName) out = out.replace(/\$\{CLAUDE_SKILL_DIR\}/g, `.agent/skills/${ctx.skillName}`);
+      .replace(/\$\{CLAUDE_PLUGIN_ROOT\}/g, R)
+      .replace(/(~|\$HOME|\$\{HOME\})\/\.claude\/skills\//g, `${R}/skills/`)
+      // API-key files are user data: they must not live inside the plugin dir, which is replaced on reinstall.
+      .replace(/(^|[^\w/~.}-])\.claude\/skills\/(?=\.env|[\w-]+\/\.env)/gm, '$1.agents/skills/')
+      .replace(/(^|[^\w/~.}-])\.\/\.claude\/skills(?=[/\s`'")]|$)/gm, `$1${R}/skills`)
+      .replace(/(^|[^\w/~.}-])\.claude\/skills(?=[/\s`'")]|$)/gm, `$1${R}/skills`)
+      .replace(/(^|[^\w/~.}-])(?:\.\/)?\.claude\//gm, '$1.agents/')
+      .replace(/(^|[^\w/~.}-])\.\.\/\.claude\//gm, '$1../.agents/')
+      .replace(/(^|[^\w/~.}-])\.claude\\/gm, '$1.agents\\')
+      .replace(/(^|[^\w/~.}-])plugins\/rig\//gm, `$1${R}/`)
+      .replace(/(<project>|\$SKILL_DIR)\/\.claude\/browser\//g, '$1/.agents/browser/')
+      .replace(/<kit>(?=[/\\])/g, R);
+    if (ctx.skillName) {
+      const skillDir = `${R}/skills/${ctx.skillName}`;
+      out = out.replace(/\$\{CLAUDE_SKILL_DIR\}/g, skillDir)
+        // `python scripts/x.py` in a skill's own text is relative to that skill dir; nothing may resolve against the workspace.
+        .replace(/(?<![\w./-])(python3?) eval-viewer\//g, `$1 ${skillDir}/eval-viewer/`)
+        .replace(/(?<![\w./-])(npx tsx|npx ts-node|node|python3?|bash|sh) (?:\.\/)?scripts\//g, `$1 ${skillDir}/scripts/`);
+    }
     if (renamePattern) out = out.replace(renamePattern, (_, dir) => `skills/${dirRenames.get(dir)}`);
-    out = out.replace(/\$\(rig-browser --dir\)/g, '.agent/skills/browser/scripts')
-      .replace(/(?<![\w./$-])rig-browser (?!--dir)([a-z][a-z-]*)(?![\w.-])/g, 'node .agent/skills/browser/scripts/$1.js')
-      .replace(/\$\(rig-skill-dir ([a-z][a-z0-9-]*)\)|(?<![\w./$-])rig-skill-dir ([a-z][a-z0-9-]*)(?![\w.-])/g, (_, a, b) => `.agent/skills/${a || b}`)
-      .replace(new RegExp(`${bareBin('rig-browser')} --dir`, 'g'), '.agent/skills/browser/scripts')
-      .replace(new RegExp(`${bareBin('rig-browser')} <script>`, 'g'), 'node .agent/skills/browser/scripts/<script>.js')
+    out = out.replace(/\$\(rig-browser --dir\)/g, `${R}/skills/browser/scripts`)
+      .replace(/(?<![\w./$-])rig-browser (?!--dir)([a-z][a-z-]*)(?![\w.-])/g, `node ${R}/skills/browser/scripts/$1.js`)
+      .replace(/\$\(rig-skill-dir ([a-z][a-z0-9-]*)\)|(?<![\w./$-])rig-skill-dir ([a-z][a-z0-9-]*)(?![\w.-])/g, (_, a, b) => `${R}/skills/${a || b}`)
+      .replace(new RegExp(`${bareBin('rig-browser')} --dir`, 'g'), `${R}/skills/browser/scripts`)
+      .replace(new RegExp(`${bareBin('rig-browser')} <script>`, 'g'), `node ${R}/skills/browser/scripts/<script>.js`)
       .replace(BIN_COMMAND_PATTERN, (_, name) => BIN_COMMANDS_IN_SKILLS.get(name))
-      .replace(ACTIVE_PLAN_INLINE, ACTIVE_PLAN_NOTE)
-      .replace(ACTIVE_PLAN_LINE, `$1# ${ACTIVE_PLAN_NOTE}`)
       .replace(RESOLVE_ENV_LINE, '');
     return out.replace(/(?<![\w-])(\/?)rig:([a-z0-9-]+)/g, (whole, slash, name) => (knownSkillNames.has(name) ? `${slash}${name}` : whole));
   };
@@ -119,60 +130,8 @@ function dropSection(text, heading) {
   return text.slice(0, start + 1) + (next === -1 ? '' : text.slice(next + 1));
 }
 
-/** Demote markdown headings by one level (`##` → `###`) outside code fences, so a file can nest under a heading. */
-function demoteHeadings(text) {
-  let fenced = false;
-  return text.split('\n').map((line) => {
-    if (/^\s*(```|~~~)/.test(line)) fenced = !fenced;
-    return !fenced && /^#{2,5} /.test(line) ? `#${line}` : line;
-  }).join('\n');
-}
-
-/**
- * GEMINI.md: core rules + project instructions (CLAUDE.md) + a pointer to the concept mapping.
- * Antigravity has no SessionStart hook to inject the core rules, so they are part of this always-loaded file.
- */
-function buildGeminiMd(coreRules, claudeMd, rewrite) {
-  const core = convertRule(coreRules, rewrite).replace(/^# .*\n+/, '').trim();
-  const project = convertRule(dropSection(claudeMd, 'Hook Response Protocol')
-    .split('\n')
-    .filter((line) => !line.includes('DO NOT modify skills in'))
-    .join('\n'), rewrite)
-    .replace(/^# .*\n+/, '')
-    .replace(/^(This file provides guidance to|Guidance for) Claude Code.*\n+/m, '')
-    .trim();
-  return [
-    '# GEMINI.md',
-    '',
-    'Instructions for Antigravity, generated from the Rig plugin core rules and `CLAUDE.md` by `scripts/sync-antigravity-agent-dir.cjs`. Do not edit by hand.',
-    '',
-    '## Core rules',
-    '',
-    core,
-    '',
-    '## Project instructions',
-    '',
-    demoteHeadings(project),
-    '',
-    '## Claude Code concepts',
-    '',
-    'These instructions and the files in `.agent/` name Claude Code tools (subagents, `AskUserQuestion`, hooks). `.agent/rules/claude-code-concepts-in-antigravity.md` maps each one to what to do in Antigravity.',
-    '',
-  ].join('\n');
-}
-
-/** Rule text: path rewrites plus CLAUDE.md → GEMINI.md. */
-const convertRule = (text, rewrite) => rewrite(text).replace(/CLAUDE\.md/g, 'GEMINI.md');
-
-/** Workflow file that triggers a skill via `/<name>`. Description is quoted, YAML-safe and short. */
-function buildWorkflow(name, description) {
-  let desc = (description || `Run the ${name} skill`).replace(/\s+/g, ' ').trim();
-  if (desc.length > 250) desc = `${desc.slice(0, 247).replace(/\s+\S*$/, '')}...`;
-  return `---\ndescription: ${JSON.stringify(desc)}\n---\n\n`
-    + `Read \`.agent/skills/${name}/SKILL.md\` and follow it.\n\n`
-    + `Treat the text after \`/${name}\` as the skill's arguments (\`$ARGUMENTS\`). `
-    + 'Claude Code tool names in the skill are mapped in `.agent/rules/claude-code-concepts-in-antigravity.md`.\n';
-}
+/** Rule text: path rewrites plus CLAUDE.md -> AGENTS.md (the always-on rule file of an Antigravity plugin). */
+const convertRule = (text, rewrite) => rewrite(text).replace(/CLAUDE\.md/g, 'AGENTS.md');
 
 /** Drop every line that names a CLAUDE_ONLY_SKILL_FILES file, so no synced text points at a missing file. */
 function dropClaudeOnlyFileLines(text) {
@@ -181,18 +140,15 @@ function dropClaudeOnlyFileLines(text) {
 }
 
 module.exports = {
+  RIG_ROOT,
   CLAUDE_ONLY_SKILL_DIRS,
   CLAUDE_ONLY_SKILL_FILES,
   dropClaudeOnlyFileLines,
-  SYNCED_RULE_FILES,
   parseFrontmatter,
   agentSkillName,
   createTextRewriter,
   setFrontmatterName,
   dropSection,
-  buildGeminiMd,
-  demoteHeadings,
   AGENT_SCRIPT_FILES,
   convertRule,
-  buildWorkflow,
 };
