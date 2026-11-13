@@ -2,6 +2,16 @@
 name: brainstormer
 description: "Brainstorm and debate software solutions: evaluate architectural approaches and trade-offs before implementation. Use when the user weighs options, asks \"should I...\", or needs a technical decision challenged."
 model: inherit
+tools:
+  - find_by_name
+  - grep_search
+  - read_file
+  - run_command
+  - send_command_input
+  - read_url_content
+  - search_web
+  - manage_task
+  - send_message
 subagent: true
 mainAgent: false
 ---

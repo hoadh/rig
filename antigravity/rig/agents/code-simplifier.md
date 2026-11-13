@@ -2,6 +2,16 @@
 name: code-simplifier
 description: Simplifies and refines code for clarity, consistency, and maintainability while preserving all functionality. Focuses on recently modified code unless instructed otherwise.
 model: inherit
+tools:
+  - find_by_name
+  - grep_search
+  - read_file
+  - edit_file
+  - write_file
+  - run_command
+  - send_command_input
+  - manage_task
+  - send_message
 subagent: true
 mainAgent: false
 ---

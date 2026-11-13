@@ -89,7 +89,7 @@ describe('generate', () => {
   });
 
   it('agents get native frontmatter', () => {
-    assert.strictEqual(read('agents/planner.md'), '---\nname: planner\ndescription: Plans\nmodel: inherit\nskills:\n  - plan\nsubagent: true\nmainAgent: false\n---\n\nPlanner body, load plan\n');
+    assert.strictEqual(read('agents/planner.md'), '---\nname: planner\ndescription: Plans\nmodel: inherit\nskills:\n  - plan\ntools:\n  - find_by_name\n  - grep_search\nsubagent: true\nmainAgent: false\n---\n\nPlanner body, load plan\n');
   });
 
   it('copies ported hooks and their require graph byte for byte, nothing else', () => {

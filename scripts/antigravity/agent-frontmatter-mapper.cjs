@@ -5,12 +5,52 @@
  *   name, description  kept verbatim (block scalars included)
  *   skills             kept as a YAML list, without the `rig:` prefix
  *   model              always `inherit`; Claude model names mean nothing here
+ *   tools              mapped to an Antigravity allowlist (TOOL_MAP); no `tools` key = all tools
  *   subagent: true, mainAgent: false
- * `tools`, `effort`, `memory` and every other key are dropped (the subagent inherits the parent's tools).
- * The body is returned untouched. Pure text in, text out.
+ * `effort`, `memory` and every other key are dropped. The body is returned untouched. Pure text in, text out.
+ *
+ * Tool names, checked live on agy 1.5.4 (CLI): run_command, read_file, write_file, edit_file, search_web,
+ * invoke_subagent, send_message, ask_question, manage_task. `send_message` and `manage_task` are always
+ * granted. IDE-only names (grep_search, find_by_name, send_command_input, read_url_content) are ignored by
+ * the CLI. `view_file` is not used: next to `read_file` it fails with "tool name conflict".
  */
 
 const KEY_LINE = /^([A-Za-z_][\w-]*)\s*:(?:\s|$)/;
+
+/** Claude Code tool → Antigravity tools. Unknown Claude tools (MCP resource tools, ...) map to nothing. */
+const TOOL_MAP = {
+  Read: ['read_file'],
+  Glob: ['find_by_name'],
+  Grep: ['grep_search'],
+  Bash: ['run_command', 'send_command_input'],
+  Write: ['write_file'],
+  Edit: ['edit_file'],
+  MultiEdit: ['edit_file'],
+  NotebookEdit: ['edit_file'],
+  WebSearch: ['search_web'],
+  WebFetch: ['read_url_content'],
+  Agent: ['invoke_subagent'],
+  Task: ['invoke_subagent'],
+  AskUserQuestion: ['ask_question'],
+  TaskCreate: ['manage_task'],
+  TaskGet: ['manage_task'],
+  TaskUpdate: ['manage_task'],
+  TaskList: ['manage_task'],
+  SendMessage: ['send_message'],
+};
+
+/** Antigravity allowlist for a `tools:` block (comma string, inline list or YAML list), in first-seen order. */
+function toolList(block) {
+  const first = block.lines[0].replace(/^tools:\s*/, '');
+  const raw = first.trim()
+    ? first.replace(/^\[|\]$/g, '').split(',')
+    : block.lines.slice(1).map((l) => (/^\s*-\s*(.+?)\s*$/.exec(l) || [])[1]).filter(Boolean);
+  const out = [];
+  for (const name of raw.map((t) => t.trim().replace(/^['"]|['"]$/g, ''))) {
+    for (const tool of TOOL_MAP[name] || []) if (!out.includes(tool)) out.push(tool);
+  }
+  return out;
+}
 
 /** Split the leading frontmatter into top-level blocks `{ key, lines }`; null without frontmatter. */
 function parseBlocks(text) {
@@ -45,6 +85,8 @@ function mapAgentFrontmatter(text) {
   const out = [...byKey.get('name').lines, ...byKey.get('description').lines, 'model: inherit'];
   const skills = byKey.has('skills') ? skillList(byKey.get('skills')) : [];
   if (skills.length) out.push('skills:', ...skills.map((s) => `  - ${s}`));
+  const tools = byKey.has('tools') ? toolList(byKey.get('tools')) : [];
+  if (tools.length) out.push('tools:', ...tools.map((t) => `  - ${t}`));
   out.push('subagent: true', 'mainAgent: false');
   const eol = text.includes('\r\n') ? '\r\n' : '\n';
   return `---${eol}${out.join(eol)}${eol}---${parsed.rest}`;

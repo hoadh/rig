@@ -4,6 +4,16 @@ description: "Comprehensive code review with edge case detection. Use after impl
 model: inherit
 skills:
   - code-review
+tools:
+  - find_by_name
+  - grep_search
+  - read_file
+  - run_command
+  - send_command_input
+  - read_url_content
+  - search_web
+  - manage_task
+  - send_message
 subagent: true
 mainAgent: false
 ---

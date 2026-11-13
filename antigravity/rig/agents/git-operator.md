@@ -4,6 +4,14 @@ description: Stage, commit, and push code changes with conventional commits. Use
 model: inherit
 skills:
   - git
+tools:
+  - find_by_name
+  - grep_search
+  - read_file
+  - run_command
+  - send_command_input
+  - manage_task
+  - send_message
 subagent: true
 mainAgent: false
 ---
