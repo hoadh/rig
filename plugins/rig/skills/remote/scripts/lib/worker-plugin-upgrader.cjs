@@ -50,8 +50,8 @@ const INSTALL_HINT = `${WORKER_INSTALL_HINT}; run \`claude plugin install ${PLUG
 
 /**
  * The single ssh command string for `exe args...` under the machine's shell. Executable via quoteExecutable;
- * each argument is a conservative token (spaces get the shell's quotes). A cmd line holding quotes is wrapped in
- * one more pair because `cmd /c` strips the first and last quote of such a line.
+ * each argument is a conservative token (spaces get the shell's quotes). A cmd line is sent as is: Windows OpenSSH
+ * keeps a leading quoted executable intact, and an extra outer pair breaks it (checked live on Windows 11).
  */
 function buildRemoteCommand(cfg, exe, args = []) {
   const parts = [quoteExecutable(exe, cfg.shell)];
@@ -60,8 +60,7 @@ function buildRemoteCommand(cfg, exe, args = []) {
     if (!a.includes(' ')) parts.push(a);
     else parts.push(cfg.shell === 'bash' ? `'${a}'` : `"${a}"`);
   }
-  const line = parts.join(' ');
-  return cfg.shell === 'cmd' && line.includes('"') ? `"${line}"` : line;
+  return parts.join(' ');
 }
 
 /** Default I/O: real ssh (or a direct spawn on the local transport), the worker `list`/`info` commands. */
@@ -263,7 +262,8 @@ async function upgradeMachine(name, cfg, { orch, check = false, wait = false, io
       const pinned = avail ? safeVersion(avail.version) : null;
       let runtime = null;
       try { runtime = safeVersion((await io.workerInfo(name)).rigVersion); } catch { /* no runtime yet */ }
-      const note = `plugin ${from || 'unknown'}, runtime ${runtime || 'none'}, pinned ${pinned || 'unknown'}, orchestrator ${orch.version}`;
+      // `--available` leaves out installed plugins (Claude Code 2.1.325), so the pin is usually unknown: print it only when listed
+      const note = `plugin ${from || 'unknown'}, runtime ${runtime || 'none'}${pinned ? `, pinned ${pinned}` : ''}, orchestrator ${orch.version}`;
       const versions = [from, runtime].filter(Boolean);
       const newer = versions.some((v) => compareVersions(v, orch.version) > 0);
       const older = versions.length < 2 || versions.some((v) => compareVersions(v, orch.version) < 0);

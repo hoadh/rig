@@ -26,7 +26,7 @@ function fakeIo(over = {}) {
       if (args[0] === '--version') return { code: 0, stdout: world.claudeVersion, stderr: '' };
       if (args[0] === 'plugin' && args[1] === 'list') {
         const installed = world.noPlugin ? [] : [entry(updated ? world.after : world.before)];
-        const body = args.includes('--available') ? { installed, available: [{ pluginId: 'rig@rig-marketplace', version: world.after }] } : installed;
+        const body = args.includes('--available') ? { installed, available: world.noAvailable ? [] : [{ pluginId: 'rig@rig-marketplace', version: world.after }] } : installed;
         return { code: 0, stdout: JSON.stringify(body), stderr: '' };
       }
       if (args[1] === 'marketplace') return { code: 0, stdout: 'ok', stderr: '' };
@@ -75,6 +75,9 @@ t.test('--check makes no write call and no refresh', async () => {
   t.ok(r.note.includes('pinned 2.1.0') && r.note.includes('plugin 2.0.0'), r.note);
   const cur = fakeIo({ before: '2.1.0' });
   t.eq((await go(cur, { check: true })).status, 'current');
+  // live (Claude Code 2.1.325): `--available` leaves out the installed rig, so no pin is printed
+  const unlisted = await go(fakeIo({ noAvailable: true }), { check: true });
+  t.ok(!unlisted.note.includes('pinned') && unlisted.status === 'would-upgrade', unlisted.note);
 });
 t.test('missing plugin: skipped with the generic install hint, never a --migrate hint', async () => {
   const r = await go(fakeIo({ noPlugin: true }));
@@ -209,12 +212,12 @@ t.test('plugin list parses the bare array and the {installed, available} shapes;
   t.eq(U.parsePluginList('{"x":1}'), null);
   t.eq(U.findRigEntry({ installed: [{ id: 'rig@rig-marketplace', scope: 'project' }, { id: 'rig@rig-marketplace', scope: 'user', version: '1.0.0' }] }).version, '1.0.0');
 });
-t.test('buildRemoteCommand: per-shell quoting, cmd wrapped when quotes appear, unsafe tokens refused', () => {
+t.test('buildRemoteCommand: per-shell quoting, cmd quotes not wrapped again, unsafe tokens refused', () => {
   const B = U.buildRemoteCommand;
   t.eq(B({ shell: 'bash' }, 'claude', ['plugin', 'list', '--json']), 'claude plugin list --json');
   t.eq(B({ shell: 'bash' }, '/opt/my dir/node', ['/a b/x.cjs']), "'/opt/my dir/node' '/a b/x.cjs'");
   t.eq(B({ shell: 'cmd' }, 'C:\\node\\node.exe', ['C:\\u\\x.cjs', '--json']), 'C:\\node\\node.exe C:\\u\\x.cjs --json');
-  t.eq(B({ shell: 'cmd' }, 'C:\\Program Files\\nodejs\\node.exe', ['C:\\Users\\A B\\x.cjs']), '""C:\\Program Files\\nodejs\\node.exe" "C:\\Users\\A B\\x.cjs""');
+  t.eq(B({ shell: 'cmd' }, 'C:\\Program Files\\nodejs\\node.exe', ['C:\\Users\\A B\\x.cjs']), '"C:\\Program Files\\nodejs\\node.exe" "C:\\Users\\A B\\x.cjs"');
   t.eq(B({ shell: 'powershell' }, 'C:\\n\\node.exe', ['C:\\x.cjs']), '& C:\\n\\node.exe C:\\x.cjs');
   t.assert.throws(() => B({ shell: 'bash' }, 'claude', ['a; rm -rf /']), (e) => e.exitCode === 2);
   t.assert.throws(() => B({ shell: 'bash' }, 'claude', ['$(x)']), (e) => e.exitCode === 2);
