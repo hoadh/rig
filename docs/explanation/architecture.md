@@ -1,7 +1,7 @@
 # System Architecture
 
-**Last Updated**: 2026-11-06
-**Version**: 2.0.10 (released 2026-11-13; 1.1.0 on `release/1.x`)
+**Last Updated**: 2026-11-15
+**Version**: 2.1.0 (released 2026-11-15; 2.0.10 on `release/2.0.x`, 1.1.0 on `release/1.x`)
 **Project**: Rig
 
 ## Overview
