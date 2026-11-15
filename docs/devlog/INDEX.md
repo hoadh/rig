@@ -5,6 +5,12 @@ Devlog of shipped work, decisions, failures and lessons learned. Newest first.
 
 ## November 2026
 
+- **261115-rig-2-1-released.md**
+  - Rig 2.1.0 released: 1.x migration removed (2.0.10 on `release/2.0.x`), `rig-remote upgrade`, Antigravity review follow-ups
+  - beta.3 failed the remote live check on Windows (extra outer quotes over OpenSSH); fixed in beta.4 before tagging
+  - `marketplace remove` uninstalls the plugin; point workers at a beta by setting `ref` in both marketplace files
+  - Lesson: run the remote live check on a beta; confirm a detached run is `running` before testing busy handling
+
 - **261113-antigravity-plugin-port-implemented.md**
   - Generated Antigravity plugin in `antigravity/rig/` replaces `.agent/` and `GEMINI.md`; Rig hooks run through an adapter
   - Live probe on agy 1.5.4 before coding: `{}` from PreToolUse denies, `${PLUGIN_ROOT}` not expanded in skills
